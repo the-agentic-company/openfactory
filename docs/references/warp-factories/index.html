@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Warp Factories — UI reference</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans, system-ui);
+        color: var(--foreground, #202124);
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+      }
+      a {
+        color: var(--primary, #6150ae);
+        text-underline-offset: 3px;
+      }
+      header {
+        padding-block: 12px;
+      }
+      header p {
+        line-height: 1.6;
+        margin: 0 0 12px;
+      }
+      nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 12px 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 9px 12px;
+        border: 1px solid var(--border, #bbb);
+        border-radius: var(--radius, 6px);
+        color: inherit;
+        background: var(--card, #f6f6f6);
+      }
+      input {
+        flex: 1;
+        min-width: 160px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      #count {
+        font-size: 13px;
+        color: var(--muted-foreground, #666);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      article {
+        background: var(--card, #f6f6f6);
+        border: 1px solid var(--border, #ddd);
+        border-radius: var(--radius, 8px);
+        padding: 16px;
+        overflow: hidden;
+      }
+      article[hidden] {
+        display: none;
+      }
+      .image {
+        display: block;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+      }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-top: 12px;
+        gap: 8px;
+        color: var(--muted-foreground, #666);
+      }
+      h2 {
+        font-size: 16px;
+        line-height: 1.3;
+        margin: 8px 0;
+      }
+      article p {
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 8px 0;
+        color: var(--muted-foreground, #666);
+      }
+      article > a:last-child {
+        font-size: 13px;
+      }
+      footer {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding-block: 16px;
+      }
+      #empty {
+        padding: 20px;
+      }
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      button:focus-visible {
+        outline: 3px solid var(--ring, #8d7bc9);
+        outline-offset: 3px;
+      }
+      @media (max-width: 520px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p>
+          <strong>Warp Factories · 36 captured screens and UI states.</strong> Extracted from
+          <a href="https://www.youtube.com/watch?v=0WBk4ai8y1A" target="_blank" rel="noopener"
+            >Introducing Warp Factories</a
+          >. Full video frames preserve the original presentation, including zoom and presenter
+          overlays. Categories distinguish the factory UI from Slack, Linear, GitHub and Warp
+          desktop.
+        </p>
+        <p>
+          Use the gallery to compare navigation, agent roles, runs, configuration and evaluation.
+          Each card links to a full-resolution PNG and its source timestamp. See
+          <a href="README.md">the reference notes</a> for OpenFactory priorities.
+        </p>
+      </header>
+      <nav aria-label="Reference filters">
+        <input
+          id="search"
+          type="search"
+          placeholder="Search screens…"
+          aria-label="Search screens"
+        /><select id="category" aria-label="Screen category">
+          <option>All</option>
+          <option>Factory</option>
+          <option>Integration</option>
+          <option>GitHub</option>
+          <option>Desktop</option></select
+        ><span id="count" aria-live="polite"></span>
+      </nav>
+      <section class="grid" aria-label="Captured screens">
+        <article
+          data-category="Desktop"
+          data-search="warp terminal: parallel agent work multiple panes show ongoing work and responses."
+        >
+          <a
+            class="image"
+            href="screenshots/01-warp-terminal-overview.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/01-warp-terminal-overview.jpg"
+              alt="Warp terminal: parallel agent work"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>01 · Desktop</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=20s"
+              target="_blank"
+              rel="noopener"
+              >00:20 ↗</a
+            >
+          </div>
+          <h2>Warp terminal: parallel agent work</h2>
+          <p>Multiple panes show ongoing work and responses.</p>
+          <a href="screenshots/01-warp-terminal-overview.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="evaluation run table run results, scores, classifications, runtime and cost in one table."
+        >
+          <a
+            class="image"
+            href="screenshots/02-evaluation-run-table-overview.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/02-evaluation-run-table-overview.jpg"
+              alt="Evaluation run table"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>02 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=35s"
+              target="_blank"
+              rel="noopener"
+              >00:35 ↗</a
+            >
+          </div>
+          <h2>Evaluation run table</h2>
+          <p>Run results, scores, classifications, runtime and cost in one table.</p>
+          <a href="screenshots/02-evaluation-run-table-overview.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="secrets: add secret dialog searchable secret list with a separate editor."
+        >
+          <a class="image" href="screenshots/03-secret-editor.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/03-secret-editor.jpg"
+              alt="Secrets: add secret dialog"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>03 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=40s"
+              target="_blank"
+              rel="noopener"
+              >00:40 ↗</a
+            >
+          </div>
+          <h2>Secrets: add secret dialog</h2>
+          <p>Searchable secret list with a separate editor.</p>
+          <a href="screenshots/03-secret-editor.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="factory setup: connect your code host a setup step offers github or gitlab with a visible progress indicator."
+        >
+          <a
+            class="image"
+            href="screenshots/04-connect-code-host.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/04-connect-code-host.jpg"
+              alt="Factory setup: connect your code host"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>04 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=55s"
+              target="_blank"
+              rel="noopener"
+              >00:55 ↗</a
+            >
+          </div>
+          <h2>Factory setup: connect your code host</h2>
+          <p>A setup step offers GitHub or GitLab with a visible progress indicator.</p>
+          <a href="screenshots/04-connect-code-host.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="factory agents grid role cards for foreman, triage, spec, implementation and review."
+        >
+          <a class="image" href="screenshots/05-agent-grid.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/05-agent-grid.jpg"
+              alt="Factory agents grid"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>05 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=75s"
+              target="_blank"
+              rel="noopener"
+              >01:15 ↗</a
+            >
+          </div>
+          <h2>Factory agents grid</h2>
+          <p>Role cards for foreman, triage, spec, implementation and review.</p>
+          <a href="screenshots/05-agent-grid.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="factory definition as code repository tree beside the factory yaml definition."
+        >
+          <a
+            class="image"
+            href="screenshots/06-factory-definition-code.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/06-factory-definition-code.jpg"
+              alt="Factory definition as code"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>06 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=80s"
+              target="_blank"
+              rel="noopener"
+              >01:20 ↗</a
+            >
+          </div>
+          <h2>Factory definition as code</h2>
+          <p>Repository tree beside the factory YAML definition.</p>
+          <a href="screenshots/06-factory-definition-code.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="agent instructions: output contract markdown instructions rendered beside a file tree."
+        >
+          <a
+            class="image"
+            href="screenshots/07-agent-instructions-code.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/07-agent-instructions-code.jpg"
+              alt="Agent instructions: output contract"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>07 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=90s"
+              target="_blank"
+              rel="noopener"
+              >01:30 ↗</a
+            >
+          </div>
+          <h2>Agent instructions: output contract</h2>
+          <p>Markdown instructions rendered beside a file tree.</p>
+          <a href="screenshots/07-agent-instructions-code.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="agent definition: metadata and instructions structured metadata precedes readable agent instructions."
+        >
+          <a
+            class="image"
+            href="screenshots/08-agent-definition-preview.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/08-agent-definition-preview.jpg"
+              alt="Agent definition: metadata and instructions"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>08 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=100s"
+              target="_blank"
+              rel="noopener"
+              >01:40 ↗</a
+            >
+          </div>
+          <h2>Agent definition: metadata and instructions</h2>
+          <p>Structured metadata precedes readable agent instructions.</p>
+          <a href="screenshots/08-agent-definition-preview.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Integration"
+          data-search="linear: request a product spec a factory can be invoked from the issue comment composer."
+        >
+          <a
+            class="image"
+            href="screenshots/09-linear-agent-mention.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/09-linear-agent-mention.jpg"
+              alt="Linear: request a product spec"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>09 · Integration</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=110s"
+              target="_blank"
+              rel="noopener"
+              >01:50 ↗</a
+            >
+          </div>
+          <h2>Linear: request a product spec</h2>
+          <p>A factory can be invoked from the issue comment composer.</p>
+          <a href="screenshots/09-linear-agent-mention.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Integration"
+          data-search="slack: request and agent response the source request and factory response remain in a shared thread."
+        >
+          <a
+            class="image"
+            href="screenshots/10-slack-request-and-response.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/10-slack-request-and-response.jpg"
+              alt="Slack: request and agent response"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>10 · Integration</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=130s"
+              target="_blank"
+              rel="noopener"
+              >02:10 ↗</a
+            >
+          </div>
+          <h2>Slack: request and agent response</h2>
+          <p>The source request and factory response remain in a shared thread.</p>
+          <a href="screenshots/10-slack-request-and-response.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Integration"
+          data-search="slack: request with video context embedded media can supply task context."
+        >
+          <a
+            class="image"
+            href="screenshots/11-slack-video-context.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/11-slack-video-context.jpg"
+              alt="Slack: request with video context"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>11 · Integration</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=140s"
+              target="_blank"
+              rel="noopener"
+              >02:20 ↗</a
+            >
+          </div>
+          <h2>Slack: request with video context</h2>
+          <p>Embedded media can supply task context.</p>
+          <a href="screenshots/11-slack-video-context.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Integration"
+          data-search="slack: triage and issue handoff discussion, agent progress and linked issue appear together."
+        >
+          <a
+            class="image"
+            href="screenshots/12-slack-triage-handoff.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/12-slack-triage-handoff.jpg"
+              alt="Slack: triage and issue handoff"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>12 · Integration</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=190s"
+              target="_blank"
+              rel="noopener"
+              >03:10 ↗</a
+            >
+          </div>
+          <h2>Slack: triage and issue handoff</h2>
+          <p>Discussion, agent progress and linked issue appear together.</p>
+          <a href="screenshots/12-slack-triage-handoff.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="technical spec: context a generated spec rendered as a repository document."
+        >
+          <a
+            class="image"
+            href="screenshots/13-technical-spec-preview.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/13-technical-spec-preview.jpg"
+              alt="Technical spec: context"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>13 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=210s"
+              target="_blank"
+              rel="noopener"
+              >03:30 ↗</a
+            >
+          </div>
+          <h2>Technical spec: context</h2>
+          <p>A generated spec rendered as a repository document.</p>
+          <a href="screenshots/13-technical-spec-preview.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="technical spec: implementation details detailed sections keep technical decisions reviewable."
+        >
+          <a
+            class="image"
+            href="screenshots/14-technical-spec-details.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/14-technical-spec-details.jpg"
+              alt="Technical spec: implementation details"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>14 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=220s"
+              target="_blank"
+              rel="noopener"
+              >03:40 ↗</a
+            >
+          </div>
+          <h2>Technical spec: implementation details</h2>
+          <p>Detailed sections keep technical decisions reviewable.</p>
+          <a href="screenshots/14-technical-spec-details.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Integration"
+          data-search="slack: spec review and approval the agent returns a spec for review before implementation."
+        >
+          <a
+            class="image"
+            href="screenshots/15-slack-spec-approval.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/15-slack-spec-approval.jpg"
+              alt="Slack: spec review and approval"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>15 · Integration</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=230s"
+              target="_blank"
+              rel="noopener"
+              >03:50 ↗</a
+            >
+          </div>
+          <h2>Slack: spec review and approval</h2>
+          <p>The agent returns a spec for review before implementation.</p>
+          <a href="screenshots/15-slack-spec-approval.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Desktop"
+          data-search="warp desktop: new agent conversation prompt entry, suggested workflows and project context."
+        >
+          <a
+            class="image"
+            href="screenshots/16-desktop-agent-composer.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/16-desktop-agent-composer.jpg"
+              alt="Warp desktop: new agent conversation"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>16 · Desktop</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=240s"
+              target="_blank"
+              rel="noopener"
+              >04:00 ↗</a
+            >
+          </div>
+          <h2>Warp desktop: new agent conversation</h2>
+          <p>Prompt entry, suggested workflows and project context.</p>
+          <a href="screenshots/16-desktop-agent-composer.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Desktop"
+          data-search="warp desktop: agent transcript a continuing conversation with commands and agent output."
+        >
+          <a
+            class="image"
+            href="screenshots/17-desktop-agent-transcript.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/17-desktop-agent-transcript.jpg"
+              alt="Warp desktop: agent transcript"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>17 · Desktop</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=250s"
+              target="_blank"
+              rel="noopener"
+              >04:10 ↗</a
+            >
+          </div>
+          <h2>Warp desktop: agent transcript</h2>
+          <p>A continuing conversation with commands and agent output.</p>
+          <a href="screenshots/17-desktop-agent-transcript.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="github: implementation pull request implementation summary and changed code are handed off as a pr."
+        >
+          <a
+            class="image"
+            href="screenshots/18-implementation-pull-request.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/18-implementation-pull-request.jpg"
+              alt="GitHub: implementation pull request"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>18 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=260s"
+              target="_blank"
+              rel="noopener"
+              >04:20 ↗</a
+            >
+          </div>
+          <h2>GitHub: implementation pull request</h2>
+          <p>Implementation summary and changed code are handed off as a PR.</p>
+          <a href="screenshots/18-implementation-pull-request.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="computer-use session recording a recorded browser session provides visual execution evidence."
+        >
+          <a
+            class="image"
+            href="screenshots/19-computer-use-session.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/19-computer-use-session.jpg"
+              alt="Computer-use session recording"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>19 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=275s"
+              target="_blank"
+              rel="noopener"
+              >04:35 ↗</a
+            >
+          </div>
+          <h2>Computer-use session recording</h2>
+          <p>A recorded browser session provides visual execution evidence.</p>
+          <a href="screenshots/19-computer-use-session.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="factory activity and stage filter work-item list with stage filters and linked work."
+        >
+          <a class="image" href="screenshots/20-factory-activity.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/20-factory-activity.jpg"
+              alt="Factory activity and stage filter"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>20 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=300s"
+              target="_blank"
+              rel="noopener"
+              >05:00 ↗</a
+            >
+          </div>
+          <h2>Factory activity and stage filter</h2>
+          <p>Work-item list with stage filters and linked work.</p>
+          <a href="screenshots/20-factory-activity.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="factory run list individual agent runs show role, source and recency."
+        >
+          <a class="image" href="screenshots/21-factory-runs.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/21-factory-runs.jpg"
+              alt="Factory run list"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>21 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=310s"
+              target="_blank"
+              rel="noopener"
+              >05:10 ↗</a
+            >
+          </div>
+          <h2>Factory run list</h2>
+          <p>Individual agent runs show role, source and recency.</p>
+          <a href="screenshots/21-factory-runs.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+        <article
+          data-category="Factory"
+          data-search="run recording playback recorded execution can be reviewed from a run."
+        >
+          <a
+            class="image"
+            href="screenshots/22-run-recording-playback.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/22-run-recording-playback.jpg"
+              alt="Run recording playback"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>22 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=320s"
+              target="_blank"
+              rel="noopener"
+              >05:20 ↗</a
+            >
+          </div>
+          <h2>Run recording playback</h2>
+          <p>Recorded execution can be reviewed from a run.</p>
+          <a href="screenshots/22-run-recording-playback.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="run search and related stages search narrows multiple triage/spec/implementation runs for one request."
+        >
+          <a class="image" href="screenshots/23-runs-search.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/23-runs-search.jpg"
+              alt="Run search and related stages"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>23 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=330s"
+              target="_blank"
+              rel="noopener"
+              >05:30 ↗</a
+            >
+          </div>
+          <h2>Run search and related stages</h2>
+          <p>Search narrows multiple triage/spec/implementation runs for one request.</p>
+          <a href="screenshots/23-runs-search.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+        <article
+          data-category="Factory"
+          data-search="run details: model, resources and cost run metadata includes model, secret references, tools, runtime and cost."
+        >
+          <a class="image" href="screenshots/24-run-details.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/24-run-details.jpg"
+              alt="Run details: model, resources and cost"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>24 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=340s"
+              target="_blank"
+              rel="noopener"
+              >05:40 ↗</a
+            >
+          </div>
+          <h2>Run details: model, resources and cost</h2>
+          <p>Run metadata includes model, secret references, tools, runtime and cost.</p>
+          <a href="screenshots/24-run-details.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+        <article
+          data-category="Factory"
+          data-search="agent configuration editable resources, model and additional instructions in one form."
+        >
+          <a class="image" href="screenshots/25-agent-settings.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/25-agent-settings.jpg"
+              alt="Agent configuration"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>25 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=350s"
+              target="_blank"
+              rel="noopener"
+              >05:50 ↗</a
+            >
+          </div>
+          <h2>Agent configuration</h2>
+          <p>Editable resources, model and additional instructions in one form.</p>
+          <a href="screenshots/25-agent-settings.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="automation list named triggers map external events or schedules to an agent."
+        >
+          <a class="image" href="screenshots/26-automations.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/26-automations.jpg"
+              alt="Automation list"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>26 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=360s"
+              target="_blank"
+              rel="noopener"
+              >06:00 ↗</a
+            >
+          </div>
+          <h2>Automation list</h2>
+          <p>Named triggers map external events or schedules to an agent.</p>
+          <a href="screenshots/26-automations.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+        <article
+          data-category="Factory"
+          data-search="scorer configuration a named scorer targets agents and defines a review rubric."
+        >
+          <a class="image" href="screenshots/27-scorer-editor.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/27-scorer-editor.jpg"
+              alt="Scorer configuration"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>27 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=380s"
+              target="_blank"
+              rel="noopener"
+              >06:20 ↗</a
+            >
+          </div>
+          <h2>Scorer configuration</h2>
+          <p>A named scorer targets agents and defines a review rubric.</p>
+          <a href="screenshots/27-scorer-editor.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="scorer classifications and sampling editable outcome labels, threshold, sample rate and auto-run settings."
+        >
+          <a
+            class="image"
+            href="screenshots/28-scorer-classifications.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/28-scorer-classifications.jpg"
+              alt="Scorer classifications and sampling"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>28 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=390s"
+              target="_blank"
+              rel="noopener"
+              >06:30 ↗</a
+            >
+          </div>
+          <h2>Scorer classifications and sampling</h2>
+          <p>Editable outcome labels, threshold, sample rate and auto-run settings.</p>
+          <a href="screenshots/28-scorer-classifications.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="scorer results table results combine pass/fail, numeric score, classification, runtime and cost."
+        >
+          <a class="image" href="screenshots/29-scorer-results.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/29-scorer-results.jpg"
+              alt="Scorer results table"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>29 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=400s"
+              target="_blank"
+              rel="noopener"
+              >06:40 ↗</a
+            >
+          </div>
+          <h2>Scorer results table</h2>
+          <p>Results combine pass/fail, numeric score, classification, runtime and cost.</p>
+          <a href="screenshots/29-scorer-results.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="scoring result details drawer a side panel explains a score and links to its underlying session."
+        >
+          <a
+            class="image"
+            href="screenshots/30-scoring-run-details.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/30-scoring-run-details.jpg"
+              alt="Scoring result details drawer"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>30 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=410s"
+              target="_blank"
+              rel="noopener"
+              >06:50 ↗</a
+            >
+          </div>
+          <h2>Scoring result details drawer</h2>
+          <p>A side panel explains a score and links to its underlying session.</p>
+          <a href="screenshots/30-scoring-run-details.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="github: self-improvement proposal changes to agent behavior arrive as a reviewable pull request."
+        >
+          <a
+            class="image"
+            href="screenshots/31-self-improvement-pull-request.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/31-self-improvement-pull-request.jpg"
+              alt="GitHub: self-improvement proposal"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>31 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=430s"
+              target="_blank"
+              rel="noopener"
+              >07:10 ↗</a
+            >
+          </div>
+          <h2>GitHub: self-improvement proposal</h2>
+          <p>Changes to agent behavior arrive as a reviewable pull request.</p>
+          <a href="screenshots/31-self-improvement-pull-request.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="GitHub"
+          data-search="github: agent instruction diff instruction edits are inspected with a normal code diff."
+        >
+          <a
+            class="image"
+            href="screenshots/32-self-improvement-diff.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/32-self-improvement-diff.jpg"
+              alt="GitHub: agent instruction diff"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>32 · GitHub</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=450s"
+              target="_blank"
+              rel="noopener"
+              >07:30 ↗</a
+            >
+          </div>
+          <h2>GitHub: agent instruction diff</h2>
+          <p>Instruction edits are inspected with a normal code diff.</p>
+          <a href="screenshots/32-self-improvement-diff.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="factory dashboard cost per pr, pr count and run count share a time range."
+        >
+          <a
+            class="image"
+            href="screenshots/33-factory-dashboard.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/33-factory-dashboard.jpg"
+              alt="Factory dashboard"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>33 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=460s"
+              target="_blank"
+              rel="noopener"
+              >07:40 ↗</a
+            >
+          </div>
+          <h2>Factory dashboard</h2>
+          <p>Cost per PR, PR count and run count share a time range.</p>
+          <a href="screenshots/33-factory-dashboard.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="dashboard: cost breakdown tooltip a cost chart separates compute, platform and inference."
+        >
+          <a
+            class="image"
+            href="screenshots/34-dashboard-cost-breakdown.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/34-dashboard-cost-breakdown.jpg"
+              alt="Dashboard: cost breakdown tooltip"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>34 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=470s"
+              target="_blank"
+              rel="noopener"
+              >07:50 ↗</a
+            >
+          </div>
+          <h2>Dashboard: cost breakdown tooltip</h2>
+          <p>A cost chart separates compute, platform and inference.</p>
+          <a href="screenshots/34-dashboard-cost-breakdown.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="dashboard: pr and run volume small charts show work output and execution volume."
+        >
+          <a
+            class="image"
+            href="screenshots/35-dashboard-volume-metrics.png"
+            target="_blank"
+            rel="noopener"
+            ><img
+              src="thumbnails/35-dashboard-volume-metrics.jpg"
+              alt="Dashboard: PR and run volume"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>35 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=480s"
+              target="_blank"
+              rel="noopener"
+              >08:00 ↗</a
+            >
+          </div>
+          <h2>Dashboard: PR and run volume</h2>
+          <p>Small charts show work output and execution volume.</p>
+          <a href="screenshots/35-dashboard-volume-metrics.png" target="_blank" rel="noopener"
+            >Open 4K PNG ↗</a
+          >
+        </article>
+        <article
+          data-category="Factory"
+          data-search="scorer list a catalog of quality, efficiency and compliance evaluations."
+        >
+          <a class="image" href="screenshots/36-scorer-list.png" target="_blank" rel="noopener"
+            ><img
+              src="thumbnails/36-scorer-list.jpg"
+              alt="Scorer list"
+              loading="lazy"
+              width="960"
+              height="540"
+          /></a>
+          <div class="meta">
+            <span>36 · Factory</span
+            ><a
+              href="https://www.youtube.com/watch?v=0WBk4ai8y1A&amp;t=500s"
+              target="_blank"
+              rel="noopener"
+              >08:20 ↗</a
+            >
+          </div>
+          <h2>Scorer list</h2>
+          <p>A catalog of quality, efficiency and compliance evaluations.</p>
+          <a href="screenshots/36-scorer-list.png" target="_blank" rel="noopener">Open 4K PNG ↗</a>
+        </article>
+      </section>
+      <p id="empty" hidden>No screens match this filter.</p>
+      <footer>
+        <button id="prev" type="button">← Previous</button><span id="page" aria-live="polite"></span
+        ><button id="next" type="button">Next →</button>
+      </footer>
+    </main>
+    <script>
+      const cards = [...document.querySelectorAll('article')];
+      const search = document.querySelector('#search');
+      const category = document.querySelector('#category');
+      let page = 0;
+      const size = 6;
+      function render() {
+        const q = search.value.trim().toLowerCase();
+        const matches = cards.filter(
+          (c) =>
+            (category.value === 'All' || c.dataset.category === category.value) &&
+            c.dataset.search.includes(q),
+        );
+        const pages = Math.max(1, Math.ceil(matches.length / size));
+        page = Math.min(page, pages - 1);
+        cards.forEach((c) => (c.hidden = true));
+        matches.slice(page * size, (page + 1) * size).forEach((c) => (c.hidden = false));
+        document.querySelector('#count').textContent = matches.length + ' screens';
+        document.querySelector('#page').textContent = page + 1 + ' / ' + pages;
+        document.querySelector('#prev').disabled = page === 0;
+        document.querySelector('#next').disabled = page === pages - 1;
+        document.querySelector('#empty').hidden = matches.length > 0;
+      }
+      search.addEventListener('input', () => {
+        page = 0;
+        render();
+      });
+      category.addEventListener('change', () => {
+        page = 0;
+        render();
+      });
+      document.querySelector('#prev').addEventListener('click', () => {
+        page--;
+        render();
+      });
+      document.querySelector('#next').addEventListener('click', () => {
+        page++;
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>
