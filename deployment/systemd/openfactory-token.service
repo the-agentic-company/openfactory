@@ -1,0 +1,7 @@
+[Unit]
+Description=Renew OpenFactory's scoped T3 credential
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/openfactory/service.env
+ExecStart=%h/git/openfactory/scripts/renew-t3-token.sh
