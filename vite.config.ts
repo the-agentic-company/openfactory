@@ -1,0 +1,13 @@
+import { defineConfig } from 'vite-plus';
+
+export default defineConfig({
+  fmt: { singleQuote: true, ignorePatterns: ['**/routeTree.gen.ts', 'pnpm-lock.yaml'] },
+  lint: {
+    plugins: ['typescript', 'react', 'jsx-a11y', 'import'],
+    options: { typeAware: true, typeCheck: true },
+    ignorePatterns: ['**/routeTree.gen.ts', '**/.output/**', '**/.tanstack/**'],
+    rules: { curly: 'error', 'react/react-in-jsx-scope': 'off' },
+  },
+  test: { include: ['packages/**/*.test.ts'] },
+  run: { cache: true },
+});

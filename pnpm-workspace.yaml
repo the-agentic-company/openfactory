@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vite-plus: 1.4.0
+overrides:
+  vite: 'catalog:'
+peerDependencyRules:
+  allowedVersions:
+    vite: '*'
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.105.0'
+  - '@tanstack/react-query@5.105.0'

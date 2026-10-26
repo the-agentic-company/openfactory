@@ -1,0 +1,37 @@
+{
+  "name": "@factory/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev --host 0.0.0.0 --port 8018 --strictPort",
+    "build": "vp build",
+    "start": "node .output/server/index.mjs",
+    "preview": "vp preview --port 8018 --strictPort"
+  },
+  "dependencies": {
+    "@factory/config": "workspace:*",
+    "@factory/core": "workspace:*",
+    "@tanstack/react-query": "5.105.0",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.4",
+    "@tanstack/react-table": "9.3.1",
+    "@tanstack/react-virtual": "3.14.22",
+    "lucide-react": "1.61.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/devtools-vite": "0.8.5",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "nitro": "3.0.260903-beta",
+    "tailwindcss": "4.3.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}
