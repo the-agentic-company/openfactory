@@ -1,0 +1,72 @@
+[
+  {
+    "term": "god-module",
+    "name": "God module",
+    "definition": "A module owns responsibilities that change for different reasons.",
+    "evidence": "Trace distinct responsibilities, their dependencies and concrete changes.",
+    "counterexample": "A large cohesive implementation behind a small interface can be appropriate."
+  },
+  {
+    "term": "shotgun-surgery",
+    "name": "Shotgun surgery",
+    "definition": "One concept change requires edits across many modules.",
+    "evidence": "Show a real change and the duplicated knowledge at its edit sites.",
+    "counterexample": "A deliberate cross-layer feature can need several legitimate edits."
+  },
+  {
+    "term": "shallow-module",
+    "name": "Shallow module",
+    "definition": "The interface makes callers learn nearly as much complexity as the implementation hides.",
+    "evidence": "Inspect caller obligations and apply the deletion test.",
+    "counterexample": "A small adapter can isolate a dependency or enforce a useful invariant."
+  },
+  {
+    "term": "leaky-interface",
+    "name": "Leaky interface",
+    "definition": "Callers must understand implementation details to use a module correctly.",
+    "evidence": "Identify repeated ordering, configuration or error-handling obligations.",
+    "counterexample": "A domain invariant in an explicit interface is not an implementation leak."
+  },
+  {
+    "term": "contradictory-state",
+    "name": "Contradictory state",
+    "definition": "The state shape permits combinations the domain cannot accept.",
+    "evidence": "Trace a reachable invalid combination and the guards that repair it.",
+    "counterexample": "Several independent fields may represent legitimately independent state."
+  },
+  {
+    "term": "effect-chain",
+    "name": "Effect chain",
+    "definition": "Effects derive or synchronize React state that could be computed without that synchronization.",
+    "evidence": "Trace each state dependency and identify the external system, if any.",
+    "counterexample": "An Effect that synchronizes with an external system can be necessary."
+  },
+  {
+    "term": "unbounded-work",
+    "name": "Unbounded work",
+    "definition": "A result set, retry sequence or concurrent task collection lacks an effective limit.",
+    "evidence": "Follow the complete path and account for infrastructure and caller limits.",
+    "counterexample": "A validated finite dataset or enforced upstream limit can bound the operation."
+  },
+  {
+    "term": "swallowed-failure",
+    "name": "Swallowed failure",
+    "definition": "A failed operation becomes success or disappears without an actionable result.",
+    "evidence": "Trace the failure through its consumer and show the misleading outcome.",
+    "counterexample": "An intentional best-effort operation may return an explicit partial result."
+  },
+  {
+    "term": "duplicated-domain-rule",
+    "name": "Duplicated domain rule",
+    "definition": "Several modules independently encode the same decision and can disagree.",
+    "evidence": "Compare the rule and a real or plausible divergence in its consumers.",
+    "counterexample": "Similar code can describe different domain rules and should stay separate."
+  },
+  {
+    "term": "change-hotspot",
+    "name": "Change hotspot",
+    "definition": "An area repeatedly touched by development; a review priority signal.",
+    "evidence": "Inspect recent history and the reasons for change.",
+    "counterexample": "Frequent changes alone do not prove a code smell."
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "id": "G-001",
+  "term": "god-module",
+  "title": "Name the domain responsibility and observed friction",
+  "state": "candidate",
+  "priority": "medium",
+  "rationale": "Explain observed cost and why it matters now",
+  "confidence": "low",
+  "effort": "unknown",
+  "problem": "Describe the actual responsibility conflict",
+  "consequence": "Describe a concrete change or failure affected",
+  "direction": "Describe the possible improvement without committing to an interface",
+  "counterevidence": "Record reasons the current shape might be appropriate",
+  "nextCheck": "Name the next trace or verification",
+  "evidence": [],
+  "observations": []
+}

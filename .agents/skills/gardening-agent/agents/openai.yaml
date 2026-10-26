@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gardening Agent"
+  short_description: "Accumulate code smells and explain the worst findings"
+  default_prompt: "Use $gardening-agent to resume the canonical dossier and run the next codebase review."

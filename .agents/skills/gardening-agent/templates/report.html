@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Gardening Agent report</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: light-dark(#fff, #191b19);
+        --ink: light-dark(#252922, #e7ebe4);
+        --muted: light-dark(#656d62, #abb4a7);
+        --line: light-dark(#e5e9e2, #394036);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          14px/1.55 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1050px;
+        margin: auto;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 500;
+        margin: 0 0 6px;
+      }
+      h2 {
+        font-size: 18px;
+        font-weight: 500;
+        margin: 28px 0 12px;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 500;
+        margin: 0;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 18px 0;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      article {
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      dl {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 6px 16px;
+        margin: 12px 0;
+      }
+      dt {
+        color: var(--muted);
+      }
+      dd {
+        margin: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        font-weight: 500;
+      }
+      code {
+        font-size: 12px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      details {
+        margin: 10px 0;
+      }
+      summary {
+        cursor: pointer;
+      }
+      td,
+      dd,
+      li,
+      code,
+      p,
+      h3 {
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding: 16px;
+        }
+        dl {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        dd {
+          margin-bottom: 10px;
+        }
+        table,
+        tbody,
+        tr,
+        th,
+        td {
+          display: block;
+        }
+        thead {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Gardening Agent</h1>
+      <p id="context" class="muted"></p>
+      <p id="summary"></p>
+      <nav aria-label="Report sections">
+        <a href="#findings">Findings</a><a href="#changes">Changes</a
+        ><a href="#coverage">Coverage</a><a href="#decisions">Decisions</a
+        ><a href="#glossary">Glossary</a>
+      </nav>
+      <section id="findings">
+        <h2>Ranked supported findings</h2>
+        <div id="supported"></div>
+        <details>
+          <summary>Other findings and history</summary>
+          <div id="other"></div>
+        </details>
+      </section>
+      <section id="changes">
+        <h2>Changes since the previous report</h2>
+        <ul id="change-list"></ul>
+      </section>
+      <section id="coverage">
+        <h2>Review coverage</h2>
+        <div id="runs"></div>
+      </section>
+      <section id="decisions">
+        <h2>Human decisions</h2>
+        <div id="decision-list"></div>
+      </section>
+      <section id="glossary">
+        <h2>Smell glossary</h2>
+        <div id="terms"></div>
+      </section>
+      <noscript
+        >This report needs JavaScript to display its embedded dossier. The canonical dossier.json
+        remains available beside it.</noscript
+      >
+    </main>
+    <script id="report-data" type="application/json">
+      {{REPORT_DATA}}
+    </script>
+    <script>
+      (() => {
+        const { dossier, glossary } = JSON.parse(
+          document.getElementById("report-data").textContent,
+        );
+        const terms = new Map(glossary.map((term) => [term.term, term]));
+        function el(tag, text, parent) {
+          const node = document.createElement(tag);
+          if (text !== undefined) node.textContent = text;
+          if (parent) parent.append(node);
+          return node;
+        }
+        function row(dl, label, text) {
+          el("dt", label, dl);
+          el("dd", text, dl);
+        }
+        function list(parent, items, empty) {
+          if (!items.length) {
+            el("p", empty, parent);
+            return;
+          }
+          const ul = el("ul", undefined, parent);
+          items.forEach((item) => el("li", item, ul));
+        }
+        const latest = dossier.runs.at(-1);
+        document.getElementById("context").textContent =
+          dossier.project +
+          " · " +
+          dossier.timezone +
+          (latest ? " · " + latest.at + " · " + latest.revision : " · No completed review");
+        document.getElementById("summary").textContent = dossier.summary;
+        function finding(f, parent) {
+          const article = el("article", undefined, parent);
+          article.id = f.id;
+          el("h3", f.id + " · " + f.title, article);
+          el(
+            "p",
+            f.state +
+              " · Priority " +
+              f.priority +
+              " · Confidence " +
+              f.confidence +
+              " · Effort " +
+              f.effort,
+            article,
+          ).className = "muted";
+          const definition = el("a", terms.get(f.term).name, article);
+          definition.href = "#term-" + f.term;
+          const dl = el("dl", undefined, article);
+          [
+            ["Problem", f.problem],
+            ["Consequence", f.consequence],
+            ["Priority reason", f.rationale],
+            ["Possible direction", f.direction],
+            ["Counterevidence", f.counterevidence],
+            ["Next verification", f.nextCheck],
+          ].forEach(([label, text]) => row(dl, label, text));
+          const evidence = el("details", undefined, article);
+          el("summary", "Source evidence and observations", evidence);
+          f.evidence.forEach((item) => {
+            const p = el("p", undefined, evidence);
+            const link = el("a", item.path + ":" + item.line + " · " + item.symbol, p);
+            link.href =
+              dossier.repositoryUrl.replace(/\/$/, "") +
+              "/blob/" +
+              item.revision +
+              "/" +
+              item.path +
+              "#L" +
+              item.line;
+            el("p", item.note + " · " + item.revision, evidence);
+          });
+          list(
+            evidence,
+            f.observations.map((item) => item.at + " · " + item.run + " · " + item.note),
+            "No observations recorded.",
+          );
+        }
+        const priority = { high: 0, medium: 1, low: 2 };
+        const supported = dossier.findings
+          .filter((f) => f.state === "supported")
+          .sort((a, b) => priority[a.priority] - priority[b.priority]);
+        if (!supported.length)
+          el(
+            "p",
+            "No supported finding has been established.",
+            document.getElementById("supported"),
+          );
+        supported.forEach((f) => finding(f, document.getElementById("supported")));
+        dossier.findings
+          .filter((f) => f.state !== "supported")
+          .forEach((f) => finding(f, document.getElementById("other")));
+        dossier.changes.forEach((change) =>
+          el("li", change, document.getElementById("change-list")),
+        );
+        if (!dossier.changes.length)
+          el("li", "No report comparison is recorded.", document.getElementById("change-list"));
+        const runs = document.getElementById("runs");
+        if (!dossier.runs.length) el("p", "No scope has been inspected yet.", runs);
+        [...dossier.runs].reverse().forEach((run) => {
+          const details = el("details", undefined, runs);
+          details.open = run === latest;
+          el("summary", run.at + " · " + run.phase, details);
+          el("p", run.summary, details);
+          el("p", "Revision " + run.revision, details);
+          el("h3", "Inspected scope", details);
+          list(details, run.scope, "No scope recorded.");
+          el("h3", "Coverage gaps", details);
+          list(details, run.gaps, "No gaps recorded for this bounded scope.");
+          if (run.dirtyPaths.length) {
+            el("h3", "Local edits", details);
+            list(details, run.dirtyPaths, "");
+          }
+        });
+        const decisions = document.getElementById("decision-list");
+        if (!dossier.decisions.length) el("p", "No human decisions recorded.", decisions);
+        dossier.decisions.forEach((decision) => {
+          el("p", decision.at + " · " + decision.finding + " · " + decision.choice, decisions);
+          el("p", "Reconsider when: " + decision.reconsiderWhen, decisions);
+        });
+        glossary.forEach((term) => {
+          const article = el("article", undefined, document.getElementById("terms"));
+          article.id = "term-" + term.term;
+          el("h3", term.name, article);
+          el("p", term.definition, article);
+          const dl = el("dl", undefined, article);
+          row(dl, "Evidence needed", term.evidence);
+          row(dl, "May be acceptable", term.counterexample);
+        });
+      })();
+    </script>
+  </body>
+</html>

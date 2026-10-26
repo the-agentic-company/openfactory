@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reliability operator"
+  short_description: "Review health and coordinate scoped reliability fixes"
+  default_prompt: "Run $reliability-operator in orchestrator mode."

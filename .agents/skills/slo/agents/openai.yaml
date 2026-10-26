@@ -1,0 +1,3 @@
+interface:
+  display_name: "SLO"
+  short_description: "Audit SLO offenders or dispatch scoped fix chats"

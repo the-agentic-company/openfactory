@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loops worktree setup"
+  short_description: "Prepare and verify a persistent agent environment"
+  default_prompt: "Use $loops-worktree-setup to prepare the configured persistent checkout and verify its website and Assistant."
