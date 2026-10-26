@@ -184,7 +184,7 @@ describe("closed enum parsing", () => {
       throw new Error("expected parser to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(WatcherQueryError);
-      if (!(error instanceof WatcherQueryError)) throw error;
+      if (!(error instanceof WatcherQueryError)) {throw error;}
       expect(error.failure).toMatchObject({
         kind: "missing-key",
         retryable: true,

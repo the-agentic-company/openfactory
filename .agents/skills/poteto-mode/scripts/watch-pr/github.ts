@@ -62,13 +62,13 @@ function parseJson(text: string, label: string): unknown {
 async function runJson(argv: readonly [string, ...string[]]): Promise<unknown> {
   const result = await run(argv);
   if (result.code !== 0)
-    throw new WatcherQueryError({
+    {throw new WatcherQueryError({
       kind: "command-exit",
       retryable: true,
       code: result.code,
       detail:
         firstLine(result.stderr) || `${argv.join(" ")} exited ${result.code}`,
-    });
+    });}
   return parseJson(result.stdout, argv.join(" "));
 }
 function raw(value: unknown): string {
@@ -93,24 +93,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function record(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) missing(path, value);
+  if (!isRecord(value)) {missing(path, value);}
   return value;
 }
 function list(value: unknown, path: string): readonly unknown[] {
-  if (!Array.isArray(value)) missing(path, value);
+  if (!Array.isArray(value)) {missing(path, value);}
   return value;
 }
 function at(value: unknown, path: readonly string[]): unknown {
   let current = value;
   for (const key of path) {
     const object = record(current, path.join("."));
-    if (!(key in object)) missing(path.join("."));
+    if (!(key in object)) {missing(path.join("."));}
     current = object[key];
   }
   return current;
 }
 function string(value: unknown, path: string): string {
-  if (typeof value !== "string") missing(path, value);
+  if (typeof value !== "string") {missing(path, value);}
   return value;
 }
 const optionalString = (value: unknown, path: string): string | null =>
@@ -121,7 +121,7 @@ function enumValue<const V extends readonly string[]>(
   path: string
 ): V[number] {
   if (typeof value === "string")
-    for (const candidate of values) if (candidate === value) return candidate;
+    {for (const candidate of values) if (candidate === value) return candidate;}
   return missing(path, value);
 }
 const nullableEnum = <const V extends readonly string[]>(
@@ -164,9 +164,9 @@ const reviewDecision = (value: unknown): T.ReviewDecision =>
 function parseRemote(value: string): T.Repository | null {
   let normalized = value.trim();
   if (normalized.startsWith("git@github.com:"))
-    normalized = `https://github.com/${normalized.slice(15)}`;
+    {normalized = `https://github.com/${normalized.slice(15)}`;}
   if (normalized.startsWith("ssh://git@github.com/"))
-    normalized = `https://github.com/${normalized.slice(21)}`;
+    {normalized = `https://github.com/${normalized.slice(21)}`;}
   try {
     const url = new URL(normalized);
     const parts = url.pathname
@@ -183,7 +183,7 @@ function parseRemote(value: string): T.Repository | null {
       url.hash ||
       parts.length !== 2
     )
-      return null;
+      {return null;}
     return { owner: parts[0], repo: parts[1] };
   } catch {
     return null;
@@ -204,7 +204,7 @@ function parsePrUrl(value: string): T.PrContext {
       parts.length !== 4 ||
       parts[2] !== "pull"
     )
-      throw new Error("not a canonical GitHub pull URL");
+      {throw new Error("not a canonical GitHub pull URL");}
     return {
       owner: parts[0],
       repo: parts[1],
@@ -241,12 +241,12 @@ export function parseFastCheck(value: unknown): T.Check {
     bucket === "fail" ||
     ["FAILURE", "ERROR", "ACTION_REQUIRED"].includes(state)
   )
-    return { ...details, kind: "failed", reportedState: state };
-  if (bucket === "pending") return pendingOrGate(details, state);
+    {return { ...details, kind: "failed", reportedState: state };}
+  if (bucket === "pending") {return pendingOrGate(details, state);}
   if (bucket === "pass")
-    return { ...details, kind: "passed", reportedState: state };
+    {return { ...details, kind: "passed", reportedState: state };}
   if (bucket === "skipping")
-    return { ...details, kind: "skipped", reportedState: state };
+    {return { ...details, kind: "skipped", reportedState: state };}
   return { ...details, kind: "failed", reportedState: state };
 }
 // The owner-approval gate is excluded from pending everywhere, so the rule has
@@ -273,7 +273,7 @@ function pendingOrGate(
 export function mapRollupNode(value: unknown): T.Check | null {
   const object = record(value, "rollup node");
   const typename = object.__typename;
-  if (typename !== "CheckRun" && typename !== "StatusContext") return null;
+  if (typename !== "CheckRun" && typename !== "StatusContext") {return null;}
   const details = checkDetails(
     object,
     typename === "CheckRun" ? "name" : "context"
@@ -288,11 +288,11 @@ export function mapRollupNode(value: unknown): T.Check | null {
         ? object.conclusion.toUpperCase()
         : "";
     if (status !== "COMPLETED")
-      return pendingOrGate({ ...details, link }, "PENDING");
+      {return pendingOrGate({ ...details, link }, "PENDING");}
     if (conclusion === "SUCCESS")
-      return { ...details, link, kind: "passed", reportedState: "SUCCESS" };
+      {return { ...details, link, kind: "passed", reportedState: "SUCCESS" };}
     if (conclusion === "NEUTRAL" || conclusion === "SKIPPED")
-      return { ...details, link, kind: "skipped", reportedState: conclusion };
+      {return { ...details, link, kind: "skipped", reportedState: conclusion };}
     return {
       ...details,
       link,
@@ -303,7 +303,7 @@ export function mapRollupNode(value: unknown): T.Check | null {
   const state =
     typeof object.state === "string" ? object.state.toUpperCase() : "";
   if (state === "PENDING" || state === "EXPECTED")
-    return pendingOrGate({ ...details, link }, "PENDING");
+    {return pendingOrGate({ ...details, link }, "PENDING");}
   return state === "SUCCESS"
     ? { ...details, link, kind: "passed", reportedState: state }
     : { ...details, link, kind: "failed", reportedState: state || "FAILURE" };
@@ -331,7 +331,7 @@ function parseComment(value: unknown): T.ReviewComment {
   };
 }
 function isBugbot(comment: T.ReviewComment | null): boolean {
-  if (comment === null) return false;
+  if (comment === null) {return false;}
   const author = (comment.authorLogin ?? "").toLowerCase();
   const body = comment.body.toLowerCase();
   return (
@@ -347,13 +347,13 @@ function isBugbot(comment: T.ReviewComment | null): boolean {
   );
 }
 function passKey(comment: T.ReviewComment | null): string | null {
-  if (comment === null) return null;
+  if (comment === null) {return null;}
   for (const pattern of [
     /RUN_ID:\s*([a-zA-Z0-9_.:-]+)/,
     /CURSOR_AUTOMATION_ID:\s*([a-zA-Z0-9_.:-]+)/,
   ]) {
     const match = pattern.exec(comment.body);
-    if (match?.[1]) return match[1];
+    if (match?.[1]) {return match[1];}
   }
   return null;
 }
@@ -367,7 +367,7 @@ export function parseReviewThreadPage(value: unknown): T.ReviewThreadPage {
   for (const node of nodes) {
     const thread = record(node, "review thread");
     if (typeof thread.isResolved !== "boolean")
-      missing("review thread.isResolved", thread.isResolved);
+      {missing("review thread.isResolved", thread.isResolved);}
     const comments = list(
       at(thread, ["comments", "nodes"]),
       "review thread.comments.nodes"
@@ -380,7 +380,7 @@ export function parseReviewThreadPage(value: unknown): T.ReviewThreadPage {
   }
   const page = record(reviewThreads.pageInfo, "reviewThreads.pageInfo");
   if (typeof page.hasNextPage !== "boolean")
-    missing("reviewThreads.pageInfo.hasNextPage", page.hasNextPage);
+    {missing("reviewThreads.pageInfo.hasNextPage", page.hasNextPage);}
   const cursor = optionalString(
     page.endCursor,
     "reviewThreads.pageInfo.endCursor"
@@ -393,10 +393,10 @@ export function buildReviewThreads(
   const keys = new Set<string>();
   let keyless = false;
   for (const thread of threads) {
-    if (!isBugbot(thread.firstComment)) continue;
+    if (!isBugbot(thread.firstComment)) {continue;}
     const key = passKey(thread.firstComment);
-    if (key === null) keyless = true;
-    else keys.add(key);
+    if (key === null) {keyless = true;}
+    else {keys.add(key);}
   }
   const passes = keys.size > 0 ? keys.size : keyless ? 1 : 0;
   return threads
@@ -414,7 +414,7 @@ export function parsePullRequest(
 ): T.PullRequestFacts {
   const object = record(value, "pull request");
   if (typeof object.isDraft !== "boolean")
-    missing("pull request.isDraft", object.isDraft);
+    {missing("pull request.isDraft", object.isDraft);}
   return {
     context,
     mergeable: enumValue(
@@ -466,7 +466,7 @@ export class GhGitHubReader implements T.GitHubReader {
   }
   async currentPr(pr: T.PrNumber | null): Promise<T.PrContext> {
     const argv: [string, ...string[]] = ["gh", "pr", "view"];
-    if (pr !== null) argv.push(String(pr));
+    if (pr !== null) {argv.push(String(pr));}
     argv.push("--json", "number,url");
     const object = record(await runJson(argv), "current PR");
     const parsed = parsePrUrl(string(object.url, "current PR.url"));
@@ -536,9 +536,9 @@ export class GhGitHubReader implements T.GitHubReader {
       try {
         const value = parseJson(result.stdout, "gh pr checks");
         if (Array.isArray(value))
-          return { kind: "checks", checks: value.map(parseFastCheck) };
+          {return { kind: "checks", checks: value.map(parseFastCheck) };}
       } catch (error) {
-        if (!(error instanceof WatcherQueryError)) throw error;
+        if (!(error instanceof WatcherQueryError)) {throw error;}
       }
     }
     return { kind: "unusable", exitCode: result.code, stderr: result.stderr };
@@ -548,19 +548,19 @@ export class GhGitHubReader implements T.GitHubReader {
     after: string | null
   ): Promise<T.RollupPage> {
     const argv = graphqlArgs(PR_CHECK_ROLLUP_QUERY, context);
-    if (after !== null) argv.push("-f", `after=${after}`);
+    if (after !== null) {argv.push("-f", `after=${after}`);}
     const value = await runJson(argv);
     const commits = list(
       at(value, ["data", "repository", "pullRequest", "commits", "nodes"]),
       "commits.nodes"
     );
-    if (commits.length === 0) return { checks: [], endCursor: null };
+    if (commits.length === 0) {return { checks: [], endCursor: null };}
     const commit = record(
       at(commits[commits.length - 1], ["commit"]),
       "commit"
     );
     if (commit.statusCheckRollup === null)
-      return { checks: [], endCursor: null };
+      {return { checks: [], endCursor: null };}
     const contexts = record(
       at(commit, ["statusCheckRollup", "contexts"]),
       "contexts"
@@ -570,7 +570,7 @@ export class GhGitHubReader implements T.GitHubReader {
       .filter((check): check is T.Check => check !== null);
     const page = record(contexts.pageInfo, "contexts.pageInfo");
     if (typeof page.hasNextPage !== "boolean")
-      missing("contexts.pageInfo.hasNextPage", page.hasNextPage);
+      {missing("contexts.pageInfo.hasNextPage", page.hasNextPage);}
     const cursor = optionalString(
       page.endCursor,
       "contexts.pageInfo.endCursor"
@@ -582,7 +582,7 @@ export class GhGitHubReader implements T.GitHubReader {
     after: string | null
   ): Promise<T.ReviewThreadPage> {
     const argv = graphqlArgs(REVIEW_THREADS_QUERY, context);
-    if (after !== null) argv.push("-f", `after=${after}`);
+    if (after !== null) {argv.push("-f", `after=${after}`);}
     return parseReviewThreadPage(await runJson(argv));
   }
   async commitRollups(
@@ -617,7 +617,7 @@ export async function resolveChecks(
 ): Promise<T.CheckRead> {
   const fast = await reader.checksFastPath(context);
   const direct = fast.kind === "checks" ? nonEmpty(fast.checks) : null;
-  if (direct !== null) return { source: "gh-pr-checks", checks: direct };
+  if (direct !== null) {return { source: "gh-pr-checks", checks: direct };}
   const checks: T.Check[] = [];
   let after: string | null = null;
   do {
@@ -626,7 +626,7 @@ export async function resolveChecks(
     after = page.endCursor;
   } while (after !== null);
   const fallback = nonEmpty(checks);
-  if (fallback !== null) return { source: "graphql-rollup", checks: fallback };
+  if (fallback !== null) {return { source: "graphql-rollup", checks: fallback };}
   const suffix =
     fast.kind === "unusable"
       ? `fast path exit=${fast.exitCode}; GraphQL rollup was empty${firstLine(fast.stderr) ? `; ${firstLine(fast.stderr)}` : ""}`
@@ -653,15 +653,15 @@ export async function resolveContext(args: {
   readonly pr: T.PrNumber | null;
 }): Promise<T.PrContext> {
   if (args.pr !== null && args.owner !== null && args.repo !== null)
-    return { owner: args.owner, repo: args.repo, number: args.pr };
+    {return { owner: args.owner, repo: args.repo, number: args.pr };}
   if (args.pr !== null) {
     const origin = await args.reader.originRepo();
     if (origin !== null)
-      return {
+      {return {
         owner: args.owner ?? origin.owner,
         repo: args.repo ?? origin.repo,
         number: args.pr,
-      };
+      };}
   }
   const inferred = await args.reader.currentPr(args.pr);
   return {
@@ -678,16 +678,16 @@ export function orderStack(
   const byHead = new Map(open.map((pr) => [pr.headRefName, pr]));
   const children = new Map<string, T.OpenPullRequest[]>();
   for (const pr of open)
-    children.set(pr.baseRefName, [...(children.get(pr.baseRefName) ?? []), pr]);
+    {children.set(pr.baseRefName, [...(children.get(pr.baseRefName) ?? []), pr]);}
   for (const values of children.values())
-    values.sort((a, b) => a.number - b.number);
+    {values.sort((a, b) => a.number - b.number);}
   const start = byNumber.get(context.number);
-  if (start === undefined) return [context];
+  if (start === undefined) {return [context];}
   const down: T.OpenPullRequest[] = [];
   let current = start;
   while (byHead.has(current.baseRefName)) {
     const parent = byHead.get(current.baseRefName);
-    if (parent === undefined) break;
+    if (parent === undefined) {break;}
     down.push(parent);
     current = parent;
   }
@@ -698,7 +698,7 @@ export function orderStack(
   const up: T.OpenPullRequest[] = [];
   const visit = (parent: T.OpenPullRequest): void => {
     for (const child of children.get(parent.headRefName) ?? []) {
-      if (seen.has(child.number)) continue;
+      if (seen.has(child.number)) {continue;}
       seen.add(child.number);
       up.push(child);
       visit(child);

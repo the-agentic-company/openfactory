@@ -34,19 +34,19 @@ export interface CliOptions {
 function positiveNumber(value: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0)
-    throw new InvalidArgumentError("must be greater than zero");
+    {throw new InvalidArgumentError("must be greater than zero");}
   return parsed;
 }
 function nonNegativeNumber(value: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0)
-    throw new InvalidArgumentError("must be zero or greater");
+    {throw new InvalidArgumentError("must be zero or greater");}
   return parsed;
 }
 function positiveInteger(value: string): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0)
-    throw new InvalidArgumentError("must be a positive integer");
+    {throw new InvalidArgumentError("must be a positive integer");}
   return parsed;
 }
 function prNumber(value: string): T.PrNumber {
@@ -59,9 +59,9 @@ function prNumber(value: string): T.PrNumber {
 function stackPrList(value: string): T.NonEmpty<T.PrNumber> {
   const numbers = value.split(",").map((part) => prNumber(part.trim()));
   if (new Set(numbers).size !== numbers.length)
-    throw new InvalidArgumentError("contains a duplicate PR");
+    {throw new InvalidArgumentError("contains a duplicate PR");}
   const parsed = nonEmpty(numbers);
-  if (parsed === null) throw new InvalidArgumentError("cannot be empty");
+  if (parsed === null) {throw new InvalidArgumentError("cannot be empty");}
   return parsed;
 }
 interface RawOptions {
@@ -132,7 +132,7 @@ export function parseArgs(
   program.parse(argv, { from: "user" });
   const raw = program.opts<RawOptions>();
   if (raw.stackPrs !== undefined && !raw.queuedStack)
-    program.error("error: --stack-prs requires --queued-stack");
+    {program.error("error: --stack-prs requires --queued-stack");}
   return {
     owner: raw.owner ?? null,
     repo: raw.repo ?? null,
@@ -178,7 +178,7 @@ export async function main(
   try {
     options = parseArgs(argv, runtime);
   } catch (error) {
-    if (!(error instanceof CommanderError)) throw error;
+    if (!(error instanceof CommanderError)) {throw error;}
     return error.exitCode === 0 ? 0 : 64;
   }
   const render = options.pretty ? renderPretty : renderJson;
@@ -198,7 +198,7 @@ export async function main(
         ? [seed]
         : await discoverStack(runtime.reader, seed));
   } catch (error) {
-    if (!(error instanceof WatcherQueryError)) throw error;
+    if (!(error instanceof WatcherQueryError)) {throw error;}
     const verdict = statusQueryVerdict(
       verdictFactory(runtime.clock, options.mode),
       1,

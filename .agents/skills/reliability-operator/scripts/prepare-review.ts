@@ -46,7 +46,7 @@ async function directory(path: string, create = false): Promise<void> {
   let current = parse(absolute).root;
   for (const segment of absolute
     .slice(current.length)
-    .split(/[\/\\]/)
+    .split(/[/\\]/)
     .filter(Boolean)) {
     current = join(current, segment);
     if (!(await pathExists(current)) && create) {

@@ -65,7 +65,7 @@ const runPlan = (example: string, expectedExit: number) => {
 
 test("accepts ordinary, indented, and longer closing fences", () => {
 	for (const indent of ["", " ", "  ", "   "])
-		runPlan(`${indent}\`\`\`markdown\n## Example only\n${indent}\`\`\`\n`, 0);
+		{runPlan(`${indent}\`\`\`markdown\n## Example only\n${indent}\`\`\`\n`, 0);}
 	runPlan("```markdown\n## Example only\n````\n", 0);
 });
 

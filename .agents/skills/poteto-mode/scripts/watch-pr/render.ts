@@ -2,7 +2,7 @@ import type * as T from "./types.ts";
 export const renderJson = (verdict: T.WatcherVerdict): string =>
   `${JSON.stringify(verdict)}\n`;
 function ciCell(row: T.PrSnapshot): string {
-  if (row.kind !== "open") return "\u2014";
+  if (row.kind !== "open") {return "\u2014";}
   const was = row.ci.hadPreviousPassingCi ? ", was ✅" : "";
   switch (row.ci.kind) {
     case "ci-clean":
@@ -20,7 +20,7 @@ function ciCell(row: T.PrSnapshot): string {
   }
 }
 function reviewCell(row: T.PrSnapshot): string {
-  if (row.kind !== "open") return "\u2014";
+  if (row.kind !== "open") {return "\u2014";}
   const open = row.threads.length;
   return row.reviewAutomationRunning
     ? open
@@ -31,11 +31,11 @@ function reviewCell(row: T.PrSnapshot): string {
       : "✅";
 }
 function mergeCell(row: T.PrSnapshot): string {
-  if (row.kind === "merged") return "✅ merged";
-  if (row.kind === "closed") return "❌ closed";
-  if (row.facts.isDraft) return "⏸ draft";
+  if (row.kind === "merged") {return "✅ merged";}
+  if (row.kind === "closed") {return "❌ closed";}
+  if (row.facts.isDraft) {return "⏸ draft";}
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
-    return "⚠️ changes requested";
+    {return "⚠️ changes requested";}
   return row.facts.mergeable === "CONFLICTING" ||
     row.facts.mergeStateStatus === "DIRTY" ||
     row.facts.mergeStateStatus === "CONFLICTING"
@@ -93,10 +93,10 @@ function renderBlocker(blocker: T.MergeBlocker | StatusQueryBlocker): string {
           `${check.name} ${check.reportedState} ${check.description} ${check.link}`
       );
       if (blocker.ci.kind === "ci-github-rejected")
-        details.push(
+        {details.push(
           `mergeStateStatus=${blocker.ci.github.mergeStateStatus}`,
           `headRollupState=${blocker.ci.github.headRollupState}`
-        );
+        );}
       return [
         "BLOCKER: failing-checks",
         `pr=${blocker.pr.number}`,
@@ -157,9 +157,9 @@ export function renderPretty(verdict: T.WatcherVerdict): string {
       return `COMPLETE: queued stack merged (${verdict.queue.length} PR${verdict.queue.length === 1 ? "" : "s"})\n`;
     case "TIMEOUT":
       if (verdict.reason.kind === "pending-checks")
-        return "TIMEOUT: checks still pending\n";
+        {return "TIMEOUT: checks still pending\n";}
       if (verdict.reason.kind === "status-unavailable")
-        return "TIMEOUT: GitHub status remained unavailable\n";
+        {return "TIMEOUT: GitHub status remained unavailable\n";}
       return `TIMEOUT: queued stack still has ${verdict.reason.unmergedCount} PR${verdict.reason.unmergedCount === 1 ? "" : "s"} unmerged; frontier=#${verdict.reason.frontier.number}\n`;
     default: {
       const exhaustive: never = verdict;
