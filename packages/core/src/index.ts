@@ -122,12 +122,39 @@ export function selectStack(input: unknown) {
 }
 
 export const workspacePackages = [
-  { path: 'apps/web', name: '@factory/web', purpose: 'Application and server functions' },
-  { path: 'packages/core', name: '@factory/core', purpose: 'Shared domain logic and validation' },
+  { path: 'apps/web', name: '@openfactory/web', purpose: 'Application and server functions' },
+  {
+    path: 'packages/core',
+    name: '@openfactory/core',
+    purpose: 'Shared domain logic and validation',
+  },
   {
     path: 'packages/config',
-    name: '@factory/config',
+    name: '@openfactory/config',
     purpose: 'Shared policy and TypeScript defaults',
   },
-  { path: 'packages/db', name: '@factory/db', purpose: 'Database schema and connection factory' },
+  {
+    path: 'packages/db',
+    name: '@openfactory/db',
+    purpose: 'Database schema and connection factory',
+  },
 ];
+
+export * from './agents';
+export * from './history';
+
+export {
+  parseTeamYaml,
+  teamSchema,
+  teamTriggerLabel,
+  type AgentTeam,
+  type TeamAgent,
+} from './team';
+export { workspaceViews, agentAppearanceSchema, scorerSchema, scoreOutput } from './factory';
+export type { WorkspaceView, AgentAppearance, Scorer } from './factory';
+export { agentDefinition, agentDirectory, parseAgentDefinition } from './agent-definition';
+export { createFactoryFiles, validateFactoryFile } from './factory-definition';
+
+export { iconColorNames, firstEmoji, monogramSchema, type IconColor } from './appearance';
+
+export { runBucket, relativeRunTime, runLinks, type RunBucket } from './run-view';

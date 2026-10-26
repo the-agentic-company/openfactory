@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+.openfactory-docs {
+  color-scheme: dark;
+  min-height: 100vh;
+  color: var(--color-fd-foreground);
+  background: var(--color-fd-background);
+}
+
+.openfactory-docs p {
+  color: var(--color-fd-muted-foreground);
+  font-size: inherit;
+}

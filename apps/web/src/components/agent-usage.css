@@ -1,0 +1,53 @@
+.agent-usage {
+  margin: 26px 0;
+}
+.agent-usage-heading,
+.agent-usage-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.agent-usage-heading {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.agent-usage-heading h2 {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+.agent-usage .analytics-metrics {
+  margin-bottom: 16px;
+}
+.agent-usage .analytics-metrics strong {
+  font-size: clamp(20px, 2.2vw, 30px);
+  overflow-wrap: anywhere;
+}
+.agent-token-details {
+  display: flex;
+  gap: 16px 30px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+.agent-token-details dt {
+  color: var(--analytics-muted);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.agent-token-details dd {
+  margin: 0;
+}
+.agent-usage .analytics-footnote {
+  line-height: 1.7;
+  max-width: 110ch;
+}
+@media (max-width: 600px) {
+  .agent-usage .analytics-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .agent-usage .analytics-metrics > div {
+    padding: 16px;
+    border: 0;
+  }
+}

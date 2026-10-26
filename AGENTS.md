@@ -1,4 +1,4 @@
-# Blackhole project instructions
+# OpenFactory project instructions
 
 Use pnpm for dependencies and scripts, and Vite+ (`pnpm exec vp`) for tooling.
 

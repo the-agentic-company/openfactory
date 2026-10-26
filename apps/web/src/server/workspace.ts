@@ -1,5 +1,5 @@
-import { factoryConfig } from '@factory/config';
-import { categorySchema, selectStack, workspacePackages } from '@factory/core';
+import { factoryConfig } from '@openfactory/config';
+import { categorySchema, selectStack, workspacePackages } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 
 export const getWorkspace = createServerFn({ method: 'GET' })

@@ -7,13 +7,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Blackhole — Software factory' },
+      { title: 'OpenFactory — Agent workspace' },
       {
         name: 'description',
-        content: 'Your software factory workspace, powered by pnpm and Vite+.',
+        content: 'Your agents, schedules, and runs. Connected to T3 Code.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: stylesheet }],
+    links: [
+      { rel: 'stylesheet', href: stylesheet },
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+      { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/openfactory.png' },
+      { rel: 'apple-touch-icon', href: '/openfactory.png' },
+    ],
   }),
   component: Root,
 });

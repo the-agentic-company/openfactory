@@ -37,3 +37,6 @@ dist-ssr
 .vite/
 .cache/
 *.tsbuildinfo
+
+# Generated documentation collections
+apps/web/.source/

@@ -1,11 +1,11 @@
 {
-  "name": "blackhole-generator",
+  "name": "openfactory",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp run @factory/web#dev",
+    "dev": "vp run @openfactory/web#dev",
     "build": "vp run -r build",
-    "check": "vp check",
+    "check": "pnpm --filter @openfactory/web docs:generate && vp check",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check",

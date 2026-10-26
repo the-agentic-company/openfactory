@@ -1,5 +1,5 @@
 {
-  "name": "@factory/core",
+  "name": "@openfactory/core",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,8 +9,9 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
-    "@factory/config": "workspace:*",
+    "@openfactory/config": "workspace:*",
     "effect": "4.0.6",
+    "yaml": "^2.9.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
