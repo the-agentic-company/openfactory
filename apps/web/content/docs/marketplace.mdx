@@ -1,0 +1,61 @@
+---
+title: Marketplace
+description: Discover and import factories, agents, automations, and teams from GitHub.
+---
+
+Open **Marketplace** in the workspace sidebar. Each import type has its own page: factories, agents, automations, and teams. Search the leaderboard or enter a public GitHub `owner/repo` directly. Open an entry to inspect every source file and choose a local factory to import into.
+
+The leaderboard ranks public GitHub repositories by stars. Bundled OpenFactory starters appear below the GitHub results. Stars measure repository popularity, not installations. If GitHub is unavailable or rate limited, the page keeps the starters available and displays the error.
+
+## CLI
+
+Register the destination directory first, then browse and import:
+
+```sh
+openfactory project /absolute/path/to/project
+openfactory factory leaderboard
+openfactory factory find review --type agent
+openfactory factory show owner/repo
+openfactory factory add owner/repo --project /absolute/path/to/project
+openfactory factory add owner/repo --agent reviewer --project /absolute/path/to/project
+openfactory factory add owner/repo --automation daily-brief --project /absolute/path/to/project
+openfactory factory add owner/repo --team code-review --project /absolute/path/to/project
+```
+
+`show` lists all available names and the source files. `add --dry-run` prints that preview without writing files. Both commands require the local OpenFactory runtime. In a source checkout, use `pnpm openfactory` in place of `openfactory`.
+
+Try a bundled starter:
+
+```sh
+openfactory factory add openfactory/code-review --project /absolute/path/to/project
+```
+
+## Publish a repository
+
+Commit your definitions using the standard repository layout:
+
+```text
+factory/
+  factory.yaml
+  agents/
+    reviewer/
+      agent.md
+  teams/
+    code-review/
+      team.yaml
+      instructions.md
+```
+
+Agents need stable IDs in their YAML frontmatter. Team members reference agent file paths relative to `factory/`. An automation is an agent with a non-manual schedule.
+
+Add the appropriate GitHub repository topics to appear in the corresponding leaderboard: `openfactory-factory`, `openfactory-agent`, `openfactory-automation`, and `openfactory-team`. A repository can use several topics. Topics advertise its contents; OpenFactory validates the actual definitions when you open the repository. Repositories without a topic can still be opened and imported directly.
+
+Only public GitHub repositories are supported. A source can be pinned to a commit with `owner/repo@<40-character-commit-sha>`. The UI shows the pinned source and copies a command using that revision.
+
+## Import behavior
+
+A factory import adds its agents and teams to the destination. An agent or automation import adds that agent; a team import includes its member agents and shared instructions. All imports preserve existing destination files and factory-level settings, including its name, repositories, icons, and scorers. Source factory-level settings are not merged; source model defaults are resolved into the imported agents.
+
+Imported files receive unique paths and agents receive fresh IDs. Team references are updated to those paths. Agents start paused with approval required; their prompts, model settings, and schedules remain available for review. No source code, dependencies, or secrets are installed, and importing does not run agents. Enable them from your factory when ready.
+
+Source and destination revision checks reject stale imports. Importing the same entry again creates another independent copy. Shared repositories are limited to 100 regular definition files and 1 MB in total; symbolic links and invalid definition paths are rejected.

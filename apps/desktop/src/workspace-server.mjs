@@ -7,7 +7,6 @@ process.on('message', (message) => {
   if (message.type === 'connection') {
     process.env.OPENFACTORY_RUNTIME_ORIGIN = message.origin;
     process.env.OPENFACTORY_RUNTIME_TOKEN = message.token;
-    process.env.OPENFACTORY_SETTINGS_DIR = message.settingsDir;
     process.send?.({ type: 'selected' });
   }
 });

@@ -3,7 +3,6 @@ import { factoryTeamSetups, resolvedTeamSchema, stringifyTeamDefinition } from '
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getFactoryDefinition } from './factory-definition';
-import { saveDefinition } from './definition-store';
 import { runtimeRpc } from './runtime-rpc';
 
 export const getFactoryTeams = createServerFn({ method: 'GET' })
@@ -56,13 +55,12 @@ export const createFactoryTeam = createServerFn({ method: 'POST' })
       members,
     });
     files[`teams/${data.slug}/instructions.md`] = data.instructions;
-    const teams = factoryTeamSetups(files, current.bindings);
-    await saveDefinition(
-      data.projectId,
-      current.revision,
-      { files, bindings: current.bindings },
-      () => runtimeRpc('teams.replace', { projectId: data.projectId, teams }),
-    );
+    factoryTeamSetups(files, current.bindings);
+    await runtimeRpc('definitions.save', {
+      projectId: data.projectId,
+      revision: current.revision,
+      files,
+    });
     return { path };
   });
 

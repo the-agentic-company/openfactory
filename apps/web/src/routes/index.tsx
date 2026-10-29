@@ -434,17 +434,13 @@ function Landing() {
             <span className="hero-line hero-line-accent">One factory.</span>
           </h1>
           <p>
-            A home for the coding agents you already use. Run them on your own machines, put
-            recurring work on a schedule, and pick up every conversation in one place.
+            Run Codex and Claude Code on your own computers. Schedule the work, connect your
+            machines, and keep every project and conversation in one place.
           </p>
           <DesktopDownload showPlatforms />
-          <a
-            className="landing-browser"
-            href={import.meta.env.PUBLIC_SITE ? '/docs/quickstart' : '/app'}
-          >
-            {import.meta.env.PUBLIC_SITE ? 'Set up your workspace' : 'Or open the web app'}{' '}
-            <ArrowUpRight size={14} />
-          </a>
+          <Link className="landing-browser" to="/docs/$" params={{ _splat: 'quickstart' }}>
+            Set up your workspace <ArrowUpRight size={14} />
+          </Link>
         </section>
         <WorkspacePreview />
         <Features />

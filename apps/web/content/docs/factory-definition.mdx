@@ -869,7 +869,7 @@ Replace `SELF_HOSTED_WORKER_ID` with the worker's ID and pair it with a runner w
 
 ## OpenFactory compatibility
 
-The **Factory definition** page displays `factory.yaml`, `agents/<agent-folder>/agent.md`, and `teams/<team-name>/team.yaml` with optional `instructions.md` for an OpenFactory project. Files are initialized from current agents and saved on the host. OpenFactory owns their schedules, webhooks, and session startup; T3 Code is not required.
+The **Factory definition** page displays `factory.yaml`, `agents/<agent-folder>/agent.md`, and `teams/<team-name>/team.yaml` with optional `instructions.md` for an OpenFactory project. Each repository owns these files under `factory/`. UI saves write to that directory on the selected runtime host, and external file edits are loaded by the runtime. Agent frontmatter includes a stable `id` that preserves identity and history. OpenFactory owns their schedules, webhooks, and session startup; T3 Code is not required.
 
 Saving an agent file applies its name, instructions, provider, model, permissions, enabled state, and schedule. It does not run the agent. The adapter accepts `description`, `agentType: CUSTOM`, `harness.type` (`codex`, `claude`, or `claude-code`), `harness.model`, `runtimeMode`, `enabled`, and an inline `schedule`:
 
@@ -879,15 +879,17 @@ schedule:
   everyMs: 3600000
 ```
 
-Use `type: manual` for manual-only execution. For a daily time, use `type: fixed_time`, `timeOfDay: "09:00"`, and optional `weekdays: [1, 2, 3, 4, 5]` (Sunday is `0`). Times use the runtime host's timezone. For incoming requests, use `schedule: { type: webhook }`. These formats belong to OpenFactory; Warp automation cron syntax does not apply to this field. Omitting a field preserves its current value.
+Use `type: manual` for manual-only execution. For a daily time, use `type: fixed_time`, `timeOfDay: "09:00"`, and optional `weekdays: [1, 2, 3, 4, 5]` (Sunday is `0`). Times use the runtime host's timezone. For incoming requests, use `schedule: { type: webhook }`. These formats belong to OpenFactory; Warp automation cron syntax does not apply to this field. Repository definitions use declared settings and defaults. Keep the agent `id` when editing or renaming its folder.
 
 Each manual, timer, or webhook run starts a direct provider session. Follow-ups resume that session. The selected CLI must be installed and authenticated on the runtime host.
 
-Saving `factory.yaml` stores configuration. Factory-wide defaults, Warp automation files, runners, model routers, benchmarks, and authentication remain reference material until an OpenFactory adapter supports them.
+Saving `factory/factory.yaml` applies the factory name, execution defaults, icons, and scorer definitions. Warp automation files, runners, model routers, benchmarks, and authentication remain reference material until an OpenFactory adapter supports them.
 
-OpenFactory has one saved definition per factory. It does not create Git branches or publish changes to Warp. Reload files changed by another editor before saving over them.
+OpenFactory has one `factory/` directory per repository. Commit the directory with your code. OpenFactory does not create branches or publish changes to Warp. Reload files changed by another editor before saving over them.
 
-[Open factory definitions](/app).
+For an existing installation, preview the migration with `pnpm openfactory definitions-migrate`, then run `pnpm openfactory definitions-migrate --apply`. The migration moves saved definitions and factory settings into their repositories, preserves agent IDs and runtime history, and rejects conflicting destination files. Normal operation does not read global definition snapshots.
+
+[Set up your local workspace](/docs/quickstart).
 
 ### OpenFactory teams
 
@@ -907,8 +909,8 @@ members:
     reportsTo: operator
 ```
 
-Agent paths resolve from the factory definition root and must have live bindings in that factory. `instructions`, when declared, names `./instructions.md` beside the team file. Each member references a different agent. Only the lead omits `reportsTo`; all reporting chains must reach the lead.
+Agent paths resolve from the repository’s `factory/` directory and must have live bindings in that factory. `instructions`, when declared, names `./instructions.md` beside the team file. Each member references a different agent. Only the lead omits `reportsTo`; all reporting chains must reach the lead.
 
 Saving team files applies membership and shared guidance. It does not start agents or alter their schedules. Manual, timer, webhook, and follow-up turns receive shared guidance at enqueue time. The team page shows current agent models, schedules, status, and run counts. **Run lead** starts the lead; **Run agent** starts the selected member. Reporting lines do not automatically dispatch tasks or authorize deployments.
 
-Apply a folder from the runtime host with `pnpm openfactory team-apply '<project-id>' /path/to/teams/reliability/team.yaml`. Assign work with `pnpm openfactory team-run '<project-id>' teams/reliability/team.yaml digest 'Summarize the incident.'`.
+Apply a folder from the runtime host with `pnpm openfactory team-apply '<project-id>' /path/to/repo/factory/teams/reliability/team.yaml`. Assign work with `pnpm openfactory team-run '<project-id>' teams/reliability/team.yaml digest 'Summarize the incident.'`.

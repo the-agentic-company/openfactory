@@ -2,12 +2,17 @@ import { parseDocument, stringify } from 'yaml';
 import { z } from 'zod';
 import { agentDefinition, agentDirectory, parseAgentDefinition } from './agent-definition';
 import type { Agent } from './agents';
+import { agentAppearanceSchema } from './appearance';
+import { scorerSchema } from './factory';
 import { agentFilePathSchema, teamFilePathSchema, parseTeamYaml } from './team';
 
-const factoryYamlSchema = z
+export const factoryYamlSchema = z
   .object({
     schemaVersion: z.literal('v1alpha1'),
     name: z.string().trim().min(1).max(120),
+    icon: agentAppearanceSchema.optional(),
+    agentAppearances: z.record(z.string(), agentAppearanceSchema).optional(),
+    scorers: z.array(scorerSchema.omit({ project: true })).optional(),
     repositories: z.array(
       z.object({ owner: z.string().min(1), name: z.string().min(1) }).passthrough(),
     ),
@@ -71,4 +76,18 @@ export function createFactoryFiles(name: string, agents: Agent[]) {
     bindings[path] = agent.id;
   }
   return { files, bindings };
+}
+
+export function updateFactoryYaml(
+  source: string,
+  changes: Partial<z.infer<typeof factoryYamlSchema>>,
+) {
+  validateFactoryFile('factory.yaml', source);
+  const document = parseDocument(source);
+  for (const [key, value] of Object.entries(changes)) {
+    document.set(key, value);
+  }
+  const result = document.toString();
+  validateFactoryFile('factory.yaml', result);
+  return result;
 }

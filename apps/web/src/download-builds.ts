@@ -15,8 +15,8 @@ export const primaryDesktopBuilds = {
   mac: {
     label: 'Mac',
     architecture: 'Apple Silicon · M1 or newer',
-    file: `OpenFactory-${desktopVersion}-arm64.zip`,
-    format: '.zip',
+    file: `OpenFactory-${desktopVersion}-arm64.dmg`,
+    format: '.dmg',
     platform: 'mac',
   },
   windows: {
@@ -40,20 +40,30 @@ export const desktopBuilds = [
   primaryDesktopBuilds.linux,
   primaryDesktopBuilds.windows,
   {
+    label: 'Linux',
+    architecture: 'x86-64 · AppImage',
+    file: `OpenFactory-${desktopVersion}-x86_64.AppImage`,
+    format: '.AppImage',
+    platform: 'linux',
+  },
+  {
     label: 'Mac',
     architecture: 'Intel · x86-64',
-    file: `OpenFactory-${desktopVersion}-x64.zip`,
-    format: '.zip',
+    file: `OpenFactory-${desktopVersion}-x64.dmg`,
+    format: '.dmg',
     platform: 'mac',
   },
 ] satisfies DesktopBuild[];
 
+export const desktopReleaseRepository =
+  import.meta.env.VITE_OPENFACTORY_RELEASES_REPOSITORY ??
+  'the-agentic-company/openfactory-releases';
+export const desktopReleasesUrl = `https://github.com/${desktopReleaseRepository}/releases`;
+export const desktopReleaseUrl = `${desktopReleasesUrl}/tag/desktop-v${desktopVersion}`;
+
 export function desktopDownloadUrl(file: string) {
-  const repository =
-    import.meta.env.VITE_OPENFACTORY_RELEASES_REPOSITORY ??
-    'the-agentic-company/openfactory-releases';
   return import.meta.env.PUBLIC_SITE
-    ? `https://github.com/${repository}/releases/download/desktop-v${desktopVersion}/${file}`
+    ? `https://github.com/${desktopReleaseRepository}/releases/download/desktop-v${desktopVersion}/${file}`
     : `/downloads/${file}`;
 }
 

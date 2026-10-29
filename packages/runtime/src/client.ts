@@ -45,8 +45,11 @@ export function runtimeRpc(method: string, payload: unknown): Promise<unknown> {
         });
       },
     );
-    req.setTimeout(15000, () =>
-      req.destroy(new Error('OpenFactory runtime did not respond within 15 seconds.')),
+    const timeout = method.startsWith('marketplace.') ? 60000 : 15000;
+    req.setTimeout(timeout, () =>
+      req.destroy(
+        new Error(`OpenFactory runtime did not respond within ${timeout / 1000} seconds.`),
+      ),
     );
     req.on('error', (error) =>
       reject(

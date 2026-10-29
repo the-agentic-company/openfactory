@@ -1,8 +1,11 @@
 import { parseDocument, stringify } from 'yaml';
 import { z } from 'zod';
-import { scheduleSchema, type Agent } from './agents';
+import { scheduleSchema, workspaceStrategySchema, type Agent } from './agents';
 
 const frontmatterSchema = z.strictObject({
+  id: z.string().min(1).max(300).optional(),
+  interactionMode: z.enum(['default', 'plan']).optional(),
+  workspaceStrategy: workspaceStrategySchema.optional(),
   description: z.string().trim().min(1).max(120).optional(),
   agentType: z.literal('CUSTOM').optional(),
   schedule: scheduleSchema.optional(),
@@ -12,6 +15,7 @@ const frontmatterSchema = z.strictObject({
     .strictObject({
       type: z.enum(['codex', 'claude', 'claude-code']).optional(),
       model: z.string().trim().min(1).max(200).optional(),
+      options: z.record(z.string(), z.json()).optional(),
     })
     .optional(),
 });
@@ -42,7 +46,7 @@ export function parseAgentDefinition(source: string) {
 }
 
 export function agentDefinition(agent: Agent) {
-  return `---\n${stringify({ description: agent.title, agentType: 'CUSTOM', harness: { type: agent.modelSelection.instanceId, model: agent.modelSelection.model }, schedule: agent.schedule, enabled: agent.enabled, runtimeMode: agent.runtimeMode })}---\n\n${agent.prompt}\n`;
+  return `---\n${stringify({ id: agent.id, interactionMode: agent.interactionMode, workspaceStrategy: agent.workspaceStrategy, description: agent.title, agentType: 'CUSTOM', harness: { type: agent.modelSelection.instanceId, model: agent.modelSelection.model, options: agent.modelSelection.options }, schedule: agent.schedule, enabled: agent.enabled, runtimeMode: agent.runtimeMode })}---\n\n${agent.prompt}\n`;
 }
 
 export function agentDirectory(agent: Agent) {

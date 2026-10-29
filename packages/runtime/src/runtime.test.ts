@@ -1,11 +1,11 @@
-import { mkdtemp, readFile, writeFile, chmod, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, chmod, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHmac } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { z } from 'zod';
-import { projectAgentConversations } from '@openfactory/core';
+import { agentDirectory, projectAgentConversations } from '@openfactory/core';
 import { AgentRuntime } from './runtime';
 import { messageSchema, ownedAgentSchema, runSchema, sessionSchema } from './contracts';
 import { nextScheduledAt } from './schedule';
@@ -501,13 +501,18 @@ describe('live teams', () => {
   async function setupTeam() {
     const operator = await create({ title: 'Operator', prompt: 'Investigate carefully.' });
     const digest = await create({ title: 'Digest', prompt: 'Summarize actual evidence.' });
+    const operatorPath = `agents/${agentDirectory(operator)}/agent.md`;
+    const digestPath = `agents/${agentDirectory(digest)}/agent.md`;
     const setup = {
       path: 'teams/reliability/team.yaml',
       source:
         'schemaVersion: v1alpha1\nname: Reliability\ndescription: Keep the project healthy.\ninstructions: ./instructions.md\nlead: operator\nmembers:\n  operator:\n    agent: agents/operator/agent.md\n  digest:\n    agent: agents/digest/agent.md\n    reportsTo: operator\n',
       instructions: 'Keep one writer. Preserve approval holds.',
-      bindings: { 'agents/operator/agent.md': operator.id, 'agents/digest/agent.md': digest.id },
+      bindings: { [operatorPath]: operator.id, [digestPath]: digest.id },
     };
+    setup.source = setup.source
+      .replace('agents/operator/agent.md', operatorPath)
+      .replace('agents/digest/agent.md', digestPath);
     await runtime.rpc('teams.replace', { projectId: 'project', teams: [setup] });
     return { operator, digest, setup };
   }
@@ -593,7 +598,12 @@ describe('live teams', () => {
   });
   it('rejects missing or cross-project agents before replacing any teams', async () => {
     const { operator, setup } = await setupTeam();
-    await runtime.rpc('projects.upsert', { id: 'other', title: 'Other', workspaceRoot: directory });
+    await mkdir(join(directory, 'other'));
+    await runtime.rpc('projects.upsert', {
+      id: 'other',
+      title: 'Other',
+      workspaceRoot: join(directory, 'other'),
+    });
     await expect(
       runtime.rpc('teams.replace', { projectId: 'other', teams: [setup] }),
     ).rejects.toThrow('unavailable agent');
@@ -625,7 +635,12 @@ describe('factory deletion', () => {
       await runtime.rpc('agents.run', { id: agent.id, requestId: 'delete-me' }),
     );
     await finished(receipt.runId);
-    await runtime.rpc('projects.upsert', { id: 'other', title: 'Other', workspaceRoot: directory });
+    await mkdir(join(directory, 'other'));
+    await runtime.rpc('projects.upsert', {
+      id: 'other',
+      title: 'Other',
+      workspaceRoot: join(directory, 'other'),
+    });
     const other = await create({ projectId: 'other' });
     runtime.store.put('teams', JSON.stringify(['project', 'team.yaml']), { projectId: 'project' });
     runtime.store.put('archives', 'archive', { thread: { projectId: 'project' } });

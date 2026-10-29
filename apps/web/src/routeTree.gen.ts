@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as InstallDotshRouteImport } from './routes/install[.]sh'
 import { Route as AppSettingsRouteImport } from './routes/app_.settings'
 import { Route as DocsSplatRouteImport } from './routes/docs.$'
 import { Route as DownloadsFileRouteImport } from './routes/downloads.$file'
+import { Route as AppMarketplaceChar123TypeChar125RouteImport } from './routes/app_.marketplace.{-$type}'
 import { Route as ApiWebhooksAgentIdTokenRouteImport } from './routes/api.webhooks.$agentId.$token'
 import { Route as AppProjectsProjectViewRouteImport } from './routes/app_.projects.$project.$view'
 import { Route as AppProjectsProjectTeamsChar123SectionChar125RouteImport } from './routes/app_.projects.$project.teams.{-$section}'
@@ -36,6 +38,11 @@ const DownloadRoute = DownloadRouteImport.update({
   path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstallDotshRoute = InstallDotshRouteImport.update({
+  id: '/install.sh',
+  path: '/install.sh',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/app_/settings',
   path: '/app/settings',
@@ -51,6 +58,12 @@ const DownloadsFileRoute = DownloadsFileRouteImport.update({
   path: '/downloads/$file',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppMarketplaceChar123TypeChar125Route =
+  AppMarketplaceChar123TypeChar125RouteImport.update({
+    id: '/app_/marketplace/{-$type}',
+    path: '/app/marketplace/{-$type}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiWebhooksAgentIdTokenRoute = ApiWebhooksAgentIdTokenRouteImport.update({
   id: '/api/webhooks/$agentId/$token',
   path: '/api/webhooks/$agentId/$token',
@@ -86,9 +99,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/download': typeof DownloadRoute
+  '/install.sh': typeof InstallDotshRoute
   '/app/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
   '/downloads/$file': typeof DownloadsFileRoute
+  '/app/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
   '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
@@ -99,9 +114,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/download': typeof DownloadRoute
+  '/install.sh': typeof InstallDotshRoute
   '/app/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
   '/downloads/$file': typeof DownloadsFileRoute
+  '/app/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
   '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
@@ -113,9 +130,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/download': typeof DownloadRoute
+  '/install.sh': typeof InstallDotshRoute
   '/app_/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
   '/downloads/$file': typeof DownloadsFileRoute
+  '/app_/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app_/projects/$project/$view': typeof AppProjectsProjectViewRoute
   '/app_/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
@@ -128,9 +147,11 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/download'
+    | '/install.sh'
     | '/app/settings'
     | '/docs/$'
     | '/downloads/$file'
+    | '/app/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app/projects/$project/$view'
     | '/app/projects/$project/teams/{-$section}'
@@ -141,9 +162,11 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/download'
+    | '/install.sh'
     | '/app/settings'
     | '/docs/$'
     | '/downloads/$file'
+    | '/app/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app/projects/$project/$view'
     | '/app/projects/$project/teams/{-$section}'
@@ -154,9 +177,11 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/download'
+    | '/install.sh'
     | '/app_/settings'
     | '/docs/$'
     | '/downloads/$file'
+    | '/app_/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app_/projects/$project/$view'
     | '/app_/projects/$project/teams/{-$section}'
@@ -168,9 +193,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
   DownloadRoute: typeof DownloadRoute
+  InstallDotshRoute: typeof InstallDotshRoute
   AppSettingsRoute: typeof AppSettingsRoute
   DocsSplatRoute: typeof DocsSplatRoute
   DownloadsFileRoute: typeof DownloadsFileRoute
+  AppMarketplaceChar123TypeChar125Route: typeof AppMarketplaceChar123TypeChar125Route
   ApiWebhooksAgentIdTokenRoute: typeof ApiWebhooksAgentIdTokenRoute
   AppProjectsProjectViewRoute: typeof AppProjectsProjectViewRoute
   AppProjectsProjectTeamsChar123SectionChar125Route: typeof AppProjectsProjectTeamsChar123SectionChar125Route
@@ -201,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/install.sh': {
+      id: '/install.sh'
+      path: '/install.sh'
+      fullPath: '/install.sh'
+      preLoaderRoute: typeof InstallDotshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app_/settings': {
       id: '/app_/settings'
       path: '/app/settings'
@@ -220,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/downloads/$file'
       fullPath: '/downloads/$file'
       preLoaderRoute: typeof DownloadsFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/marketplace/{-$type}': {
+      id: '/app_/marketplace/{-$type}'
+      path: '/app/marketplace/{-$type}'
+      fullPath: '/app/marketplace/{-$type}'
+      preLoaderRoute: typeof AppMarketplaceChar123TypeChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/$agentId/$token': {
@@ -264,9 +305,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
   DownloadRoute: DownloadRoute,
+  InstallDotshRoute: InstallDotshRoute,
   AppSettingsRoute: AppSettingsRoute,
   DocsSplatRoute: DocsSplatRoute,
   DownloadsFileRoute: DownloadsFileRoute,
+  AppMarketplaceChar123TypeChar125Route: AppMarketplaceChar123TypeChar125Route,
   ApiWebhooksAgentIdTokenRoute: ApiWebhooksAgentIdTokenRoute,
   AppProjectsProjectViewRoute: AppProjectsProjectViewRoute,
   AppProjectsProjectTeamsChar123SectionChar125Route:

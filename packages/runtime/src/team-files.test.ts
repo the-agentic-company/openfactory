@@ -60,17 +60,18 @@ it('applies a real team folder, preserves the agent schedule, and safely reappli
   expect(await readFile(join(saved.location, 'teams/reliability/instructions.md'), 'utf8')).toBe(
     'Preserve approval holds.',
   );
-  expect(runtime.getAgent(agent.id)).toEqual(agent);
+  const { webhook: _webhook, ...configuration } = agent;
+  expect(runtime.getAgent(agent.id)).toEqual(configuration);
   expect(
     z
       .object({ teams: z.array(resolvedTeamSchema) })
       .parse(await rpc('teams.list', { projectId: 'mibba' })).teams[0]?.agents[0]?.agent.id,
   ).toBe(agent.id);
-  const before = await readDefinition('mibba');
+  const before = readDefinition(directory);
   await writeFile(
     teamFile,
     (await readFile(teamFile, 'utf8')).replace(agentPath, 'agents/missing/agent.md'),
   );
   await expect(applyTeamFile('mibba', teamFile, rpc)).rejects.toThrow('binding');
-  expect(await readDefinition('mibba')).toEqual(before);
+  expect(readDefinition(directory)).toEqual(before);
 });

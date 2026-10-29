@@ -5,7 +5,7 @@ description: Connect your runtime and explore your first factory.
 
 ## Open your workspace
 
-Open the OpenFactory instance connected to your OpenFactory host. If it is already running, go to the [workspace overview](/app).
+Download and install [OpenFactory](/download) on your computer. The workspace runs locally; this website hosts the downloads and documentation.
 
 For a local checkout, use Node 26 and pnpm 12.15.0:
 
@@ -18,6 +18,26 @@ pnpm dev
 ```
 
 Open [your local workspace](http://localhost:8018/app). Install and sign in to Codex CLI or Claude Code CLI on the computer running the runtime. OpenFactory reuses that authentication; T3 Code is not required. Keep the workspace on a trusted network, such as a private tailnet.
+
+## Install the terminal CLI
+
+Open the **Terminal** section of the [download page](/download) and copy its install command.
+The command downloads `/install.sh` from this website and installs the standalone `openfactory` CLI on macOS or Linux. It includes Node, so you do not need to install Node or npm yourself.
+
+After installation, run:
+
+```sh
+openfactory --version
+openfactory --help
+openfactory serve
+```
+
+Keep `openfactory serve` running. In another terminal, use `openfactory status` to check the runtime.
+The CLI installer installs the runtime only. Use the desktop downloads for the graphical workspace.
+Install and authenticate Codex CLI or Claude Code CLI separately to execute agents.
+
+By default, the installer stores versions in `~/.local/share/openfactory/runtime/versions` and links the command into `~/.local/bin`. If that directory is not on your PATH, the installer tells you to add it.
+Downloads are verified against the release's `SHA256SUMS`. Rerun the install command to get the latest published version. A failed download or checksum mismatch leaves the existing command unchanged.
 
 ## Choose a factory
 

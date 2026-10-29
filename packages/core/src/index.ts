@@ -162,10 +162,16 @@ export {
 export { workspaceViews, agentAppearanceSchema, scorerSchema, scoreOutput } from './factory';
 export type { WorkspaceView, AgentAppearance, Scorer } from './factory';
 export { agentDefinition, agentDirectory, parseAgentDefinition } from './agent-definition';
-export { createFactoryFiles, validateFactoryFile } from './factory-definition';
+export {
+  createFactoryFiles,
+  validateFactoryFile,
+  factoryYamlSchema,
+  updateFactoryYaml,
+} from './factory-definition';
 
 export { iconColorNames, firstEmoji, monogramSchema, type IconColor } from './appearance';
 
 export { runBucket, relativeRunTime, runLinks, type RunBucket } from './run-view';
 export { pullRequestResultSchema, type PullRequestResult } from './pull-requests';
 export { pullRequestSnapshotSchema, type PullRequestSnapshot } from './pull-requests';
+export * from './marketplace';

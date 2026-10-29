@@ -69,12 +69,9 @@ export function MarketingHeader() {
         <Link to="/docs/$" params={{ _splat: '' }}>
           Docs
         </Link>
-        <a
-          href={import.meta.env.PUBLIC_SITE ? '/docs/quickstart' : '/app'}
-          className="landing-open"
-        >
-          {import.meta.env.PUBLIC_SITE ? 'Get started' : 'Open app'} <ArrowUpRight size={15} />
-        </a>
+        <Link to="/download" className="landing-open">
+          Get OpenFactory <ArrowUpRight size={15} />
+        </Link>
       </nav>
     </header>
   );

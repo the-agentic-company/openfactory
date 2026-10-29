@@ -60,7 +60,6 @@ export async function startWorkspaceServices({ root, dataDir, target, developmen
       },
     );
   });
-  const settingsDir = (hostId) => join(dataDir, 'workspace-settings', hostId);
   const log = openSync(join(dataDir, 'workspace.log'), 'a', 0o600);
   const child = fork(join(root, 'workspace-server.mjs'), [], {
     execPath: process.execPath,
@@ -74,7 +73,6 @@ export async function startWorkspaceServices({ root, dataDir, target, developmen
       PORT: String(port),
       OPENFACTORY_RUNTIME_ORIGIN: target.origin,
       OPENFACTORY_RUNTIME_TOKEN: target.token,
-      OPENFACTORY_SETTINGS_DIR: settingsDir(target.hostId),
     },
   });
   closeSync(log);
@@ -119,7 +117,6 @@ export async function startWorkspaceServices({ root, dataDir, target, developmen
           type: 'connection',
           origin: connection.origin,
           token: connection.token,
-          settingsDir: settingsDir(connection.hostId),
         });
       }),
     close: () => child.kill(),

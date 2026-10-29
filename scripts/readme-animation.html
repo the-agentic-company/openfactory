@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenFactory · Your coding agents</title>
+    <style>
+      @font-face {
+        font-family: Geist;
+        src: url('../apps/web/public/fonts/geist-regular.ttf');
+      }
+      @font-face {
+        font-family: Geist;
+        src: url('../apps/web/public/fonts/geist-bold.ttf');
+        font-weight: 700;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fbf9f5;
+        color: #28261f;
+        font-family: Geist, sans-serif;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      text {
+        font-family: Geist, sans-serif;
+      }
+      button {
+        font: inherit;
+      }
+      .replay {
+        position: fixed;
+        bottom: 12px;
+        right: 12px;
+        border: 1px solid #ddd7cb;
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: #fffdf8;
+        color: #615b50;
+        cursor: pointer;
+      }
+      .replay:focus-visible {
+        outline: 3px solid #c64d11;
+        outline-offset: 3px;
+      }
+      ::selection {
+        background: #f9d3b8;
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      id="scene"
+      viewBox="0 0 1280 720"
+      role="img"
+      aria-label="OpenFactory coordinates six agents. Their activity shows a PR created, a completed run, and observability checks."
+    ></svg>
+    <button class="replay" onclick="started = performance.now()">Replay</button>
+    <script>
+      const scene = document.querySelector('#scene');
+      const ink = '#292720',
+        orange = '#bf5624',
+        green = '#2e7652',
+        muted = '#786f62',
+        line = '#e5dfd5';
+      const clamp = (x) => Math.max(0, Math.min(1, x));
+      const ease = (x) => 1 - Math.pow(1 - clamp(x), 4);
+      const path = (d, color = ink, width = 2.2) =>
+        `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      const text = (x, y, value, size = 23, color = ink, weight = 400) =>
+        `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}">${value}</text>`;
+      const icons = {
+        pr: 'M7 4v24m0-18h13a7 7 0 0 1 7 7v11M3 4a4 4 0 1 0 8 0a4 4 0 1 0-8 0M23 28a4 4 0 1 0 8 0a4 4 0 1 0-8 0',
+        ci: 'm2 7 9 9-9 9m16 0h13',
+        metrics: 'M1 27h31M4 22V13m8 9V5m8 17V10m8 12V2',
+        docs: 'M5 1h16l9 9v22H5zM20 1v10h10M11 17h13m-13 7h13',
+        shield: 'M16 1 29 6v10c0 8-13 16-13 16S3 24 3 16V6zM9 15l5 5 10-11',
+        release: 'M16 2v23M7 12l9-10 9 10M3 24v7h26v-7',
+      };
+      const agents = [
+        ['PR reviewer', 'On PR', 'pr', '#f6e4d3'],
+        ['CI fixer', 'Hourly', 'ci', '#e4eadd'],
+        ['Observability', 'On alert', 'metrics', '#e5e5f0'],
+        ['Docs writer', 'Manual', 'docs', '#f3e6c7'],
+        ['Security check', 'Daily', 'shield', '#e0eceb'],
+        ['Release helper', 'Weekly', 'release', '#f1e0df'],
+      ];
+      const events = [
+        ['PR created', '#42', 'pr', 0],
+        ['Run complete', 'CI fixer', 'ci', 1],
+        ['Logs checked', 'Observability', 'metrics', 2],
+        ['Metrics healthy', 'Observability', 'metrics', 2],
+      ];
+      function render(ms) {
+        const t = ms / 1000,
+          reset = 1 - ease((t - 10.5) / 0.9);
+        let s = '<rect width="1280" height="720" fill="#fbf9f5"/>';
+        // The mascot and wordmark share the exact center of the composition.
+        s +=
+          '<image href="../apps/web/public/openfactory.png" x="596" y="24" width="88" height="88"/>';
+        s +=
+          '<text x="640" y="151" text-anchor="middle" font-size="30" font-weight="700" fill="' +
+          ink +
+          '">OpenFactory</text>';
+        agents.forEach((agent, i) => {
+          const x = 64 + (i % 2) * 364,
+            y = 220 + Math.floor(i / 2) * 142;
+          const appear = 0.25 + 0.75 * ease((t - 0.25 - i * 0.22) / 0.65);
+          const start = 1.7 + i * 0.5,
+            end = 4.1 + i * 0.55;
+          const active = t > start && t < end,
+            done = t >= end && reset > 0.5;
+          s += `<g opacity="${appear}" transform="translate(${x} ${y})"><rect width="340" height="118" rx="17" fill="#fffefa" stroke="${active ? orange : line}" stroke-width="${active ? 2 : 1.5}"/>`;
+          s += `<rect x="20" y="24" width="52" height="52" rx="15" fill="${agent[3]}"/><g transform="translate(30 34)">${path(icons[agent[2]], orange)}</g>`;
+          s += text(87, 49, agent[0], 23, ink, 700);
+          s += text(88, 80, agent[1], 17, muted);
+          if (active) {
+            s += `<g transform="translate(312 92) rotate(${t * 200})">${path('M0-6a6 6 0 1 1-6 6', orange, 2.5)}</g>`;
+          } else if (done)
+            s += `<g transform="translate(304 87)">${path('m0 5 5 5 10-12', green, 2.5)}</g>`;
+          else s += '<circle cx="312" cy="92" r="4" fill="#c8c0b3"/>';
+          s += '</g>';
+        });
+        // Live outcomes replace the old explanatory headlines and computer diagram.
+        s += `<rect x="832" y="220" width="384" height="402" rx="17" fill="#fffefa" stroke="${line}" stroke-width="1.5"/>`;
+        s += text(858, 262, 'Activity', 23, ink, 700);
+        s += `<circle cx="1186" cy="254" r="5" fill="${green}"/>` + path('M833 284h382', line, 1.5);
+        events.forEach((event, i) => {
+          const appear = ease((t - 4.2 - i * 0.95) / 0.55) * reset;
+          const y = 308 + i * 74 + (1 - appear) * 8;
+          const agent = agents[event[3]];
+          s += `<g opacity="${appear}"><rect x="856" y="${y}" width="42" height="42" rx="12" fill="${agent[3]}"/><g transform="translate(864 ${y + 8}) scale(.76)">${path(icons[event[2]], orange)}</g>`;
+          s += text(914, y + 17, event[0], 21, ink, 700) + text(914, y + 42, event[1], 16, muted);
+          s += `<g transform="translate(1170 ${y + 12})">${path('m0 5 5 5 10-12', green, 2.5)}</g></g>`;
+        });
+        // A compact signal trace makes the observability outcome visual.
+        const trace = ease((t - 8.1) / 0.7) * reset;
+        s += `<g opacity="${trace}">${path('M858 646h34l9-13 10 23 12-30 12 20h30l10-9 9 9h49l12-18 12 18h61l12-7 10 7h52', green, 2.5)}</g>`;
+        scene.innerHTML = s;
+      }
+      window.render = render;
+      let started = performance.now();
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      function tick(now) {
+        if (!window.exporting) render(reduced.matches ? 9000 : (now - started) % 11500);
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

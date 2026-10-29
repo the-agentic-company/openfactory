@@ -1,75 +1,25 @@
 import {
   agentDefinition,
+  agentSchema,
   factoryTeamSetups,
-  createFactoryFiles,
   parseAgentDefinition,
   validateFactoryFile,
 } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
+import { savedDefinitionSchema } from '@openfactory/runtime/definitions';
 import { z } from 'zod';
-import { getAgents } from './agents';
 import { runtimeRpc } from './runtime-rpc';
-import { applyAgentDefinition } from './apply-agent-definition.server';
-import { DefinitionConflictError, readDefinition, saveDefinition } from './definition-store';
 
 async function loadDefinition(projectId: string) {
-  const workspace = await getAgents();
-  if (!workspace.connected) {
-    throw new Error('Start the OpenFactory runtime to load this factory definition.');
-  }
-  const project = workspace.projects.find((item) => item.id === projectId);
-  if (!project) {
-    throw new Error('This factory no longer exists.');
-  }
-  const agents = workspace.agents.filter((agent) => agent.projectId === projectId);
-  const generated = createFactoryFiles(project.title, agents);
-  let stored = await readDefinition(projectId);
-  const bindings = { ...stored?.bindings };
-  const files = { ...stored?.files };
-  if (!stored) {
-    files['factory.yaml'] = generated.files['factory.yaml']!;
-  }
-  let changed = !stored;
-  for (const [path, id] of Object.entries(generated.bindings)) {
-    if (!Object.values(bindings).includes(id)) {
-      bindings[path] = id;
-      files[path] = generated.files[path]!;
-      changed = true;
-    }
-  }
-  for (const [path, id] of Object.entries(bindings)) {
-    const source = files[path];
-    const agent = agents.find((item) => item.id === id);
-    if (source && agent && !parseAgentDefinition(source).schedule) {
-      files[path] = source.replace(
-        /^---\r?\n/,
-        (opening) => `${opening}schedule: ${JSON.stringify(agent.schedule)}\n`,
-      );
-      changed = true;
-    }
-  }
-  if (changed) {
-    try {
-      stored = await saveDefinition(projectId, stored?.revision ?? null, { files, bindings });
-    } catch (error) {
-      if (!(error instanceof DefinitionConflictError)) {
-        throw error;
-      }
-      // Concurrent initialization or a new agent arriving must not overwrite saved edits.
-      stored = await readDefinition(projectId);
-      if (!stored) {
-        throw error;
-      }
-    }
-  }
-  if (!stored) {
-    throw new Error('The factory definition could not be loaded. Retry.');
-  }
+  const stored = savedDefinitionSchema.parse(await runtimeRpc('definitions.get', { projectId }));
+  const { tasks } = z
+    .object({ tasks: z.array(agentSchema) })
+    .parse(await runtimeRpc('agents.list', {}));
   return {
     ...stored,
     projectId,
     files: Object.entries(stored.files).map(([path, source]) => {
-      const agent = agents.find((item) => item.id === stored.bindings[path]);
+      const agent = tasks.find((item) => item.id === stored.bindings[path]);
       return {
         path,
         source,
@@ -79,7 +29,6 @@ async function loadDefinition(projectId: string) {
     }),
   };
 }
-
 export const getFactoryDefinition = createServerFn({ method: 'GET' })
   .validator(z.object({ projectId: z.string().min(1) }))
   .handler(({ data }) => loadDefinition(data.projectId));
@@ -90,7 +39,7 @@ export const saveFactoryDefinitionFile = createServerFn({ method: 'POST' })
       projectId: z.string().min(1),
       path: z.string().max(300),
       source: z.string().max(100000),
-      revision: z.uuid(),
+      revision: z.string().regex(/^[a-f0-9]{64}$/),
       expectedRuntime: z.string().max(20000).nullable(),
     }),
   )
@@ -101,35 +50,23 @@ export const saveFactoryDefinitionFile = createServerFn({ method: 'POST' })
     if (!selected) {
       throw new Error('This file no longer exists. Reload files.');
     }
-    if (selected.agentId && !selected.liveSource) {
-      throw new Error('This agent was removed. Its saved definition is read-only.');
+    if (selected.agentId) {
+      if (selected.liveSource !== data.expectedRuntime) {
+        throw new Error('This definition changed since you opened it. Reload the definition.');
+      }
+      if (parseAgentDefinition(data.source).id !== selected.agentId) {
+        throw new Error('Keep the existing agent id to preserve its history.');
+      }
     }
-    const sources = Object.fromEntries(current.files.map((file) => [file.path, file.source]));
-    sources[data.path] = data.source;
-    const teams = factoryTeamSetups(sources, current.bindings);
-    const agentId = selected.agentId;
-    const result = await saveDefinition(
-      data.projectId,
-      data.revision,
-      { files: sources, bindings: current.bindings },
-      agentId
-        ? () => {
-            if (!data.expectedRuntime) {
-              throw new Error('Reload the live agent before saving.');
-            }
-            return applyAgentDefinition({
-              id: agentId,
-              source: data.source,
-              expectedSource: data.expectedRuntime,
-            });
-          }
-        : data.path.startsWith('teams/')
-          ? () => runtimeRpc('teams.replace', { projectId: data.projectId, teams })
-          : undefined,
+    const files = Object.fromEntries(current.files.map((file) => [file.path, file.source]));
+    files[data.path] = data.source;
+    factoryTeamSetups(files, current.bindings);
+    const result = savedDefinitionSchema.parse(
+      await runtimeRpc('definitions.save', {
+        projectId: data.projectId,
+        revision: data.revision,
+        files,
+      }),
     );
-    return {
-      revision: result.revision,
-      location: result.location,
-      applied: Boolean(selected.agentId) || data.path.startsWith('teams/'),
-    };
+    return { revision: result.revision, location: result.location, applied: true };
   });

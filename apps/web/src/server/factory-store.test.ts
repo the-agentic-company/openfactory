@@ -1,8 +1,10 @@
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { mkdtemp, rm, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, expect, it } from 'vite-plus/test';
+import { afterEach, beforeEach, expect, it, vi } from 'vite-plus/test';
+import { z } from 'zod';
+import { AgentRuntime } from '../../../../packages/runtime/src/runtime';
+import { ownedAgentSchema } from '@openfactory/runtime/contracts';
 import {
   readAppearances,
   readScorers,
@@ -12,120 +14,87 @@ import {
   writeScorer,
   writeFactoryProfile,
 } from './factory-store';
-let directory = '';
-let original: string | undefined;
+import { runtimeRpc } from './runtime-rpc';
+vi.mock('./runtime-rpc', () => ({ runtimeRpc: vi.fn() }));
+let directory: string;
+let runtime: AgentRuntime;
+let agentId: string;
 beforeEach(async () => {
-  original = process.env.OPENFACTORY_SETTINGS_DIR;
   directory = await mkdtemp(join(tmpdir(), 'openfactory-workspace-test-'));
-  process.env.OPENFACTORY_SETTINGS_DIR = directory;
+  runtime = new AgentRuntime(join(directory, 'runtime'));
+  for (const id of ['one', 'two']) {
+    await mkdir(join(directory, id));
+    await runtime.rpc('projects.upsert', { id, title: id, workspaceRoot: join(directory, id) });
+  }
+  agentId = z.object({ task: ownedAgentSchema }).parse(
+    await runtime.rpc('agents.upsert', {
+      projectId: 'one',
+      title: 'Reviewer',
+      prompt: 'Review.',
+      schedule: { type: 'manual' },
+      enabled: false,
+      modelSelection: { instanceId: 'codex', model: 'test' },
+      runtimeMode: 'approval-required',
+      interactionMode: 'default',
+      workspaceStrategy: { type: 'root' },
+    }),
+  ).task.id;
+  vi.mocked(runtimeRpc).mockImplementation((method, payload) => runtime.rpc(method, payload));
 });
 afterEach(async () => {
-  if (original === undefined) {
-    delete process.env.OPENFACTORY_SETTINGS_DIR;
-  } else {
-    process.env.OPENFACTORY_SETTINGS_DIR = original;
-  }
+  await runtime.close();
   await rm(directory, { recursive: true, force: true });
 });
-it('saves agent icons independently and retains choices when replaced', async () => {
+it('saves factory and agent appearance in the repository and keeps other repositories independent', async () => {
+  await writeAppearance(agentId, { kind: 'emoji', value: '🧪' });
   await Promise.all([
-    writeAppearance('agent/one', { kind: 'icon', name: 'shield' }),
-    writeAppearance('agent:two', { kind: 'emoji', value: '🧪' }),
+    writeFactoryProfile('one', {
+      title: 'Studio',
+      icon: { kind: 'icon', name: 'rocket', color: 'blue' },
+    }),
+    writeFactoryProfile('two', { title: 'Research', icon: { kind: 'emoji', value: '🔎' } }),
   ]);
-  await writeAppearance('agent/one', { kind: 'icon', name: 'rocket' });
-  expect(await readAppearances(['agent/one', 'agent:two', 'missing'])).toEqual({
-    'agent/one': { kind: 'icon', name: 'rocket' },
-    'agent:two': { kind: 'emoji', value: '🧪' },
+  expect(await readFactoryProfiles(['one', 'two', 'missing'])).toEqual({
+    one: { title: 'Studio', icon: { kind: 'icon', name: 'rocket', color: 'blue' } },
+    two: { title: 'Research', icon: { kind: 'emoji', value: '🔎' } },
   });
+  expect(await readAppearances([agentId, 'missing'])).toEqual({
+    [agentId]: { kind: 'emoji', value: '🧪' },
+  });
+  expect(await readFile(join(directory, 'one/factory/factory.yaml'), 'utf8')).toContain(
+    'name: Studio',
+  );
+  await runtime.close();
+  runtime = new AgentRuntime(join(directory, 'runtime'));
+  expect(await readAppearances([agentId])).toEqual({ [agentId]: { kind: 'emoji', value: '🧪' } });
 });
-it('persists and deletes a real scorer definition', async () => {
+it('saves and deletes scorers in their owning repository', async () => {
   const scorer = {
     id: '69182512-b9ba-4e6d-929b-2faf98363377',
     name: 'Smoke test',
-    project: '/project/mibba',
-    agentId: null,
+    project: join(directory, 'one'),
+    agentId,
     rule: { type: 'contains', text: 'OK' },
     createdAt: '2026-10-28T10:00:00.000Z',
   };
   await writeScorer(scorer);
   expect(await readScorers()).toEqual([scorer]);
+  expect(await readFile(join(directory, 'one/factory/factory.yaml'), 'utf8')).toContain(
+    'Smoke test',
+  );
+  expect(await readFile(join(directory, 'two/factory/factory.yaml'), 'utf8')).not.toContain(
+    'Smoke test',
+  );
   await removeScorer(scorer.id);
   expect(await readScorers()).toEqual([]);
 });
-it('persists factory names and icons independently across updates', async () => {
-  await Promise.all([
-    writeFactoryProfile('factory/one', {
-      title: 'Studio',
-      icon: { kind: 'icon', name: 'rocket', color: 'blue' },
-    }),
-    writeFactoryProfile('factory:two', {
-      title: 'Research',
-      icon: { kind: 'icon', name: 'search', color: 'blue' },
-    }),
-  ]);
-  await writeFactoryProfile('factory/one', {
-    title: '  Studio — production  ',
-    icon: { kind: 'icon', name: 'code', color: 'blue' },
-  });
-  expect(await readFactoryProfiles(['factory/one', 'factory:two', 'missing'])).toEqual({
-    'factory/one': {
-      title: 'Studio — production',
-      icon: { kind: 'icon', name: 'code', color: 'blue' },
-    },
-    'factory:two': { title: 'Research', icon: { kind: 'icon', name: 'search', color: 'blue' } },
-  });
+it('rejects invalid profiles and unknown repository owners without changing files', async () => {
+  const before = await readFile(join(directory, 'one/factory/factory.yaml'), 'utf8');
   await expect(
-    writeFactoryProfile('factory/one', {
-      title: '   ',
-      icon: { kind: 'icon', name: 'factory', color: 'blue' },
-    }),
+    writeFactoryProfile('one', { title: ' ', icon: { kind: 'icon', name: 'factory' } }),
   ).rejects.toThrow();
-  expect(await readFactoryProfiles(['factory/one'])).toEqual({
-    'factory/one': {
-      title: 'Studio — production',
-      icon: { kind: 'icon', name: 'code', color: 'blue' },
-    },
-  });
-});
-it('loads existing factory icons and saves colored monograms and emoji', async () => {
-  await mkdir(join(directory, 'factories'));
-  const hash = createHash('sha256').update('legacy').digest('hex');
-  await writeFile(
-    join(directory, 'factories', `${hash}.json`),
-    JSON.stringify({ title: 'Legacy', icon: 'rocket' }),
+  await expect(writeAppearance('missing-agent', { kind: 'emoji', value: '🧪' })).rejects.toThrow(
+    'existing repository',
   );
-  expect(await readFactoryProfiles(['legacy'])).toEqual({
-    legacy: { title: 'Legacy', icon: { kind: 'icon', name: 'rocket' } },
-  });
-  await writeFactoryProfile('legacy', {
-    title: 'Studio',
-    icon: { kind: 'monogram', text: 'ST', color: 'teal' },
-  });
-  await writeFactoryProfile('emoji', {
-    title: 'Engineering',
-    icon: { kind: 'emoji', value: '🧑🏽‍💻' },
-  });
-  expect(await readFactoryProfiles(['legacy', 'emoji'])).toEqual({
-    legacy: { title: 'Studio', icon: { kind: 'monogram', text: 'ST', color: 'teal' } },
-    emoji: { title: 'Engineering', icon: { kind: 'emoji', value: '🧑🏽‍💻' } },
-  });
-});
-it('keeps the shapes of legacy agent and factory icon aliases', async () => {
-  await writeAppearance('legacy-code', { kind: 'icon', name: 'code' });
-  await writeAppearance('legacy-shield', { kind: 'icon', name: 'shield' });
-  await writeAppearance('new-code', { kind: 'icon', name: 'code', color: 'blue' });
-  await mkdir(join(directory, 'factories'));
-  const hash = createHash('sha256').update('legacy-factory').digest('hex');
-  await writeFile(
-    join(directory, 'factories', `${hash}.json`),
-    JSON.stringify({ title: 'Legacy', icon: 'shield' }),
-  );
-  expect(await readAppearances(['legacy-code', 'legacy-shield', 'new-code'])).toEqual({
-    'legacy-code': { kind: 'icon', name: 'code-2' },
-    'legacy-shield': { kind: 'icon', name: 'shield-check' },
-    'new-code': { kind: 'icon', name: 'code', color: 'blue' },
-  });
-  expect(await readFactoryProfiles(['legacy-factory'])).toEqual({
-    'legacy-factory': { title: 'Legacy', icon: { kind: 'icon', name: 'shield-check' } },
-  });
+  expect(await readFile(join(directory, 'one/factory/factory.yaml'), 'utf8')).toBe(before);
 });

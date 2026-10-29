@@ -4,6 +4,11 @@ import { resolve, basename } from 'node:path';
 import { runtimeDirectory, runtimeRpc } from './client';
 import { serveRuntime } from './server';
 import { applyTeamFile } from './team-files';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { Store } from './store';
+import { migrateDefinitions } from './migrate-definitions';
+import { factoryMarketplaceCommand } from './marketplace-cli';
 
 const [command, ...args] = process.argv.slice(2);
 try {
@@ -18,6 +23,42 @@ try {
   } else {
     let result: unknown;
     switch (command) {
+      case 'definitions-migrate': {
+        const input = { apply: args.includes('--apply') };
+        if (args.includes('--offline')) {
+          const lock = join(runtimeDirectory(), 'runtime.lock');
+          if (existsSync(lock)) {
+            const pid = Number(readFileSync(lock, 'utf8'));
+            if (!Number.isSafeInteger(pid) || pid <= 0) {
+              throw new Error('Invalid runtime lock. Stop the runtime before offline migration.');
+            }
+            try {
+              process.kill(pid, 0);
+              throw new Error('Stop the runtime before offline migration.');
+            } catch (error) {
+              if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') {
+                throw error;
+              }
+            }
+          }
+          const store = new Store(runtimeDirectory());
+          try {
+            result = await migrateDefinitions(store, input);
+          } finally {
+            store.close();
+          }
+        } else {
+          result = await runtimeRpc('definitions.migrate', input);
+        }
+        break;
+      }
+      case 'factory':
+        if (['leaderboard', 'find', 'show', 'add'].includes(args[0] ?? '')) {
+          process.stdout.write(`${await factoryMarketplaceCommand(args)}\n`);
+          break;
+        }
+        result = await runtimeRpc('definitions.get', { projectId: args[0] });
+        break;
       case 'status':
         result = await runtimeRpc('runtime.status', {});
         break;
@@ -92,10 +133,12 @@ try {
         break;
       default:
         throw new Error(
-          'Usage: pnpm openfactory serve | status | project <path> [name] | team-apply <project-id> <path/to/team.yaml> | teams <project-id> | team-run <project-id> <teams/name/team.yaml> <member> [text|-] [request-id] | agents | create <json-file> | run <agent-id> [request-id] | pause/resume <agent-id> | read/stop <session-id> | send <session-id> <text|-> [request-id] | webhook-secret <agent-id> <secret-file>',
+          'Usage: pnpm openfactory serve | status | definitions-migrate [--apply] [--offline] | factory <project-id> | project <path> [name] | team-apply <project-id> <path/to/team.yaml> | teams <project-id> | team-run <project-id> <teams/name/team.yaml> <member> [text|-] [request-id] | agents | create <json-file> | run <agent-id> [request-id] | pause/resume <agent-id> | read/stop <session-id> | send <session-id> <text|-> [request-id] | webhook-secret <agent-id> <secret-file>',
         );
     }
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (result !== undefined) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    }
   }
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

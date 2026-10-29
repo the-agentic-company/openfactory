@@ -21,6 +21,7 @@ const agent = agentSchema.parse({
 describe('agent.md definitions', () => {
   it('round trips a live agent with multiline instructions and YAML punctuation', () => {
     expect(parseAgentDefinition(agentDefinition(agent))).toEqual({
+      id: agent.id,
       description: agent.title,
       agentType: 'CUSTOM',
       schedule: agent.schedule,

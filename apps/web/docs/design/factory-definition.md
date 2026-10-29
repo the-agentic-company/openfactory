@@ -18,7 +18,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Runtime constraints
 
-Native files persist on the OpenFactory host in versioned snapshots. factory.yaml is stored configuration. Agent saves target existing T3 tasks and preserve schedules and runtime options. Branch selection and automation provisioning are outside this page's current capabilities.
+Native files live in `factory/` inside each repository on the selected runtime host. The runtime loads definitions from those files, including external edits, and keeps content revisions to reject stale saves. Agent IDs in frontmatter preserve history across renames and restarts. UI saves write repository changes for the user to review and commit. The runtime stores conversations, credentials, and scheduler state separately.
 
 ## Shipped design comparison
 

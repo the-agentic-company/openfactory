@@ -4,6 +4,7 @@
   "private": true,
   "description": "OpenFactory desktop and independent agent host prototype",
   "homepage": "https://github.com/the-agentic-company/openfactory",
+  "license": "Apache-2.0",
   "author": "OpenFactory",
   "type": "module",
   "main": "src/main.mjs",
@@ -12,8 +13,8 @@
     "host": "node src/host.mjs",
     "test": "vp test",
     "test:package": "node scripts/verify-package.mjs",
-    "test:mac": "python3 scripts/verify-mac-archives.py",
-    "build": "pnpm build:workspace && electron-builder --linux deb --publish never",
+    "test:mac": "python3 scripts/verify-mac-archives.py && python3 scripts/verify-mac-dmg.py",
+    "build": "pnpm build:workspace && electron-builder --linux deb AppImage --x64 --publish never",
     "build:mac": "pnpm build:workspace && node scripts/mac-icon.mjs && node scripts/build-mac.mjs",
     "build:windows": "pnpm build:workspace && electron-builder --win nsis --x64 --publish never",
     "build:workspace": "node scripts/build-workspace.mjs",
@@ -64,7 +65,11 @@
       "icon": "build/icon.icns",
       "identity": null,
       "hardenedRuntime": false,
-      "notarize": false
+      "notarize": false,
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "linux": {
       "category": "Development",
@@ -87,7 +92,24 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false
-    }
+    },
+    "appImage": {
+      "artifactName": "OpenFactory-${version}-x86_64.AppImage"
+    },
+    "extraResources": [
+      {
+        "from": "../../LICENSE",
+        "to": "licenses/LICENSE"
+      },
+      {
+        "from": "../../THIRD_PARTY_NOTICES.md",
+        "to": "licenses/THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "../../third-party/T3-CODE-LICENSE",
+        "to": "licenses/T3-CODE-LICENSE"
+      }
+    ]
   },
   "productName": "OpenFactory"
 }

@@ -69,6 +69,9 @@ jobs:
       - name: Verify packaged host and runtime
         working-directory: apps/desktop
         run: node scripts/verify-package.mjs
+      - name: Verify the AppImage payload
+        if: matrix.platform == 'linux'
+        run: node scripts/verify-appimage.mjs
       - name: Verify both Mac archives
         if: matrix.platform == 'mac'
         run: pnpm --filter @openfactory/desktop test:mac
@@ -79,26 +82,57 @@ jobs:
           retention-days: 14
           path: |
             apps/desktop/dist/OpenFactory-*.deb
+            apps/desktop/dist/OpenFactory-*.dmg
+            apps/desktop/dist/OpenFactory-*.AppImage
             apps/desktop/dist/OpenFactory-*.zip
             apps/desktop/dist/OpenFactory-*.exe
             apps/desktop/dist/OpenFactory-*-build-manifest.json
 
+  cli:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm runtime:build
+      - name: Package self-contained CLI archives
+        run: node scripts/package-cli.mjs linux-x64 linux-arm64 darwin-x64 darwin-arm64
+      - name: Verify the packaged CLI against its real runtime
+        run: node scripts/verify-cli.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-cli
+          if-no-files-found: error
+          retention-days: 14
+          path: apps/desktop/dist/openfactory-cli-*.tar.gz
+
   release:
     if: startsWith(github.ref, 'refs/tags/desktop-v')
-    needs: build
+    needs: [build, cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
       - uses: actions/download-artifact@v8
         with:
           pattern: desktop-*
           merge-multiple: true
           path: installers
+      - name: Checksum all release assets
+        run: node scripts/release-checksums.mjs installers
       - name: Publish all installers together
         env:
           GH_TOKEN: ${{ secrets.OPENFACTORY_RELEASES_TOKEN || github.token }}
-          RELEASE_REPOSITORY: ${{ vars.OPENFACTORY_RELEASES_REPOSITORY || github.repository }}
+          RELEASE_REPOSITORY: ${{ vars.OPENFACTORY_RELEASES_REPOSITORY || 'the-agentic-company/openfactory-releases' }}
         run: |
           if [ "$RELEASE_REPOSITORY" = "$GITHUB_REPOSITORY" ]; then
             tag_options=(--verify-tag)

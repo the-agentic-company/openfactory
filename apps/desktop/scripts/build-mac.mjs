@@ -55,12 +55,18 @@ writeFileSync(
   JSON.stringify({ version, files, packageMetadata }, null, 2),
 );
 const require = createRequire(import.meta.url);
+const targets = process.platform === 'darwin' ? ['dmg', 'zip'] : ['zip'];
+if (process.platform !== 'darwin') {
+  process.stderr.write(
+    'DMG creation requires macOS. Building ZIP verification archives only on this host.\n',
+  );
+}
 const result = spawnSync(
   process.execPath,
   [
     require.resolve('electron-builder/cli.js'),
     '--mac',
-    'zip',
+    ...targets,
     '--arm64',
     '--x64',
     '--publish',

@@ -1,4 +1,9 @@
-import { agentSchema, scheduleSchema, threadHistorySchema } from '@openfactory/core';
+import {
+  agentSchema,
+  scheduleSchema,
+  threadHistorySchema,
+  workspaceStrategySchema,
+} from '@openfactory/core';
 import { z } from 'zod';
 
 export const projectSchema = z.object({
@@ -10,10 +15,7 @@ export const modelSchema = z.object({
   instanceId: z.enum(['codex', 'claude', 'claude-code']),
   model: z.string().trim().min(1),
   options: z
-    .union([
-      z.record(z.string(), z.unknown()),
-      z.array(z.object({ id: z.string(), value: z.unknown() })),
-    ])
+    .union([z.record(z.string(), z.json()), z.array(z.object({ id: z.string(), value: z.json() }))])
     .transform((value) =>
       Array.isArray(value)
         ? Object.fromEntries(value.map((option) => [option.id, option.value]))
@@ -22,16 +24,7 @@ export const modelSchema = z.object({
     .optional(),
 });
 export const runtimeModeSchema = z.enum(['approval-required', 'auto-accept-edits', 'full-access']);
-export const workspaceStrategySchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('root'), branch: z.string().optional() }),
-  z.object({ type: z.literal('existing_worktree'), worktreePath: z.string() }),
-  z.object({
-    type: z.literal('worktree'),
-    baseRef: z.string().default('HEAD'),
-    branch: z.string().optional(),
-    startFromOrigin: z.boolean().optional(),
-  }),
-]);
+export { workspaceStrategySchema } from '@openfactory/core';
 export const ownedAgentSchema = agentSchema.extend({
   schedule: scheduleSchema,
   modelSelection: modelSchema,

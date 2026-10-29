@@ -1,14 +1,18 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { isAbsolute, join } from 'node:path';
 import {
   agentDefinition,
+  agentDirectory,
+  createFactoryFiles,
   deliverySchema,
   threadHistorySchema,
   resolveTeam,
   teamSetupSchema,
   teamGuidance,
+  marketplaceKindSchema,
+  marketplaceSelectionSchema,
 } from '@openfactory/core';
 import { z } from 'zod';
 import {
@@ -26,13 +30,21 @@ import {
 import { Store } from './store';
 import { nextScheduledAt } from './schedule';
 import { launchProvider } from './providers';
+import { factorySettings } from './factory-settings';
+import { migrateDefinitions } from './migrate-definitions';
+import {
+  readDefinition,
+  saveDefinition,
+  definitionFilesSchema,
+  type DefinitionFiles,
+} from './definition-store';
+import { applyFactory, prepareFactory, storedTeamSchema, agentFileEdit } from './factory-files';
+import { marketplaceLeaderboard, previewMarketplace, mergeMarketplaceImport } from './marketplace';
 
 const idInput = z.object({ id: z.string().min(1) });
 const receiptSchema = z.object({ runId: z.string(), threadId: z.string(), digest: z.string() });
 const secretSchema = z.object({ token: z.string(), signatureSecret: z.string().nullable() });
 const digest = (text: string) => createHash('sha256').update(text).digest('hex');
-const storedTeamSchema = teamSetupSchema.extend({ projectId: z.string() });
-const teamKey = (projectId: string, path: string) => JSON.stringify([projectId, path]);
 const capacityFailure = (error: string | null) =>
   /selected model is at capacity/i.test(error ?? '');
 const capacityDelayMs = 5 * 60 * 1000;
@@ -68,6 +80,49 @@ export class AgentRuntime {
         });
       }
     }
+  }
+  private definitions = new Map<string, NonNullable<ReturnType<typeof readDefinition>>>();
+  private project(id: string) {
+    const project = this.store.get('projects', id, projectSchema);
+    if (!project) {
+      throw new Error('This factory no longer exists.');
+    }
+    return project;
+  }
+  private refreshDefinition(projectId: string) {
+    const project = this.project(projectId);
+    const definition = readDefinition(project.workspaceRoot);
+    if (!definition) {
+      throw new Error(
+        `${project.workspaceRoot}/factory/factory.yaml is missing. Run pnpm openfactory definitions-migrate once for existing factories.`,
+      );
+    }
+    if (this.definitions.get(projectId)?.revision !== definition.revision) {
+      applyFactory(this.store, prepareFactory(this.store, project, definition));
+      this.definitions.set(projectId, definition);
+    }
+    return definition;
+  }
+  private async saveFactory(
+    projectId: string,
+    revision: string | null,
+    definition: DefinitionFiles,
+  ) {
+    const project = this.project(projectId);
+    const prepared = prepareFactory(this.store, project, definition);
+    const saved = await saveDefinition(project.workspaceRoot, revision, definition, () =>
+      applyFactory(this.store, prepared),
+    );
+    this.definitions.set(projectId, saved);
+    return saved;
+  }
+  private configuredAgent(id: string) {
+    const agent = this.getAgent(id);
+    const definition = this.refreshDefinition(agent.projectId);
+    if (!Object.values(definition.bindings).includes(id)) {
+      throw new Error('This agent no longer has a repository definition.');
+    }
+    return this.getAgent(id);
   }
   start() {
     this.tick();
@@ -243,8 +298,24 @@ export class AgentRuntime {
     if (this.stopped) {
       return;
     }
+    const validProjects = new Set<string>();
+    for (const project of this.store.all('projects', projectSchema)) {
+      try {
+        this.refreshDefinition(project.id);
+        validProjects.add(project.id);
+      } catch (error) {
+        process.stderr.write(
+          `Factory ${project.id}: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+      }
+    }
     for (const agent of this.store.all('agents', ownedAgentSchema)) {
-      if (!agent.enabled || !agent.nextRunAt || new Date(agent.nextRunAt) > at) {
+      if (
+        !validProjects.has(agent.projectId) ||
+        !agent.enabled ||
+        !agent.nextRunAt ||
+        new Date(agent.nextRunAt) > at
+      ) {
         continue;
       }
       try {
@@ -279,7 +350,7 @@ export class AgentRuntime {
       const superseded =
         agent.threadId !== run.threadId ||
         runs.some((other) => other.threadId === run.threadId && other.ordinal > run.ordinal);
-      if (!agent.enabled || superseded) {
+      if (!validProjects.has(agent.projectId) || !agent.enabled || superseded) {
         this.store.put('runs', run.id, { ...run, capacityRetry: { status: 'cancelled' } });
         continue;
       }
@@ -319,7 +390,23 @@ export class AgentRuntime {
       });
     }
     for (const run of this.store.all('runs', runSchema)) {
+      const owner = this.getAgent(run.agentId);
+      const definition = this.definitions.get(owner.projectId);
       if (
+        run.status === 'queued' &&
+        validProjects.has(owner.projectId) &&
+        !Object.values(definition?.bindings ?? {}).includes(run.agentId)
+      ) {
+        this.store.put('runs', run.id, {
+          ...run,
+          status: 'interrupted',
+          completedAt: now(),
+          error: 'The agent definition was removed from the repository.',
+        });
+        continue;
+      }
+      if (
+        !validProjects.has(this.getAgent(run.agentId).projectId) ||
         run.status !== 'queued' ||
         this.working.has(run.threadId) ||
         this.workingAgents.has(run.agentId)
@@ -535,6 +622,64 @@ export class AgentRuntime {
   }
   async rpc(method: string, input: unknown): Promise<unknown> {
     switch (method) {
+      case 'marketplace.leaderboard': {
+        const { kind, query } = z
+          .object({
+            kind: marketplaceKindSchema.default('factory'),
+            query: z.string().trim().max(120).default(''),
+          })
+          .parse(input);
+        return marketplaceLeaderboard(kind, query);
+      }
+      case 'marketplace.show': {
+        const { source } = marketplaceSelectionSchema.parse(input);
+        return previewMarketplace(source);
+      }
+      case 'marketplace.add': {
+        const data = marketplaceSelectionSchema
+          .extend({
+            projectId: z.string().min(1),
+            revision: z.string(),
+            previewRevision: z.string(),
+          })
+          .parse(input);
+        const current = this.refreshDefinition(data.projectId);
+        if (current.revision !== data.revision) {
+          throw new Error('The target factory changed. Reload it before importing.');
+        }
+        const preview = await previewMarketplace(data.source);
+        if (preview.revision !== data.previewRevision) {
+          throw new Error('The source changed. Review its contents again before importing.');
+        }
+        const saved = await this.saveFactory(
+          data.projectId,
+          data.revision,
+          mergeMarketplaceImport(current.files, preview, data.kind, data.name),
+        );
+        return {
+          source: preview.source,
+          kind: data.kind,
+          name: data.name,
+          location: saved.location,
+          revision: saved.revision,
+          imported: Object.keys(saved.files).length - Object.keys(current.files).length,
+        };
+      }
+      case 'factory.settings':
+        return factorySettings(this.store, input, this.saveFactory.bind(this));
+      case 'definitions.get': {
+        const { projectId } = z.object({ projectId: z.string() }).parse(input);
+        return this.refreshDefinition(projectId);
+      }
+      case 'definitions.save': {
+        const data = definitionFilesSchema
+          .extend({ projectId: z.string(), revision: z.string().nullable() })
+          .parse(input);
+        return this.saveFactory(data.projectId, data.revision, data);
+      }
+      case 'definitions.migrate': {
+        return migrateDefinitions(this.store, input);
+      }
       case 'runtime.status':
         return {
           owner: 'openfactory',
@@ -544,6 +689,7 @@ export class AgentRuntime {
         };
       case 'teams.list': {
         const { projectId } = z.object({ projectId: z.string() }).parse(input);
+        this.refreshDefinition(projectId);
         return { teams: this.projectTeams(projectId) };
       }
       case 'teams.replace': {
@@ -564,19 +710,17 @@ export class AgentRuntime {
           paths.add(setup.path);
           resolveTeam(setup, agents);
         }
-        this.store.transaction(() => {
-          for (const team of this.store.all('teams', storedTeamSchema)) {
-            if (team.projectId === data.projectId) {
-              this.store.delete('teams', teamKey(team.projectId, team.path));
-            }
+        const current = this.refreshDefinition(data.projectId);
+        const files = Object.fromEntries(
+          Object.entries(current.files).filter(([path]) => !path.startsWith('teams/')),
+        );
+        for (const team of data.teams) {
+          files[team.path] = team.source;
+          if (team.instructions || team.source.includes('instructions:')) {
+            files[team.path.replace(/team\.yaml$/, 'instructions.md')] = team.instructions;
           }
-          for (const team of data.teams) {
-            this.store.put('teams', teamKey(data.projectId, team.path), {
-              ...team,
-              projectId: data.projectId,
-            });
-          }
-        });
+        }
+        await this.saveFactory(data.projectId, current.revision, { files });
         return { teams: this.projectTeams(data.projectId) };
       }
       case 'teams.run': {
@@ -589,6 +733,7 @@ export class AgentRuntime {
             requestId: z.string().min(1),
           })
           .parse(input);
+        this.refreshDefinition(data.projectId);
         const team = this.projectTeams(data.projectId).find((item) => item.path === data.path);
         if (!team) {
           throw new Error('This team no longer exists.');
@@ -607,10 +752,20 @@ export class AgentRuntime {
         this.tick();
         return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
       }
-      case 'agents.list':
+      case 'agents.list': {
+        const ids = new Set<string>();
+        for (const project of this.store.all('projects', projectSchema)) {
+          for (const id of Object.values(this.refreshDefinition(project.id).bindings)) {
+            ids.add(id);
+          }
+        }
         return {
-          tasks: this.store.all('agents', ownedAgentSchema).map((agent) => this.publicAgent(agent)),
+          tasks: this.store
+            .all('agents', ownedAgentSchema)
+            .filter((agent) => ids.has(agent.id))
+            .map((agent) => this.publicAgent(agent)),
         };
+      }
       case 'workspace.snapshot': {
         const sessions = this.store.all('sessions', sessionSchema).map((session) => session.thread);
         const archives = this.store.all(
@@ -654,22 +809,55 @@ export class AgentRuntime {
           throw new Error('Stop active runs before deleting this factory.');
         }
         this.store.deleteProject(id);
+        this.definitions.delete(id);
         return { deleted: true };
       }
       case 'projects.upsert': {
-        const project = projectSchema.parse(input);
-        if (!isAbsolute(project.workspaceRoot)) {
+        const parsed = projectSchema.parse(input);
+        if (!isAbsolute(parsed.workspaceRoot)) {
           throw new Error('Use an absolute working directory.');
         }
-        this.store.put('projects', project.id, project);
-        return project;
+        const project = { ...parsed, workspaceRoot: realpathSync(parsed.workspaceRoot) };
+        const duplicate = this.store
+          .all('projects', projectSchema)
+          .find(
+            (item) =>
+              item.id !== project.id && realpathSync(item.workspaceRoot) === project.workspaceRoot,
+          );
+        if (duplicate) {
+          throw new Error('This repository already has a factory.');
+        }
+        const existing = this.store.get('projects', project.id, projectSchema);
+        if (existing && realpathSync(existing.workspaceRoot) !== project.workspaceRoot) {
+          throw new Error('Remove the factory before registering another repository path.');
+        }
+        const definition = readDefinition(project.workspaceRoot);
+        if (definition) {
+          const prepared = prepareFactory(this.store, project, definition);
+          applyFactory(this.store, prepared);
+          this.definitions.set(project.id, definition);
+          return prepared.project;
+        }
+        if (existing) {
+          throw new Error(
+            'The repository definition is missing. Migrate existing factories first.',
+          );
+        }
+        const generated = createFactoryFiles(project.title, []);
+        const prepared = prepareFactory(this.store, project, generated);
+        const saved = await saveDefinition(project.workspaceRoot, null, generated, () =>
+          applyFactory(this.store, prepared),
+        );
+        this.definitions.set(project.id, saved);
+        return prepared.project;
       }
       case 'agents.upsert': {
         const data = upsertSchema.parse(input);
         if (!this.store.get('projects', data.projectId, projectSchema)) {
           throw new Error('This factory no longer exists.');
         }
-        const existing = data.id ? this.getAgent(data.id) : null;
+        const current = this.refreshDefinition(data.projectId);
+        const existing = data.id ? this.configuredAgent(data.id) : null;
         if (existing && data.expectedSource && agentDefinition(existing) !== data.expectedSource) {
           throw new Error('This definition changed since you opened it. Reload the definition.');
         }
@@ -700,22 +888,27 @@ export class AgentRuntime {
           lastRunError: existing?.lastRunError ?? null,
           runCount: existing?.runCount ?? 0,
         });
-        this.store.transaction(() => {
-          this.store.put('agents', id, agent);
-          if (!this.store.get('secrets', id, secretSchema)) {
-            this.store.put('secrets', id, {
-              token: randomBytes(32).toString('hex'),
-              signatureSecret: null,
-            });
-          }
-        });
-        return { task: this.publicAgent(agent) };
+        if (existing && existing.projectId !== data.projectId) {
+          throw new Error(
+            'Agents belong to their repository. Create a new agent in the destination factory.',
+          );
+        }
+        const definition = existing
+          ? agentFileEdit(current.files, current.bindings, agent)
+          : {
+              files: {
+                ...current.files,
+                [`agents/${agentDirectory(agent)}/agent.md`]: agentDefinition(agent),
+              },
+            };
+        await this.saveFactory(data.projectId, current.revision, definition);
+        return { task: this.publicAgent(this.getAgent(id)) };
       }
       case 'agents.setEnabled': {
         const data = idInput
           .extend({ enabled: z.boolean(), nextRunAt: z.iso.datetime().nullable().optional() })
           .parse(input);
-        const agent = this.getAgent(data.id);
+        const agent = this.configuredAgent(data.id);
         const updated = {
           ...agent,
           enabled: data.enabled,
@@ -723,12 +916,19 @@ export class AgentRuntime {
             ? (data.nextRunAt ?? nextScheduledAt(agent.schedule, new Date()))
             : null,
         };
+        const current = this.refreshDefinition(agent.projectId);
+        await this.saveFactory(
+          agent.projectId,
+          current.revision,
+          agentFileEdit(current.files, current.bindings, updated),
+        );
+        // nextRunAt is operational state and can be explicitly advanced by the scheduler.
         this.store.put('agents', agent.id, updated);
         return { task: this.publicAgent(updated) };
       }
       case 'agents.run': {
         const data = idInput.extend({ requestId: z.string().min(1) }).parse(input);
-        const agent = this.getAgent(data.id);
+        const agent = this.configuredAgent(data.id);
         const receipt = this.store.transaction(() =>
           this.enqueue(agent, agent.prompt, `manual:${data.requestId}`, 'web'),
         );
@@ -771,14 +971,9 @@ export class AgentRuntime {
         if (data.agentId && data.agentId !== session.thread.agentId) {
           throw new Error('This conversation belongs to another agent.');
         }
+        const agent = this.configuredAgent(session.thread.agentId);
         const receipt = this.store.transaction(() =>
-          this.enqueue(
-            this.getAgent(session.thread.agentId),
-            data.text,
-            `message:${data.messageId}`,
-            'web',
-            data.threadId,
-          ),
+          this.enqueue(agent, data.text, `message:${data.messageId}`, 'web', data.threadId),
         );
         this.tick();
         return { accepted: true, ...receipt };
@@ -820,7 +1015,7 @@ export class AgentRuntime {
         throw new Error(`Unsupported OpenFactory runtime method: ${method}`);
     }
   }
-  private import(input: unknown) {
+  private async import(input: unknown) {
     const data = importSchema.parse(input);
     this.store.transaction(() => {
       for (const project of data.projects) {
@@ -868,6 +1063,21 @@ export class AgentRuntime {
         });
       }
     });
+    for (const project of data.projects) {
+      const agents = this.store
+        .all('agents', ownedAgentSchema)
+        .filter((agent) => agent.projectId === project.id);
+      const current = readDefinition(project.workspaceRoot);
+      const generated = createFactoryFiles(project.title, agents);
+      const files = { ...current?.files };
+      files['factory.yaml'] ??= generated.files['factory.yaml'] ?? '';
+      for (const [path, id] of Object.entries(generated.bindings)) {
+        if (!Object.values(current?.bindings ?? {}).includes(id)) {
+          files[path] = generated.files[path] ?? '';
+        }
+      }
+      await this.saveFactory(project.id, current?.revision ?? null, { files });
+    }
     return { imported: data.agents.length, paused: true };
   }
   private webhook(input: unknown) {
@@ -880,7 +1090,7 @@ export class AgentRuntime {
         requestId: z.string().max(200).optional(),
       })
       .parse(input);
-    const agent = this.getAgent(data.id);
+    const agent = this.configuredAgent(data.id);
     const credentials = this.store.get('secrets', agent.id, secretSchema);
     if (
       !credentials ||

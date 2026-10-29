@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { deserializePageTree } from 'fumadocs-core/source/client';
-import { ChartNoAxesCombined } from 'lucide-react';
+import { Download } from 'lucide-react';
 import collections from '../../.source/browser';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
@@ -49,9 +49,9 @@ function Documentation() {
           }}
           links={[
             {
-              text: import.meta.env.PUBLIC_SITE ? 'Get started' : 'Open app',
-              url: import.meta.env.PUBLIC_SITE ? '/docs/quickstart' : '/app',
-              icon: <ChartNoAxesCombined />,
+              text: 'Download OpenFactory',
+              url: '/download',
+              icon: <Download />,
             },
           ]}
           themeSwitch={{ enabled: false }}

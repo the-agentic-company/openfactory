@@ -1,6 +1,42 @@
-# OpenFactory
+<p align="center">
+  <img src="apps/web/public/openfactory.png" alt="OpenFactory mascot" width="96" />
+</p>
 
-OpenFactory runs coding agents directly through Codex CLI or Claude Code CLI. It owns their definitions, schedules, webhooks, sessions, run history, and queues. T3 Code is not required.
+<h1 align="center">OpenFactory</h1>
+
+<p align="center"><strong>Your agents. Your computers. One factory.</strong></p>
+
+<p align="center">
+  Run Codex and Claude Code agents on your own machines.<br />
+  Give them a task, set a schedule, and follow their work in one place.
+</p>
+
+<p align="center">
+  <a href="#start">Get started</a> &middot;
+  <a href="apps/web/content/docs/quickstart.mdx">Documentation</a> &middot;
+  <a href="apps/desktop/README.md">Desktop app</a>
+</p>
+
+<p align="center">
+  <a href=".github/assets/readme/openfactory-concept.mp4">
+    <img src=".github/assets/readme/openfactory-concept.gif" alt="OpenFactory agent examples with live activity: PR created, run complete, logs checked, and healthy metrics." width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  A little help, on your own machines.<br />
+  <a href=".github/assets/readme/openfactory-concept.mp4">Watch the video</a> &middot;
+  <a href=".github/assets/readme/openfactory-concept.png">View the still illustration</a>
+</p>
+
+## Put your agents to work
+
+- Review pull requests when a webhook arrives, or check CI on a schedule.
+- Run a task yourself and continue the conversation when you need a follow-up.
+- Organize agents into teams with shared instructions.
+- Keep agent definitions in Markdown and YAML, with run history and usage in the app.
+
+OpenFactory runs agents directly through Codex CLI or Claude Code CLI and reuses your existing sign-in. It manages schedules, webhooks, sessions, and queues on the runtime host. Provider credentials stay on that host.
 
 ## Start
 
@@ -57,20 +93,22 @@ Review the changes and report concrete findings.
 
 Schedules can also use `type: interval` with `everyMs`, `type: fixed_time` with `timeOfDay` and optional `weekdays` (Sunday is `0`), or `type: webhook`. Fixed times use the runtime host's timezone. Saving applies the provider, model, permissions, instructions, enabled state, and schedule. It does not run the agent. Existing fields omitted from older definitions retain their current values.
 
-**Factory definition** browses `factory.yaml` and saved agent files. Snapshots persist under `~/.config/openfactory/workspace/definitions`; file revisions and runtime comparisons protect against stale edits. Factory-wide defaults remain stored configuration rather than applied provider settings.
+**Factory definition** edits the YAML and Markdown in each repository’s `factory/` directory. These files are the source of truth for agents, teams, schedules, factory names, icons, and scorers. The selected runtime host reads and writes its repository files. Content revisions protect against stale saves, including edits made outside the app. Commit `factory/` with your code. Runtime history, credentials, and scheduler state stay outside the repository.
+
+For existing installations, run `pnpm openfactory definitions-migrate` to preview the move, then `pnpm openfactory definitions-migrate --apply`. The migration preserves agent IDs and history, refuses conflicting destination files, and removes migrated global snapshots and settings. Normal operation reads only `factory/`; there is no legacy storage fallback. With the runtime stopped, add `--offline` to migrate an older installation before restarting it. Use `pnpm openfactory factory <project-id>` to inspect the resulting files and location.
 
 ## Teams
 
 Create a team from the factory’s **Teams** page. Choose its lead and members from existing agents. Open **Factory definition** to edit the generated files:
 
 ```text
-factory.yaml
-agents/<agent-folder>/agent.md
-teams/<team-name>/team.yaml
-teams/<team-name>/instructions.md
+factory/factory.yaml
+factory/agents/<agent-folder>/agent.md
+factory/teams/<team-name>/team.yaml
+factory/teams/<team-name>/instructions.md
 ```
 
-A team references agent files relative to the factory definition root:
+A team references agent files relative to `factory/`:
 
 ```yaml
 schemaVersion: v1alpha1
@@ -93,12 +131,12 @@ Saving team files applies their membership and shared instructions without start
 Use **Run lead** or a member’s **Run agent** button to start real work. The CLI can also apply a team folder or assign work to a member:
 
 ```sh
-pnpm openfactory team-apply '<project-id>' /path/to/teams/reliability/team.yaml
+pnpm openfactory team-apply '<project-id>' /path/to/repo/factory/teams/reliability/team.yaml
 pnpm openfactory teams '<project-id>'
 pnpm openfactory team-run '<project-id>' teams/reliability/team.yaml digest 'Summarize the incident.'
 ```
 
-`team-apply` resolves references against the factory’s saved agent bindings, initializes missing agent snapshots from the live runtime, and preserves existing edits. Reapplying identical files keeps the same revision. Use `pnpm openfactory agents` to inspect actual agent IDs; the factory definition page shows their file paths.
+`team-apply` copies a team folder into the repository’s `factory/teams/` directory and resolves agent references against its `factory/agents/` files. It preserves existing edits. Reapplying identical files keeps the same revision. Use `pnpm openfactory agents` to inspect actual agent IDs; the factory definition page shows their file paths.
 
 ## Webhooks
 
@@ -137,11 +175,11 @@ The dashboard, runs, assistant, scorer rules, and usage views read the owned run
 
 ### Host the landing page and docs on Vercel
 
-Import this repository into Vercel with the repository root as the project root. The root `vercel.json` runs `pnpm build:site` and deploys the output from `.vercel/output`.
+Import this repository into Vercel with the repository root as the project root. The root `vercel.json` runs `pnpm build:site` and deploys the output from `.vercel/output`. Connect `the-agentic-company/openfactory` in the project's Git settings and use `main` as the production branch. Pushes to `main` deploy production automatically; other branches create preview deployments.
 
 The public build includes the landing page and documentation. Workspace routes, webhooks, and local download handlers are excluded from its route tree. Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
 
-The public download links use the `desktop-v<version>` GitHub Release matching `apps/desktop/package.json`. Apple Silicon Mac, Linux, and Windows are shown first. Intel Mac is under **More downloads**.
+The public download links use the `desktop-v<version>` GitHub Release matching `apps/desktop/package.json`. Mac uses DMG installers, Linux offers `.deb` and `.AppImage`, and Windows uses `.exe`. The download page also links the Intel Mac DMG.
 
 To build the public site locally:
 
@@ -152,9 +190,9 @@ pnpm verify:site
 
 GitHub Actions builds installers on Linux, macOS, and Windows for pull requests and pushes to `main`. Each build launches its packaged host and checks the runtime, persistence, and authenticated API before uploading artifacts. The macOS job also verifies both Apple Silicon and Intel archives.
 
-To publish installers, update the desktop package version and push the matching `desktop-v<version>` tag. The workflow publishes all installers together after every platform passes. Mac and Windows installers are unsigned previews.
+To publish installers, update the desktop package version and push the matching `desktop-v<version>` tag. The workflow publishes all installers and self-contained CLI archives together after every platform passes, along with `SHA256SUMS`. The website serves `/install.sh`; its Terminal section shows a copyable command using the current website origin. The script installs the `openfactory` CLI on macOS or Linux without requiring Node or npm. Mac and Windows installers are unsigned previews.
 
-For public downloads from a private source repository, create a public repository for release assets. Set the source repository's Actions variable `OPENFACTORY_RELEASES_REPOSITORY` to `owner/repository` and its secret `OPENFACTORY_RELEASES_TOKEN` to a token with Contents write access to that release repository. Set `VITE_OPENFACTORY_RELEASES_REPOSITORY` to the same `owner/repository` in Vercel. The public site defaults to `the-agentic-company/openfactory-releases`; `VITE_OPENFACTORY_RELEASES_REPOSITORY` overrides it. Without the Actions variable, the release workflow publishes to the source repository.
+For public downloads from a private source repository, create a public repository for release assets. Set the source repository's Actions variable `OPENFACTORY_RELEASES_REPOSITORY` to `owner/repository` and its secret `OPENFACTORY_RELEASES_TOKEN` to a token with Contents write access to that release repository. Set `VITE_OPENFACTORY_RELEASES_REPOSITORY` to the same `owner/repository` in Vercel. The public site defaults to `the-agentic-company/openfactory-releases`; `VITE_OPENFACTORY_RELEASES_REPOSITORY` overrides it. The release workflow uses the same public repository by default. Publishing there requires `OPENFACTORY_RELEASES_TOKEN`; the source repository's default token cannot publish to another repository.
 
 ### Run the workspace on your own host
 
@@ -177,3 +215,19 @@ Use the printed HTTPS URL from a device connected to your tailnet. The same URL 
 `install-service.sh` disables the old T3 token-renewal timer. It does not stop T3 itself or other users' T3 conversations. `scripts/stage-release.py` copies both the web build and bundled runtime into an immutable release under `~/.local/share/openfactory/releases`, then switches `current` atomically.
 
 After later changes, build and run `./scripts/deploy-service.sh`. Deployment restarts both OpenFactory services, so finish or stop active turns first. Inspect logs with `journalctl --user -u openfactory-runtime.service -u openfactory.service -n 50`.
+
+## Refresh the README animation
+
+Install `agent-browser` with its Chromium browser and `ffmpeg`, then run:
+
+```sh
+pnpm exec node scripts/export-readme-animation.mjs
+```
+
+The script renders `scripts/readme-animation.html` locally and exports a looping GIF, an MP4, and a still illustration to `.github/assets/readme`. It uses demo content and does not need a running app or provider credentials. Open the HTML file in a browser to preview the animation. The browser preview respects reduced motion preferences.
+
+## License
+
+OpenFactory is licensed under the [Apache License 2.0](LICENSE).
+Third-party code and assets retain their own licenses and attribution; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

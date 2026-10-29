@@ -16,6 +16,16 @@ export const scheduleSchema = z.discriminatedUnion('type', [
       .optional(),
   }),
 ]);
+export const workspaceStrategySchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('root'), branch: z.string().optional() }),
+  z.object({ type: z.literal('existing_worktree'), worktreePath: z.string() }),
+  z.object({
+    type: z.literal('worktree'),
+    baseRef: z.string().default('HEAD'),
+    branch: z.string().optional(),
+    startFromOrigin: z.boolean().optional(),
+  }),
+]);
 export const agentSchema = z.object({
   id: z.string(),
   projectName: z.string().default('Unassigned'),
@@ -30,7 +40,10 @@ export const agentSchema = z.object({
   modelSelection: z.object({
     instanceId: z.string(),
     model: z.string(),
+    options: z.record(z.string(), z.json()).optional(),
   }),
+  interactionMode: z.enum(['default', 'plan']).optional(),
+  workspaceStrategy: workspaceStrategySchema.optional(),
   nextRunAt: z.string().nullable(),
   lastRunAt: z.string().nullable(),
   lastRunStatus: z.enum(['never', 'running', 'succeeded', 'failed']),

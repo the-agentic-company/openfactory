@@ -2,9 +2,30 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import react from '@vitejs/plugin-react';
 import { nitro } from 'nitro/vite';
-import { defineConfig } from 'vite-plus';
+import { defineConfig, type Plugin } from 'vite-plus';
 import mdx from 'fumadocs-mdx/vite';
 import { fileURLToPath } from 'node:url';
+
+const publicSiteBoundary = {
+  name: 'public-site-boundary',
+  generateBundle(_options, bundle) {
+    for (const output of Object.values(bundle)) {
+      if (output.type !== 'chunk') {
+        continue;
+      }
+      for (const [id, module] of Object.entries(output.modules)) {
+        if (
+          module.renderedLength > 0 &&
+          /\/(?:packages\/(?:runtime|db)\/|src\/routes\/(?:app|api\.|downloads\.)|src\/components\/desktop-chrome|src\/server\/(?!docs\.))/.test(
+            id,
+          )
+        ) {
+          this.error(`The public site must not ship workspace code: ${id}`);
+        }
+      }
+    }
+  },
+} satisfies Plugin;
 
 export default defineConfig(({ mode }) => {
   const publicSite = mode === 'public';
@@ -20,6 +41,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths: true,
       alias: publicSite
         ? {
+            '../styles.css?url': `${fileURLToPath(new URL('./src/base.css', import.meta.url))}?url`,
             './routeTree.gen': fileURLToPath(
               new URL('./.tanstack/public-routeTree.gen.ts', import.meta.url),
             ),
@@ -28,6 +50,7 @@ export default defineConfig(({ mode }) => {
     },
     define: { 'import.meta.env.PUBLIC_SITE': JSON.stringify(publicSite) },
     plugins: [
+      ...(publicSite ? [publicSiteBoundary] : []),
       mdx(),
       tailwindcss(),
       tanstackStart(

@@ -12,11 +12,13 @@ export async function downloadBuild(file: string, head = false) {
   try {
     const info = await stat(path);
     const headers = {
-      'Content-Type': file.endsWith('.zip')
-        ? 'application/zip'
-        : file.endsWith('.exe')
-          ? 'application/vnd.microsoft.portable-executable'
-          : 'application/vnd.debian.binary-package',
+      'Content-Type': file.endsWith('.dmg')
+        ? 'application/x-apple-diskimage'
+        : file.endsWith('.AppImage')
+          ? 'application/octet-stream'
+          : file.endsWith('.exe')
+            ? 'application/vnd.microsoft.portable-executable'
+            : 'application/vnd.debian.binary-package',
       'Content-Disposition': `attachment; filename="${file}"`,
       'Content-Length': String(info.size),
       'Cache-Control': 'private, max-age=0, must-revalidate',

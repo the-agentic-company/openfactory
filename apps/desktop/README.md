@@ -131,14 +131,14 @@ Removing a package does not delete your factory history or revoke tokens stored 
 
 ## Try it on macOS
 
-Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.1-arm64.zip` for Apple Silicon (M1 or newer), or
-`dist/OpenFactory-0.1.1-x64.zip` for an Intel Mac. Unzip it and move
+Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.1-arm64.dmg` for Apple Silicon (M1 or newer), or
+`dist/OpenFactory-0.1.1-x64.dmg` for an Intel Mac. Open the disk image and drag
 **OpenFactory.app** into **Applications** before opening it, so the background host
 has a permanent location. Codex and the Tailscale CLI must be installed and signed in on that Mac.
 Homebrew's `/opt/homebrew/bin` and `/usr/local/bin` are included in the app's command lookup.
 
-These are unsigned, unnotarized cross-builds made on Linux. macOS launch and device pairing
-have not been verified on physical Apple hardware. Gatekeeper may block the first launch;
+DMG installers are built on macOS in the release workflow. They are unsigned and unnotarized.
+macOS launch and device pairing have not been verified on physical Apple hardware. Gatekeeper may block the first launch;
 use **System Settings → Privacy & Security → Open Anyway** for this specific app.
 If macOS reports that the app's signature is invalid or the app is damaged, apply a local
 ad-hoc signature to this prototype, then try opening it again:
@@ -168,7 +168,17 @@ No T3 runtime code is imported. Networking follows
 [Electron's security recommendations](https://www.electronjs.org/docs/latest/tutorial/security).
 
 This version uses manual host addition. It does not bundle Tailscale or Codex, install updates,
-or build signed macOS or Windows installers. Linux x64 launch is verified. Mac ZIPs are
-cross-built and structurally checked, but require testing on a Mac. A second physical
+or build signed macOS or Windows installers. Linux x64 launch is verified. Mac verification
+compares the mounted DMGs with the ZIP bundles and checks their contents; a Mac launch test is still required. A second physical
 computer is still needed to confirm end-to-end tailnet pairing on your devices; local two-host
 verification does not prove your tailnet ACLs or network configuration.
+
+## Release formats and terminal installation
+
+The Linux build produces `.deb` and `.AppImage` files for x86-64. Mark the AppImage as executable before opening it. The native macOS build produces `.dmg` installers and companion ZIPs for verification on Apple Silicon and Intel. Linux cross-builds produce only the verification ZIPs because DMG creation needs macOS.
+
+The website serves a standalone CLI installer at `/install.sh`. Copy the command from the Terminal section of `/download` to use the current website origin. The CLI and desktop app are separate installations.
+
+The release workflow runs `scripts/package-cli.mjs` for Linux and macOS on x64 and arm64. Each archive contains the OpenFactory runtime, a Node executable, its license, and the `openfactory` launcher. Cross-platform Node downloads are verified against Node's published checksums. `scripts/verify-cli.mjs` starts the host-platform archive's runtime and checks its IPC status in a temporary directory.
+
+The release job publishes `SHA256SUMS` with all installer and CLI archives. `/install.sh` verifies this file before installing a version. It supports `OPENFACTORY_VERSION`, `OPENFACTORY_HOME`, `OPENFACTORY_INSTALL_BIN_DIR`, `OPENFACTORY_RELEASES_REPOSITORY`, `OPENFACTORY_RELEASE_BASE_URL`, and `OPENFACTORY_RELEASES_URL` overrides. The default release repository is substituted from the public site's configuration when the script is served.

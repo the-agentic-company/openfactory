@@ -11,6 +11,7 @@ import {
   Network,
   ScanLine,
   Settings,
+  Store,
 } from 'lucide-react';
 import { domAnimation, LazyMotion, useReducedMotion } from 'motion/react';
 import * as m from 'motion/react-m';
@@ -35,7 +36,7 @@ export function WorkspaceSidebar({
 }: {
   agents: Agent[];
   activeProject?: string;
-  activeView?: WorkspaceView | 'teams' | 'overview' | 'settings';
+  activeView?: WorkspaceView | 'teams' | 'overview' | 'settings' | 'marketplace';
   projects?: FactoryProject[];
   onAgentsClick?: () => void;
 }) {
@@ -68,6 +69,14 @@ export function WorkspaceSidebar({
           >
             <ChartNoAxesCombined size={17} />
             Overview
+          </Link>
+          <Link
+            to="/app/marketplace/{-$type}"
+            params={{ type: 'factory' }}
+            className={`nav-link ${activeView === 'marketplace' ? 'active' : ''}`}
+            aria-current={activeView === 'marketplace' ? 'page' : undefined}
+          >
+            <Store size={17} /> Marketplace
           </Link>
           <Link to="/docs/$" params={{ _splat: '' }} className="nav-link">
             <BookOpen size={17} />
@@ -115,7 +124,7 @@ function FactorySidebarGroup({
 }: {
   project: FactoryProject;
   active: boolean;
-  activeView: WorkspaceView | 'teams' | 'overview' | 'settings';
+  activeView: WorkspaceView | 'teams' | 'overview' | 'settings' | 'marketplace';
   count: number;
   onAgentsClick?: () => void;
 }) {

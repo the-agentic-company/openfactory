@@ -1,6 +1,7 @@
 {
   "name": "@openfactory/runtime",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "exports": {
     "./definitions": "./src/definition-store.ts",

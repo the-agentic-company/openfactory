@@ -1,22 +1,26 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowDown, ArrowUpRight, Check, ChevronDown } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import { createServerFn } from '@tanstack/react-start';
+import { getRequestUrl } from '@tanstack/react-start/server';
+import { TerminalInstall } from '../components/terminal-install';
 import {
   desktopBuilds,
   desktopDownloadUrl,
   desktopPlatforms,
+  desktopReleasesUrl,
+  desktopReleaseUrl,
   desktopVersion,
   primaryDesktopBuilds,
 } from '../download-builds';
-import {
-  MarketingFooter,
-  MarketingHeader,
-  useDesktopPlatform,
-} from '../components/desktop-download';
+import { MarketingFooter, MarketingHeader } from '../components/desktop-download';
 import { PlatformIcon } from '../components/platform-icon';
 import '../landing.css';
 import '../download.css';
 
+const installerOrigin = createServerFn({ method: 'GET' }).handler(() => getRequestUrl().origin);
+
 export const Route = createFileRoute('/download')({
+  loader: () => installerOrigin(),
   head: () => ({
     meta: [
       { title: 'Download OpenFactory — Mac, Windows & Linux' },
@@ -30,23 +34,36 @@ export const Route = createFileRoute('/download')({
   component: DownloadPage,
 });
 
+const platformCopy = {
+  mac: {
+    name: 'macOS',
+    architecture: 'Apple Silicon (arm64)',
+    note: 'Requires macOS 13 or newer.',
+  },
+  windows: { name: 'Windows', architecture: 'Windows 10, 11', note: '64-bit (x86-64).' },
+  linux: { name: 'Linux', architecture: 'Debian, Ubuntu', note: '64-bit (x86-64).' },
+};
+
 function DownloadPage() {
-  const detected = useDesktopPlatform();
+  const origin = Route.useLoaderData();
   return (
     <div className="landing download-page">
       <MarketingHeader />
       <main>
         <header className="download-page-heading">
-          <img src="/openfactory.png" width={72} height={72} alt="" />
-          <h1>Download OpenFactory.</h1>
-          <p>Your agents. Your computers. Make yourself at home.</p>
-          <span>
-            Version {desktopVersion} <span aria-hidden="true">·</span> Desktop preview
-          </span>
+          <div className="download-heading-inner">
+            <img src="/openfactory.png" width={64} height={64} alt="" />
+            <h1>Download OpenFactory</h1>
+          </div>
+          <span className="download-channel">Desktop preview</span>
+          <a className="download-version" href={desktopReleaseUrl}>
+            v{desktopVersion} <ArrowUpRight size={13} />
+          </a>
         </header>
         <div className="download-platform-list">
           {desktopPlatforms.map((platform) => {
             const build = primaryDesktopBuilds[platform];
+            const copy = platformCopy[platform];
             return (
               <section
                 className="download-platform-section"
@@ -54,91 +71,90 @@ function DownloadPage() {
                 key={platform}
                 aria-labelledby={`download-${platform}`}
               >
-                <div className="download-platform-heading">
-                  <h2 id={`download-${platform}`}>
-                    <PlatformIcon platform={platform} size={25} />
-                    {build.label}
-                  </h2>
-                  {detected === platform && (
-                    <span className="download-recommended">
-                      <Check size={13} />
-                      For your computer
+                <h2 id={`download-${platform}`}>
+                  <PlatformIcon platform={platform} size={19} />
+                  {copy.name}
+                </h2>
+                <div className="download-cards">
+                  <a
+                    className="download-installer"
+                    href={desktopDownloadUrl(build.file)}
+                    download={!import.meta.env.PUBLIC_SITE}
+                    aria-label={`Download OpenFactory for ${copy.name}, ${copy.architecture}, ${build.format}`}
+                  >
+                    <img src="/openfactory.png" width={28} height={28} alt="" />
+                    <span className="download-installer-text">
+                      <strong>{copy.architecture}</strong>
+                      <span>{build.format}</span>
                     </span>
-                  )}
+                  </a>
+                  {platform === 'linux' &&
+                    desktopBuilds
+                      .filter(
+                        (alternative) =>
+                          alternative.platform === 'linux' && alternative.file !== build.file,
+                      )
+                      .map((alternative) => (
+                        <a
+                          className="download-installer"
+                          href={desktopDownloadUrl(alternative.file)}
+                          download={!import.meta.env.PUBLIC_SITE}
+                          key={alternative.file}
+                          aria-label={`Download OpenFactory for Linux, x86-64, ${alternative.format}`}
+                        >
+                          <img src="/openfactory.png" width={28} height={28} alt="" />
+                          <span className="download-installer-text">
+                            <strong>Linux x86-64</strong>
+                            <span>{alternative.format}</span>
+                          </span>
+                        </a>
+                      ))}
                 </div>
-                <a
-                  className="download-installer"
-                  href={desktopDownloadUrl(build.file)}
-                  download={!import.meta.env.PUBLIC_SITE}
-                >
-                  <span className="download-installer-icon">
-                    <ArrowDown size={20} />
-                  </span>
-                  <span>
-                    <strong>Download for {build.label}</strong>
-                    <span>{build.architecture}</span>
-                  </span>
-                  <span className="download-format">
-                    {build.format}
-                    <ArrowUpRight size={15} />
-                  </span>
-                </a>
                 {platform === 'mac' && (
-                  <>
-                    <p className="download-platform-note">
-                      Requires macOS 13 or newer. Unsigned preview: approve the app in System
-                      Settings → Privacy &amp; Security if prompted.
-                    </p>
-                    <details className="download-alternative">
-                      <summary>
-                        Other Mac builds <ChevronDown size={14} />
-                      </summary>
-                      {desktopBuilds
-                        .filter(
-                          (alternative) =>
-                            alternative.platform === 'mac' && alternative.file !== build.file,
-                        )
-                        .map((alternative) => (
-                          <a
-                            key={alternative.file}
-                            href={desktopDownloadUrl(alternative.file)}
-                            download={!import.meta.env.PUBLIC_SITE}
-                          >
-                            Mac with Intel processor{' '}
-                            <span>
-                              {alternative.format}
-                              <ArrowDown size={14} />
-                            </span>
-                          </a>
-                        ))}
-                    </details>
-                  </>
-                )}
-                {platform === 'windows' && (
                   <p className="download-platform-note">
-                    Windows 10 or newer, 64-bit. Unsigned preview: Windows SmartScreen may ask you
-                    to approve the installer.
+                    On an Intel Mac?{' '}
+                    {desktopBuilds
+                      .filter(
+                        (alternative) =>
+                          alternative.platform === 'mac' && alternative.file !== build.file,
+                      )
+                      .map((alternative) => (
+                        <a
+                          key={alternative.file}
+                          href={desktopDownloadUrl(alternative.file)}
+                          download={!import.meta.env.PUBLIC_SITE}
+                        >
+                          Download the x64 build
+                        </a>
+                      ))}
+                    .
                   </p>
                 )}
-                {platform === 'linux' && (
-                  <p className="download-platform-note">
-                    For Debian and Ubuntu on x86-64. Download the .deb package and open it with your
-                    software installer.
-                  </p>
-                )}
+                <p className="download-platform-note">
+                  {copy.note}{' '}
+                  {platform === 'mac' &&
+                    'Unsigned preview: approve in System Settings → Privacy & Security if prompted.'}
+                  {platform === 'linux' &&
+                    'For AppImage, mark the downloaded file as executable before opening it.'}
+                  {platform === 'windows' &&
+                    'Unsigned preview: Windows SmartScreen may ask you to approve the installer.'}
+                </p>
               </section>
             );
           })}
-          <aside className="download-next">
-            <h2>Installed? Give your agents a home.</h2>
-            <p>
-              Install and sign in to Codex CLI or Claude Code CLI on each computer that runs work.
-              Then choose a project folder and create your first agent.
-            </p>
+          <TerminalInstall origin={origin} />
+          <p className="download-releases">
+            All builds are on the{' '}
+            <a href={desktopReleasesUrl}>
+              GitHub releases page <ArrowUpRight size={13} />
+            </a>
+          </p>
+          <p className="download-setup">
+            Ready to get started?{' '}
             <Link to="/docs/$" params={{ _splat: 'quickstart' }}>
-              Read the setup guide <ArrowUpRight size={15} />
+              Read the setup guide <ArrowUpRight size={13} />
             </Link>
-          </aside>
+          </p>
         </div>
       </main>
       <MarketingFooter />

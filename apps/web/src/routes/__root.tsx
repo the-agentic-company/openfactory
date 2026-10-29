@@ -1,7 +1,15 @@
-import { DesktopChrome } from '../components/desktop-chrome';
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router';
 import stylesheet from '../styles.css?url';
+
+const DesktopChrome = import.meta.env.PUBLIC_SITE
+  ? null
+  : lazy(() =>
+      import('../components/desktop-chrome').then(({ DesktopChrome }) => ({
+        default: DesktopChrome,
+      })),
+    );
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -33,7 +41,11 @@ function Root() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <DesktopChrome />
+          {DesktopChrome && (
+            <Suspense fallback={null}>
+              <DesktopChrome />
+            </Suspense>
+          )}
           <Outlet />
         </QueryClientProvider>
         <Scripts />

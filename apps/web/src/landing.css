@@ -1467,3 +1467,37 @@
     height: 25px;
   }
 }
+.landing-hero {
+  padding-top: 90px;
+  padding-bottom: 65px;
+}
+.landing-hero h1 {
+  font-size: clamp(48px, 6.3vw, 76px);
+}
+.landing-hero > p {
+  max-width: 660px;
+}
+@media (max-width: 700px) {
+  .landing-hero {
+    padding-top: 110px;
+    padding-bottom: 60px;
+  }
+}
+@media (max-width: 700px) {
+  .landing-hero h1 {
+    font-size: clamp(36px, 10.7vw, 58px);
+  }
+}
+.landing-open {
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  .landing-nav .landing-brand {
+    font-size: 16px;
+  }
+  .landing-nav .landing-open {
+    font-size: 11px;
+    gap: 6px;
+    padding: 8px;
+  }
+}

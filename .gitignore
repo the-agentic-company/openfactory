@@ -41,3 +41,6 @@ dist-ssr
 
 # Generated documentation collections
 apps/web/.source/
+
+# Transient repository factory save journal
+factory.lock/
