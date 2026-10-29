@@ -43,7 +43,11 @@ export function createCodexUsageParser() {
     }
     const event = parsed.data;
     if (event.type === 'turn_context') {
-      turn = context.safeParse(event.payload).data ?? null;
+      const next = context.safeParse(event.payload).data ?? null;
+      if (next?.turn_id !== turn?.turn_id) {
+        signature = '';
+      }
+      turn = next;
       return null;
     }
     if (event.type !== 'event_msg' || !turn) {

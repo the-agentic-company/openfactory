@@ -1,10 +1,13 @@
 import { parseDocument, stringify } from 'yaml';
 import { z } from 'zod';
-import type { Agent } from './agents';
+import { scheduleSchema, type Agent } from './agents';
 
 const frontmatterSchema = z.strictObject({
   description: z.string().trim().min(1).max(120).optional(),
   agentType: z.literal('CUSTOM').optional(),
+  schedule: scheduleSchema.optional(),
+  enabled: z.boolean().optional(),
+  runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'full-access']).optional(),
   harness: z
     .strictObject({
       type: z.enum(['codex', 'claude', 'claude-code']).optional(),
@@ -39,7 +42,7 @@ export function parseAgentDefinition(source: string) {
 }
 
 export function agentDefinition(agent: Agent) {
-  return `---\n${stringify({ description: agent.title, agentType: 'CUSTOM', harness: { model: agent.modelSelection.model } })}---\n\n${agent.prompt}\n`;
+  return `---\n${stringify({ description: agent.title, agentType: 'CUSTOM', harness: { type: agent.modelSelection.instanceId, model: agent.modelSelection.model }, schedule: agent.schedule, enabled: agent.enabled, runtimeMode: agent.runtimeMode })}---\n\n${agent.prompt}\n`;
 }
 
 export function agentDirectory(agent: Agent) {

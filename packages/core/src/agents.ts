@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
 export const scheduleSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('interval'), everyMs: z.number().positive() }),
+  z.object({ type: z.literal('manual') }),
+  z.object({ type: z.literal('interval'), everyMs: z.number().int().min(60000) }),
   z.object({
     type: z.literal('fixed_time'),
-    timeOfDay: z.string(),
-    weekdays: z.array(z.number()).optional(),
+    timeOfDay: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/),
+    weekdays: z.array(z.number().int().min(0).max(6)).optional(),
   }),
   z.object({
     type: z.literal('webhook'),
@@ -23,9 +24,13 @@ export const agentSchema = z.object({
   prompt: z.string(),
   enabled: z.boolean(),
   schedule: scheduleSchema,
+  runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'full-access']).optional(),
   projectId: z.string(),
   threadId: z.string().nullable(),
-  modelSelection: z.object({ instanceId: z.string(), model: z.string() }),
+  modelSelection: z.object({
+    instanceId: z.string(),
+    model: z.string(),
+  }),
   nextRunAt: z.string().nullable(),
   lastRunAt: z.string().nullable(),
   lastRunStatus: z.enum(['never', 'running', 'succeeded', 'failed']),
@@ -44,6 +49,9 @@ export const deliverySchema = z.object({
 });
 export type Delivery = z.infer<typeof deliverySchema>;
 export function scheduleLabel(schedule: Agent['schedule']) {
+  if (schedule.type === 'manual') {
+    return 'Manual runs';
+  }
   if (schedule.type === 'webhook') {
     return 'On webhook request';
   }

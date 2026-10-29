@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import { Select, SelectItem } from './ui/select';
+import { projectName } from '../project-path';
 import { validateFactoryFile } from '@openfactory/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useBlocker } from '@tanstack/react-router';
@@ -13,11 +16,14 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { getFactoryDefinition, saveFactoryDefinitionFile } from '../server/factory-definition';
+import { WorkspacePage } from './workspace-page';
+import type { FactoryProject } from './factory-navigation-item';
+import { AppearanceGlyph } from './appearance-glyph';
 import { Modal } from './modal';
 import '../factory-definition.css';
 
 const CodeEditor = lazy(() => import('./factory-code-editor'));
-type Project = { id: string; title: string; workspaceRoot: string };
+type Project = FactoryProject;
 type Draft = { source: string; revision: string; expectedRuntime: string | null };
 
 function FileTree({
@@ -86,53 +92,64 @@ export function FactoryDefinition({
 }) {
   if (!project) {
     return (
-      <section className="definition-choose-factory">
-        <FolderOpen size={28} />
-        <h2>Select a factory</h2>
-        <p>Open its configuration and agent files.</p>
-        <div>
-          {projects.map((item) => (
-            <button
-              className="button secondary"
-              key={item.id}
-              onClick={() => onSelectProject(item.workspaceRoot)}
-            >
-              <Folder size={15} />
-              {item.title}
-              <ChevronRight size={14} />
-            </button>
-          ))}
-        </div>
-        {!projects.length && <p>Connect to T3 Code to load your factories.</p>}
-      </section>
+      <WorkspacePage title="Factory definition">
+        <section className="definition-choose-factory">
+          <FolderOpen size={28} />
+          <h2>Select a factory</h2>
+          <p>Open its configuration and agent files.</p>
+          <div>
+            {projects.map((item) => (
+              <button
+                className="button secondary"
+                key={item.id}
+                onClick={() => onSelectProject(item.workspaceRoot)}
+              >
+                <Folder size={15} />
+                {item.title}
+                <ChevronRight size={14} />
+              </button>
+            ))}
+          </div>
+          {!projects.length && <p>Start the OpenFactory runtime to load your factories.</p>}
+        </section>
+      </WorkspacePage>
     );
   }
   return (
     <>
-      <header className="definition-mobile-navigation">
-        <Link to="/" search={{ project: project.workspaceRoot, view: 'agents' }}>
-          Back to agents
-        </Link>
-        <label>
-          Factory
-          <select
-            value={project.workspaceRoot}
-            onChange={(event) => onSelectProject(event.target.value)}
-          >
-            {projects.map((item) => (
-              <option key={item.id} value={item.workspaceRoot}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
-      <FactoryEditor key={project.id} project={project} />
+      <FactoryEditor
+        key={project.id}
+        project={project}
+        navigation={
+          <header className="definition-mobile-navigation">
+            <Link
+              to="/app/projects/$project/$view"
+              params={{ project: projectName(project.workspaceRoot), view: 'agents' }}
+            >
+              Back to agents
+            </Link>
+            <label htmlFor="factory-definition-select-1">
+              Factory
+              <Select
+                id="factory-definition-select-1"
+                value={project.workspaceRoot}
+                onValueChange={(value) => onSelectProject(value)}
+              >
+                {projects.map((item) => (
+                  <SelectItem key={item.id} value={item.workspaceRoot}>
+                    {item.title}
+                  </SelectItem>
+                ))}
+              </Select>
+            </label>
+          </header>
+        }
+      />
     </>
   );
 }
 
-function FactoryEditor({ project }: { project: Project }) {
+function FactoryEditor({ project, navigation }: { project: Project; navigation: ReactNode }) {
   const client = useQueryClient();
   const query = useQuery({
     queryKey: ['factory-definition', project.id],
@@ -170,13 +187,10 @@ function FactoryEditor({ project }: { project: Project }) {
             .map(([name, draft]) => [name, { ...draft, revision: result.revision }]),
         ),
       );
-      setNotice(
-        result.applied
-          ? 'Agent file saved and applied to T3.'
-          : 'factory.yaml saved. Shared execution defaults are stored only.',
-      );
+      setNotice(result.applied ? 'File saved and applied.' : 'File saved.');
       void client.invalidateQueries({ queryKey: ['factory-definition', project.id] });
       void client.invalidateQueries({ queryKey: ['agents'] });
+      void client.invalidateQueries({ queryKey: ['factory-teams', project.id] });
     },
   });
   function edit(value: string) {
@@ -204,20 +218,45 @@ function FactoryEditor({ project }: { project: Project }) {
       .map((item) => item.path)
       .filter((name) => name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return (
-    <section className="factory-definition-workspace" aria-label="Factory code">
-      <h1 className="sr-only">Factory definition</h1>
-      <div className="factory-code-notice">
-        <FileCode2 size={20} />
-        <div>
-          <strong>Your factory is defined in code</strong>
-          <p>
-            Configuration and agent instructions, saved as YAML and Markdown.{' '}
-            <Link to="/docs/$" params={{ _splat: '' }}>
-              Syntax reference
-            </Link>
-          </p>
-        </div>
-      </div>
+    <WorkspacePage
+      layout="fill"
+      contentClassName="factory-definition-workspace"
+      project={project}
+      title="Factory definition"
+      actions={
+        query.data ? (
+          <div className="definition-actions">
+            <button
+              className="button secondary"
+              disabled={save.isPending || query.isFetching || dirty.length > 0}
+              onClick={() => void query.refetch()}
+            >
+              <RefreshCw size={14} />
+              Reload files
+            </button>
+            <button
+              className="button primary"
+              disabled={
+                !drafts[path] ||
+                Boolean(validation) ||
+                save.isPending ||
+                Boolean(file?.agentId && !file.liveSource)
+              }
+              onClick={() => {
+                const draft = drafts[path];
+                if (draft) {
+                  save.mutate({ projectId: project.id, path, ...draft });
+                }
+              }}
+            >
+              <Save size={14} />
+              {save.isPending ? 'Saving…' : 'Save file'}
+            </button>
+          </div>
+        ) : undefined
+      }
+    >
+      {navigation}
       {query.isError && (
         <div className="error-banner" role="alert">
           {query.error.message} <button onClick={() => void query.refetch()}>Retry</button>
@@ -226,57 +265,24 @@ function FactoryEditor({ project }: { project: Project }) {
       {query.isPending && <p className="definition-loading">Loading factory files…</p>}
       {query.data && (
         <>
-          <div className="factory-code-toolbar">
-            <span className="definition-file-count">
-              {query.data.files.length} files
-              {dirty.length ? ` · ${dirty.length} unsaved` : ' · All changes saved'}
-            </span>
-            <div className="definition-actions">
-              <button
-                className="button secondary"
-                disabled={save.isPending || query.isFetching || dirty.length > 0}
-                onClick={() => void query.refetch()}
-              >
-                <RefreshCw size={14} />
-                Reload files
-              </button>
-              <button
-                className="button primary"
-                disabled={
-                  !drafts[path] ||
-                  Boolean(validation) ||
-                  save.isPending ||
-                  Boolean(file?.agentId && !file.liveSource)
-                }
-                onClick={() => {
-                  const draft = drafts[path];
-                  if (draft) {
-                    save.mutate({ projectId: project.id, path, ...draft });
-                  }
-                }}
-              >
-                <Save size={14} />
-                {save.isPending ? 'Saving…' : 'Save file'}
-              </button>
-            </div>
-          </div>
           <div className="factory-code-layout">
-            <label className="definition-mobile-file-picker">
+            <label htmlFor="factory-definition-select-2" className="definition-mobile-file-picker">
               File
-              <select
+              <Select
+                id="factory-definition-select-2"
                 value={path}
-                onChange={(event) => {
-                  setPath(event.target.value);
+                onValueChange={(value) => {
+                  setPath(value);
                   setNotice('');
                   save.reset();
                 }}
               >
                 {query.data.files.map((item) => (
-                  <option key={item.path} value={item.path}>
+                  <SelectItem key={item.path} value={item.path}>
                     {item.path}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
+              </Select>
             </label>
             <aside className="definition-file-tree" aria-label="Factory files">
               <label className="definition-file-search">
@@ -289,8 +295,11 @@ function FactoryEditor({ project }: { project: Project }) {
                 />
               </label>
               <div className="definition-tree-root">
-                <FolderOpen size={15} />
-                <strong>Factory definition</strong>
+                <AppearanceGlyph
+                  appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
+                  size={15}
+                />
+                <strong>{project.title}</strong>
               </div>
               <FileTree
                 paths={paths}
@@ -312,7 +321,11 @@ function FactoryEditor({ project }: { project: Project }) {
                   <span className="definition-dirty-dot" aria-label="Unsaved changes" />
                 )}
                 <span className="definition-file-kind">
-                  {path === 'factory.yaml' ? 'Configuration' : 'Live agent'}
+                  {path === 'factory.yaml'
+                    ? 'Configuration'
+                    : path.startsWith('teams/')
+                      ? 'Team'
+                      : 'Live agent'}
                 </span>
               </div>
               <div className="factory-code-editor">
@@ -324,13 +337,6 @@ function FactoryEditor({ project }: { project: Project }) {
                     onChange={edit}
                   />
                 </Suspense>
-              </div>
-              <div className="definition-editor-status">
-                <span>
-                  {path.endsWith('.yaml') ? 'YAML' : 'Markdown + YAML'} ·{' '}
-                  {source.split('\n').length} lines
-                </span>
-                <span>UTF-8</span>
               </div>
             </div>
           </div>
@@ -345,39 +351,6 @@ function FactoryEditor({ project }: { project: Project }) {
             </p>
           )}
           {notice && <output className="definition-save-notice">{notice}</output>}
-          <div className="definition-save-context">
-            <p>
-              {path === 'factory.yaml'
-                ? 'Save stores this factory configuration on the host. Shared defaults are not applied to running agents.'
-                : file?.liveSource
-                  ? 'Save applies this agent’s name, instructions, and model to T3. Its trigger and permissions stay unchanged.'
-                  : 'This agent is no longer in T3. Its saved file is read-only.'}
-            </p>
-            <div className="definition-actions">
-              {file?.liveSource && (
-                <button
-                  className="button secondary"
-                  disabled={save.isPending}
-                  onClick={() => edit(file.liveSource!)}
-                >
-                  Load from T3
-                </button>
-              )}
-              {drafts[path] && (
-                <button
-                  className="button secondary"
-                  disabled={save.isPending}
-                  onClick={() => edit(file?.source ?? '')}
-                >
-                  Discard file changes
-                </button>
-              )}
-            </div>
-          </div>
-          <details className="definition-storage">
-            <summary>Saved files on this host</summary>
-            <code>{query.data.location}</code>
-          </details>
         </>
       )}
       {blocker.status === 'blocked' && (
@@ -394,6 +367,6 @@ function FactoryEditor({ project }: { project: Project }) {
           </div>
         </Modal>
       )}
-    </section>
+    </WorkspacePage>
   );
 }

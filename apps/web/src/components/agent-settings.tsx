@@ -1,6 +1,6 @@
 import { scheduleLabel, type Agent } from '@openfactory/core';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, Check, Copy, Folder } from 'lucide-react';
+import { Check, Copy, Folder } from 'lucide-react';
 import { useState } from 'react';
 import { getDeliveries } from '../server/agents';
 import { agentDate as date, agentStateLabel as stateLabel } from './agent-display';
@@ -50,14 +50,10 @@ export function AgentSettings({ agent }: { agent: Agent }) {
       <h3>Instructions</h3>
       <pre className="prompt-block">{agent.prompt}</pre>
       {agent.lastRunError && <p className="error-banner">{agent.lastRunError}</p>}
-      {agent.threadId && (
-        <a className="button primary" href={`t3-thread://v1/${agent.threadId}`}>
-          Open agent conversation <ArrowUpRight size={14} />
-        </a>
-      )}
       <p className="detail-note">
-        “Succeeded” means the runtime dispatched the run. Open the conversation for execution and
-        results.
+        Runs start directly through{' '}
+        {agent.modelSelection.instanceId === 'codex' ? 'Codex CLI' : 'Claude Code CLI'}. “Succeeded”
+        means the provider finished the turn successfully.
       </p>
       {agent.schedule.type === 'webhook' && (
         <>
@@ -80,7 +76,7 @@ export function AgentSettings({ agent }: { agent: Agent }) {
               {copyError && <p role="alert">{copyError}</p>}
             </>
           ) : (
-            <p>Enable T3 Connect remote access to get a public endpoint.</p>
+            <p>Set OPENFACTORY_PUBLIC_URL on the runtime host to publish the endpoint.</p>
           )}
           <p className="detail-note">
             {agent.webhook?.hasSecret

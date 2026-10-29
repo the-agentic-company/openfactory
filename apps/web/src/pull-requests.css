@@ -25,7 +25,7 @@
 .pr-filters {
   flex-wrap: wrap;
 }
-.pr-page select {
+.pr-page .ui-select-trigger {
   border: 1px solid #33343e;
   background: #17181e;
   border-radius: 6px;
@@ -56,8 +56,6 @@
 }
 .pr-table-scroll {
   overflow-x: auto;
-  border: 1px solid #2a2b34;
-  border-radius: 7px;
   scrollbar-color: #454650 #15161b;
 }
 .pr-table {
@@ -67,7 +65,6 @@
   font-size: 12px;
 }
 .pr-table th {
-  background: #17181e;
   color: #a1a2b2;
   font-weight: 500;
   white-space: nowrap;
@@ -75,7 +72,6 @@
 }
 .pr-table td {
   padding: 16px;
-  border-top: 1px solid #25262f;
   font-variant-numeric: tabular-nums;
 }
 .pr-table td:first-child {
@@ -93,19 +89,22 @@
 .pr-table tbody tr:hover {
   background: #15161c;
 }
+.pr-page .pr-table a[href]:any-link {
+  color: inherit;
+  text-decoration: none;
+}
+.pr-page .pr-table a[href]:any-link:hover {
+  color: inherit;
+}
 .pr-title {
   display: block;
   border: 0;
   padding: 0;
   background: none;
   text-align: left;
-  color: #e9e4e1;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.6;
-}
-.pr-title:hover {
-  color: var(--accent-text);
 }
 .pr-title > span {
   color: #a1a2b2;
@@ -172,10 +171,10 @@
   .pr-filters {
     width: 100%;
   }
-  .pr-page select {
+  .pr-page .ui-select-trigger {
     max-width: 100%;
   }
-  .pr-filters select {
+  .pr-filters .ui-select-trigger {
     flex: 1 1 130px;
     min-width: 0;
   }
@@ -212,7 +211,9 @@
   margin-left: 3px;
   color: #a1a2b2;
 }
-.pr-meta a:hover {
+.pr-page .pr-table .pr-meta a[href]:any-link {
+  color: inherit;
+}
+.pr-page .pr-table .pr-meta a[href]:any-link:hover {
   color: var(--accent-text);
-  text-decoration: underline;
 }

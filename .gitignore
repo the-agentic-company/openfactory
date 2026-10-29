@@ -33,6 +33,7 @@ dist-ssr
 .claude/worktrees/
 
 .output/
+.vercel/
 .tanstack/
 .vite/
 .cache/

@@ -1,14 +1,21 @@
-import { agentDefinition, createFactoryFiles, validateFactoryFile } from '@openfactory/core';
+import {
+  agentDefinition,
+  factoryTeamSetups,
+  createFactoryFiles,
+  parseAgentDefinition,
+  validateFactoryFile,
+} from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getAgents } from './agents';
+import { runtimeRpc } from './runtime-rpc';
 import { applyAgentDefinition } from './apply-agent-definition.server';
 import { DefinitionConflictError, readDefinition, saveDefinition } from './definition-store';
 
 async function loadDefinition(projectId: string) {
   const workspace = await getAgents();
   if (!workspace.connected) {
-    throw new Error('Connect to T3 Code to load this factory definition.');
+    throw new Error('Start the OpenFactory runtime to load this factory definition.');
   }
   const project = workspace.projects.find((item) => item.id === projectId);
   if (!project) {
@@ -27,6 +34,17 @@ async function loadDefinition(projectId: string) {
     if (!Object.values(bindings).includes(id)) {
       bindings[path] = id;
       files[path] = generated.files[path]!;
+      changed = true;
+    }
+  }
+  for (const [path, id] of Object.entries(bindings)) {
+    const source = files[path];
+    const agent = agents.find((item) => item.id === id);
+    if (source && agent && !parseAgentDefinition(source).schedule) {
+      files[path] = source.replace(
+        /^---\r?\n/,
+        (opening) => `${opening}schedule: ${JSON.stringify(agent.schedule)}\n`,
+      );
       changed = true;
     }
   }
@@ -84,10 +102,11 @@ export const saveFactoryDefinitionFile = createServerFn({ method: 'POST' })
       throw new Error('This file no longer exists. Reload files.');
     }
     if (selected.agentId && !selected.liveSource) {
-      throw new Error('This agent was removed from T3. Its saved definition is read-only.');
+      throw new Error('This agent was removed. Its saved definition is read-only.');
     }
     const sources = Object.fromEntries(current.files.map((file) => [file.path, file.source]));
     sources[data.path] = data.source;
+    const teams = factoryTeamSetups(sources, current.bindings);
     const agentId = selected.agentId;
     const result = await saveDefinition(
       data.projectId,
@@ -104,11 +123,13 @@ export const saveFactoryDefinitionFile = createServerFn({ method: 'POST' })
               expectedSource: data.expectedRuntime,
             });
           }
-        : undefined,
+        : data.path.startsWith('teams/')
+          ? () => runtimeRpc('teams.replace', { projectId: data.projectId, teams })
+          : undefined,
     );
     return {
       revision: result.revision,
       location: result.location,
-      applied: Boolean(selected.agentId),
+      applied: Boolean(selected.agentId) || data.path.startsWith('teams/'),
     };
   });

@@ -1,67 +1,92 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { WorkspacePage } from '../components/workspace-page';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { runBucket } from '@openfactory/core';
 import {
   AssistantRuntimeProvider,
-  MessagePrimitive,
-  ThreadPrimitive,
   useExternalStoreRuntime,
   type ThreadMessageLike,
 } from '@assistant-ui/react';
-import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
 import {
   ArrowLeft,
-  ArrowUp,
   ArrowUpRight,
-  Bot,
   Check,
   ChevronRight,
   FileText,
   GitPullRequest,
   Image,
   Link2,
-  LoaderCircle,
-  UserRound,
 } from 'lucide-react';
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState } from 'react';
 import { z } from 'zod';
+import { ChatComposer, ChatThread } from '../components/assistant-chat';
 import { WorkspaceSidebar } from '../components/workspace-sidebar';
 import { AgentGlyph } from '../components/agent-icon-picker';
 import { RunStatusIcon } from '../components/run-list';
 import { getAgents } from '../server/agents';
-import { getRunDetail, getRunImage, sendRunFollowup } from '../server/runs';
+import { getRunByPath, getRunDetail, getRunImage, sendRunFollowup } from '../server/runs';
+import { agentName, projectWorkspace } from '../project-path';
+import { runPathParams } from '../run-path';
 
-export const Route = createFileRoute('/runs/$runId')({
-  validateSearch: z.object({ thread: z.string().catch(''), project: z.string().catch('all') }),
-  loaderDeps: ({ search }) => ({ thread: search.thread }),
-  loader: async ({ params, deps }) => {
+export const Route = createFileRoute(
+  '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}',
+)({
+  params: {
+    parse: (params) => ({
+      ...params,
+      section: z
+        .enum(['timeline', 'agents', 'scores', 'metadata'])
+        .optional()
+        .parse(params.section),
+    }),
+  },
+  loader: async ({ params }) => {
     const [workspace, detail] = await Promise.all([
       getAgents(),
-      getRunDetail({ data: { threadId: deps.thread, runId: params.runId } }),
+      getRunByPath({
+        data: { project: params.project, thread: params.thread, runId: params.runId },
+      }),
     ]);
+    if (workspace.connected) {
+      const workspaceRoot = projectWorkspace(params.project, workspace.projects);
+      const project = workspace.projects.find((item) => item.workspaceRoot === workspaceRoot);
+      if (detail.thread.projectId !== project?.id) {
+        throw notFound();
+      }
+    }
     return { workspace, detail };
   },
   head: ({ loaderData }) => ({
     meta: [{ title: `${loaderData?.detail.thread.title ?? 'Run'} — OpenFactory` }],
   }),
   component: RunPage,
-  errorComponent: ({ error }) => (
-    <main className="runs-route-error">
-      <Link to="/" search={{ project: 'all', view: 'runs' }}>
-        <ArrowLeft size={15} />
-        Back to runs
-      </Link>
-      <h1>Unable to load this run</h1>
-      <p>
-        {error instanceof Error
-          ? error.message
-          : 'The run could not be read. Return to the list and try again.'}
-      </p>
-    </main>
-  ),
+  errorComponent: function RunError({ error }) {
+    const { project } = Route.useParams();
+    return (
+      <WorkspacePage title="Run unavailable" contentClassName="runs-route-error">
+        <Link to="/app/projects/$project/$view" params={{ project, view: 'runs' }}>
+          <ArrowLeft size={15} />
+          Back to runs
+        </Link>
+        <h1>Unable to load this run</h1>
+        <p>
+          {error instanceof Error
+            ? error.message
+            : 'The run could not be read. Return to the list and try again.'}
+        </p>
+      </WorkspacePage>
+    );
+  },
 });
 type Detail = Awaited<ReturnType<typeof getRunDetail>>;
 const tabs = ['Timeline', 'Agents', 'Scores', 'Artifacts', 'Metadata'] as const;
+const runSections = {
+  Timeline: 'timeline',
+  Agents: 'agents',
+  Scores: 'scores',
+  Artifacts: undefined,
+  Metadata: 'metadata',
+} as const;
 function stamp(value: string) {
   return new Date(value).toLocaleString(undefined, {
     month: 'short',
@@ -70,36 +95,12 @@ function stamp(value: string) {
     minute: '2-digit',
   });
 }
-function MarkdownText() {
-  return <MarkdownTextPrimitive />;
-}
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root className="run-chat-message run-chat-user">
-      <div className="run-message-author">
-        <UserRound size={14} />
-        Request
-      </div>
-      <MessagePrimitive.Content components={{ Text: MarkdownText }} />
-    </MessagePrimitive.Root>
-  );
-}
-function AssistantMessage() {
-  return (
-    <MessagePrimitive.Root className="run-chat-message">
-      <div className="run-message-author">
-        <Bot size={14} />
-        Assistant
-      </div>
-      <MessagePrimitive.Content components={{ Text: MarkdownText }} />
-    </MessagePrimitive.Root>
-  );
-}
 function RunPage() {
   const initial = Route.useLoaderData();
   const client = useQueryClient();
-  const { runId } = Route.useParams();
-  const { thread, project } = Route.useSearch();
+  const { project, section } = Route.useParams();
+  const runId = initial.detail.run.id;
+  const thread = initial.detail.thread.id;
   const navigate = Route.useNavigate();
   const workspace = useQuery({
     queryKey: ['agents', 'workspace'],
@@ -114,12 +115,37 @@ function RunPage() {
     refetchInterval: 10000,
   });
   const detail = query.data;
-  const [tab, setTab] = useState<(typeof tabs)[number]>('Artifacts');
-  const [text, setText] = useState('');
+  const tab = tabs.find((item) => runSections[item] === section) ?? 'Artifacts';
+  function setTab(next: (typeof tabs)[number]) {
+    void navigate({
+      params: {
+        ...runPathParams({ project, id: runId, threadId: thread }),
+        section: runSections[next],
+      },
+    });
+  }
   const [notice, setNotice] = useState('');
   const request = useRef<{ text: string; id: string } | null>(null);
   const agent = workspace.data.agents.find((item) => item.id === detail.agentId);
   const factory = workspace.data.projects.find((item) => item.id === detail.thread.projectId);
+  const followup = useMutation({
+    mutationFn: (data: { text: string; requestId: string }) =>
+      sendRunFollowup({ data: { ...data, threadId: thread, runId } }),
+    onSuccess: (result) => {
+      void client.invalidateQueries({ queryKey: ['factory-runs'] });
+      void client.invalidateQueries({ queryKey: ['run-detail', thread, runId] });
+      void client.invalidateQueries({ queryKey: ['agent-history'] });
+      setNotice('');
+      request.current = null;
+      if (result.runId && result.runId !== runId) {
+        void navigate({
+          to: '/app/projects/$project/threads/$thread/runs/$runId/{-$section}',
+          params: { ...runPathParams({ project, id: result.runId, threadId: thread }), section },
+        });
+      }
+    },
+    onError: (error) => setNotice(error.message),
+  });
   const runtime = useExternalStoreRuntime({
     messages: detail.messages,
     convertMessage: (message): ThreadMessageLike => ({
@@ -128,43 +154,20 @@ function RunPage() {
       content: [{ type: 'text', text: message.text }],
       createdAt: new Date(message.createdAt),
     }),
-    onNew: async () => {
-      throw new Error('Use the follow-up composer below.');
-    },
-    isDisabled: true,
-    isRunning: runBucket(detail.run.status) === 'running',
-  });
-  const followup = useMutation({
-    mutationFn: (data: { text: string; requestId: string }) =>
-      sendRunFollowup({ data: { ...data, threadId: thread, runId } }),
-    onSuccess: (result) => {
-      void client.invalidateQueries({ queryKey: ['factory-runs'] });
-      void client.invalidateQueries({ queryKey: ['agent-history'] });
-      setNotice('');
-      setText('');
-      request.current = null;
-      if (result.runId) {
-        void navigate({
-          to: '/runs/$runId',
-          params: { runId: result.runId },
-          search: { thread, project },
-        });
-      } else {
-        setNotice('Follow-up queued in the conversation. Open it in T3 to continue.');
+    onNew: async (message) => {
+      const text = message.content
+        .flatMap((part) => (part.type === 'text' ? [part.text] : []))
+        .join('\n');
+      if (!text.trim()) {
+        return;
       }
+      if (request.current?.text !== text) {
+        request.current = { text, id: crypto.randomUUID() };
+      }
+      await followup.mutateAsync({ text, requestId: request.current.id });
     },
-    onError: (error) => setNotice(error.message),
+    isRunning: followup.isPending,
   });
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!text.trim()) {
-      return;
-    }
-    if (request.current?.text !== text) {
-      request.current = { text, id: crypto.randomUUID() };
-    }
-    followup.mutate({ text, requestId: request.current.id });
-  }
   const linkedAgents = workspace.data.agents.filter(
     (item) => item.id === detail.agentId || item.threadId === thread,
   );
@@ -173,20 +176,24 @@ function RunPage() {
       <WorkspaceSidebar
         agents={workspace.data.agents}
         projects={workspace.data.projects}
-        activeProject={project}
+        activeProject={projectWorkspace(project, workspace.data.projects)}
         activeView="runs"
       />
       <div className="main-shell">
-        <main className="single-run-page">
-          <div className="single-run-breadcrumb">
-            <Link to="/" search={{ project, view: 'runs' }}>
-              Runs
-            </Link>
-            <ChevronRight size={14} />
-            <span>{factory?.title ?? detail.project?.title ?? 'Factory'}</span>
-            <ChevronRight size={14} />
-            <h1 title={detail.thread.title}>{detail.thread.title}</h1>
-          </div>
+        <WorkspacePage
+          layout="fill"
+          contentClassName="single-run-page"
+          project={factory}
+          title={
+            <>
+              <Link to="/app/projects/$project/$view" params={{ project, view: 'runs' }}>
+                Runs
+              </Link>
+              <ChevronRight size={14} />
+              <span title={detail.thread.title}>{detail.thread.title}</span>
+            </>
+          }
+        >
           {query.isError && (
             <p className="error-banner" role="alert">
               Could not refresh this run.{' '}
@@ -207,64 +214,54 @@ function RunPage() {
                   <RunStatusIcon status={detail.run.status} />
                   {detail.run.status}
                 </span>
-                <a
-                  className="icon-button"
-                  title="Open conversation in T3"
-                  aria-label="Open conversation in T3"
-                  href={`t3-thread://v1/${thread}`}
-                >
-                  <ArrowUpRight size={16} />
-                </a>
+                {detail.thread.nativeSessionId && (
+                  <code title="Resume this session in your terminal">
+                    {detail.thread.provider === 'codex' ? 'codex resume' : 'claude --resume'}{' '}
+                    {detail.thread.nativeSessionId}
+                  </code>
+                )}
               </header>
+              {detail.run.error && (
+                <div className="error-banner" role="alert">
+                  <p>{detail.run.error}</p>
+                  {detail.run.capacityRetry?.status === 'pending' && (
+                    <p>
+                      Automatic continuation scheduled for{' '}
+                      <time dateTime={detail.run.capacityRetry.at}>
+                        {stamp(detail.run.capacityRetry.at)}
+                      </time>
+                      . You can also continue below now.
+                    </p>
+                  )}
+                </div>
+              )}
               <AssistantRuntimeProvider runtime={runtime}>
-                <ThreadPrimitive.Root className="run-message-thread">
-                  <ThreadPrimitive.Viewport className="run-message-viewport">
-                    {!detail.messages.length && (
+                <ChatThread
+                  working={runBucket(detail.run.status) === 'running'}
+                  emptyState={
+                    !detail.messages.length && (
                       <p className="run-detail-empty">
                         No messages have been recorded for this run yet.
                       </p>
-                    )}
-                    <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
-                    {runBucket(detail.run.status) === 'running' && (
-                      <p className="run-working">
-                        <LoaderCircle size={14} className="spinning" />
-                        Agent is working…
-                      </p>
-                    )}
-                  </ThreadPrimitive.Viewport>
-                </ThreadPrimitive.Root>
+                    )
+                  }
+                  footer={
+                    <div className="of-chat-composer-wrap">
+                      <ChatComposer
+                        placeholder="Continue this conversation…"
+                        pending={followup.isPending}
+                      />
+                      {notice && <output className="of-chat-notice">{notice}</output>}
+                    </div>
+                  }
+                />
               </AssistantRuntimeProvider>
               {detail.limited && (
                 <p className="run-detail-notice">
-                  Showing the latest messages. Open the conversation in T3 for the full history.
+                  Showing the latest messages. Full provider events are retained on the runtime
+                  host.
                 </p>
               )}
-              <form className="run-followup" onSubmit={submit}>
-                <label htmlFor="run-followup-text">Follow up</label>
-                <div>
-                  <textarea
-                    id="run-followup-text"
-                    placeholder="Continue this conversation…"
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                    maxLength={16000}
-                    rows={2}
-                  />
-                  <button
-                    type="submit"
-                    className="button primary"
-                    aria-label="Send follow-up"
-                    disabled={!text.trim() || followup.isPending}
-                  >
-                    {followup.isPending ? (
-                      <LoaderCircle size={17} className="spinning" />
-                    ) : (
-                      <ArrowUp size={17} />
-                    )}
-                  </button>
-                </div>
-                {notice && <output>{notice}</output>}
-              </form>
             </section>
             <aside className="run-detail-sidebar">
               <nav className="run-inspection-tabs" aria-label="Run details">
@@ -314,9 +311,8 @@ function RunPage() {
                       <Link
                         key={item.id}
                         className="run-linked-agent"
-                        to="/agents/$agentId"
-                        params={{ agentId: item.id }}
-                        search={{ project }}
+                        to="/app/projects/$project/agents/$agent/{-$section}"
+                        params={{ project, agent: agentName(item), section: undefined }}
                       >
                         <AgentGlyph appearance={workspace.data.appearances[item.id]} size={22} />
                         <span>
@@ -369,7 +365,11 @@ function RunPage() {
                     {!detail.scores.length && (
                       <p className="run-detail-empty">No scorers apply to this run.</p>
                     )}
-                    <Link className="text-button" to="/" search={{ project, view: 'scorers' }}>
+                    <Link
+                      className="text-button"
+                      to="/app/projects/$project/$view"
+                      params={{ project, view: 'scorers' }}
+                    >
                       Manage scorers
                       <ArrowUpRight size={13} />
                     </Link>
@@ -407,7 +407,7 @@ function RunPage() {
               </div>
             </aside>
           </div>
-        </main>
+        </WorkspacePage>
       </div>
     </div>
   );
@@ -464,12 +464,6 @@ function RunArtifacts({ detail }: { detail: Detail }) {
         </div>
         {!detail.attachments.length && (
           <p className="run-detail-empty">No attachments in this run.</p>
-        )}
-        {detail.attachments.length > 0 && (
-          <a className="text-button" href={`t3-thread://v1/${detail.thread.id}`}>
-            Open attachments in T3
-            <ArrowUpRight size={13} />
-          </a>
         )}
       </section>
       <section className="run-artifact-section">

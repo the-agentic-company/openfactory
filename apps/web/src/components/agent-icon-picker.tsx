@@ -1,6 +1,6 @@
 import { agentAppearanceSchema, type AgentAppearance } from '@openfactory/core';
 import { X } from 'lucide-react';
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useId, useRef, useState } from 'react';
 import { AppearanceGlyph } from './appearance-glyph';
 
 export { AppearanceGlyph as AgentGlyph } from './appearance-glyph';
@@ -19,6 +19,7 @@ export function AgentIconPicker({
   onSelect: (value: AgentAppearance) => void;
   pending: boolean;
 }) {
+  const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<AgentAppearance>(
@@ -30,6 +31,9 @@ export function AgentIconPicker({
         type="button"
         className="agent-glyph-button"
         aria-label={`Choose icon for ${title}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={id}
         disabled={pending}
         onClick={() => {
           setDraft(appearance ?? { kind: 'icon', name: 'bot', color: 'gray' });
@@ -40,6 +44,7 @@ export function AgentIconPicker({
         <AppearanceGlyph appearance={appearance} />
       </button>
       <dialog
+        id={id}
         ref={dialog}
         className="glyph-dialog identity-dialog"
         aria-label={`Icon picker for ${title}`}

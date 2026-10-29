@@ -1,7 +1,7 @@
 [Unit]
 Description=OpenFactory agent dashboard
-After=network-online.target
-Wants=network-online.target
+After=network-online.target openfactory-runtime.service
+Wants=network-online.target openfactory-runtime.service
 StartLimitIntervalSec=0
 
 [Service]
@@ -9,9 +9,8 @@ Type=simple
 WorkingDirectory=%h/git/openfactory/apps/web
 Environment=HOST=127.0.0.1
 Environment=PORT=8019
-Environment=PATH=%h/.local/bin:%h/.t3/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=-%h/.config/openfactory/service.env
-ExecStartPre=%h/git/openfactory/scripts/renew-t3-token.sh
 ExecStart=%h/.local/bin/node %h/.local/share/openfactory/current/server/index.mjs
 Restart=always
 RestartSec=3

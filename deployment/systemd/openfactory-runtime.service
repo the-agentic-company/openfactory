@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenFactory scheduler and Codex/Claude runtime
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+UMask=0077
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-%h/.config/openfactory/service.env
+ExecStart=%h/.local/bin/node %h/.local/share/openfactory/current/runtime/runtime.mjs serve
+Restart=always
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

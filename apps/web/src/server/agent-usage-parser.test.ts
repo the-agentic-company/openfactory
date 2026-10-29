@@ -41,6 +41,7 @@ describe('agent transcript usage', () => {
     });
     expect(parse(tokens())).toBeNull();
     parse(context('operator'));
+    expect(parse(tokens())?.turnId).toBe('operator');
     expect(parse(tokens(25))?.turnId).toBe('operator');
     expect(parse('incomplete JSON')).toBeNull();
   });

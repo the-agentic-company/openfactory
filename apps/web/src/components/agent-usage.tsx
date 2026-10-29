@@ -1,3 +1,4 @@
+import { Select, SelectItem } from './ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
@@ -43,15 +44,16 @@ export function AgentUsage({ id }: { id: string }) {
       <div className="agent-usage-heading">
         <h2>Usage & cost</h2>
         <div>
-          <label className="analytics-period">
-            <select
+          <label htmlFor="agent-usage-select-1" className="analytics-period">
+            <Select
+              id="agent-usage-select-1"
               aria-label="Agent usage period"
               value={period}
-              onChange={(event) => setPeriod(Number(event.target.value))}
+              onValueChange={(value) => setPeriod(Number(value))}
             >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-            </select>
+              <SelectItem value={7}>Last 7 days</SelectItem>
+              <SelectItem value={30}>Last 30 days</SelectItem>
+            </Select>
           </label>
           <button
             className="button secondary"

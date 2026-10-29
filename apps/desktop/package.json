@@ -1,0 +1,92 @@
+{
+  "name": "@openfactory/desktop",
+  "version": "0.1.1",
+  "private": true,
+  "description": "OpenFactory desktop and independent agent host prototype",
+  "homepage": "https://github.com/the-agentic-company/openfactory",
+  "author": "OpenFactory",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "host": "node src/host.mjs",
+    "test": "vp test",
+    "test:package": "node scripts/verify-package.mjs",
+    "test:mac": "python3 scripts/verify-mac-archives.py",
+    "build": "pnpm build:workspace && electron-builder --linux deb --publish never",
+    "build:mac": "pnpm build:workspace && node scripts/mac-icon.mjs && node scripts/build-mac.mjs",
+    "build:windows": "pnpm build:workspace && electron-builder --win nsis --x64 --publish never",
+    "build:workspace": "node scripts/build-workspace.mjs",
+    "archive": "pnpm build:workspace && electron-builder --linux tar.gz",
+    "pack": "pnpm build:workspace && electron-builder --dir",
+    "build:renderer": "vp build --config vite.renderer.config.mjs",
+    "test:development": "node scripts/verify-development.mjs",
+    "setup:sandbox": "node scripts/install-linux-sandbox.mjs"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "dexie": "^4.4.7",
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "fake-indexeddb": "^6.2.6",
+    "rxdb": "^17.6.0",
+    "rxjs": "^7.8.2"
+  },
+  "build": {
+    "appId": "dev.openfactory.desktop.prototype",
+    "productName": "OpenFactory",
+    "executableName": "openfactory-prototype",
+    "artifactName": "OpenFactory-${version}-${arch}.${ext}",
+    "asar": false,
+    "compression": "normal",
+    "files": [
+      "src/**",
+      "renderer-dist/**",
+      "web/**",
+      "runtime/**",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "OpenFactory pairing",
+        "schemes": [
+          "openfactory"
+        ]
+      }
+    ],
+    "mac": {
+      "executableName": "OpenFactory",
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "notarize": false
+    },
+    "linux": {
+      "category": "Development",
+      "maintainer": "OpenFactory prototype maintainers",
+      "icon": "../web/public/favicon.png"
+    },
+    "win": {
+      "executableName": "OpenFactory",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "OpenFactory-${version}-x64.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  },
+  "productName": "OpenFactory"
+}

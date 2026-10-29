@@ -10,24 +10,35 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TeamsRouteImport } from './routes/teams'
-import { Route as AgentsAgentIdRouteImport } from './routes/agents.$agentId'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as DownloadRouteImport } from './routes/download'
+import { Route as AppSettingsRouteImport } from './routes/app_.settings'
 import { Route as DocsSplatRouteImport } from './routes/docs.$'
-import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
+import { Route as DownloadsFileRouteImport } from './routes/downloads.$file'
+import { Route as ApiWebhooksAgentIdTokenRouteImport } from './routes/api.webhooks.$agentId.$token'
+import { Route as AppProjectsProjectViewRouteImport } from './routes/app_.projects.$project.$view'
+import { Route as AppProjectsProjectTeamsChar123SectionChar125RouteImport } from './routes/app_.projects.$project.teams.{-$section}'
+import { Route as AppProjectsProjectAgentsAgentChar123SectionChar125RouteImport } from './routes/app_.projects.$project.agents.$agent.{-$section}'
+import { Route as AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125RouteImport } from './routes/app_.projects.$project.threads.$thread.runs.$runId.{-$section}'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamsRoute = TeamsRouteImport.update({
-  id: '/teams',
-  path: '/teams',
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentsAgentIdRoute = AgentsAgentIdRouteImport.update({
-  id: '/agents/$agentId',
-  path: '/agents/$agentId',
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/app_/settings',
+  path: '/app/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
@@ -35,54 +46,136 @@ const DocsSplatRoute = DocsSplatRouteImport.update({
   path: '/docs/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RunsRunIdRoute = RunsRunIdRouteImport.update({
-  id: '/runs/$runId',
-  path: '/runs/$runId',
+const DownloadsFileRoute = DownloadsFileRouteImport.update({
+  id: '/downloads/$file',
+  path: '/downloads/$file',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksAgentIdTokenRoute = ApiWebhooksAgentIdTokenRouteImport.update({
+  id: '/api/webhooks/$agentId/$token',
+  path: '/api/webhooks/$agentId/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppProjectsProjectViewRoute = AppProjectsProjectViewRouteImport.update({
+  id: '/app_/projects/$project/$view',
+  path: '/app/projects/$project/$view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppProjectsProjectTeamsChar123SectionChar125Route =
+  AppProjectsProjectTeamsChar123SectionChar125RouteImport.update({
+    id: '/app_/projects/$project/teams/{-$section}',
+    path: '/app/projects/$project/teams/{-$section}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppProjectsProjectAgentsAgentChar123SectionChar125Route =
+  AppProjectsProjectAgentsAgentChar123SectionChar125RouteImport.update({
+    id: '/app_/projects/$project/agents/$agent/{-$section}',
+    path: '/app/projects/$project/agents/$agent/{-$section}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route =
+  AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125RouteImport.update(
+    {
+      id: '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}',
+      path: '/app/projects/$project/threads/$thread/runs/$runId/{-$section}',
+      getParentRoute: () => rootRouteImport,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/teams': typeof TeamsRoute
-  '/agents/$agentId': typeof AgentsAgentIdRoute
+  '/app': typeof AppRoute
+  '/download': typeof DownloadRoute
+  '/app/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
-  '/runs/$runId': typeof RunsRunIdRoute
+  '/downloads/$file': typeof DownloadsFileRoute
+  '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
+  '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
+  '/app/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
+  '/app/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/teams': typeof TeamsRoute
-  '/agents/$agentId': typeof AgentsAgentIdRoute
+  '/app': typeof AppRoute
+  '/download': typeof DownloadRoute
+  '/app/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
-  '/runs/$runId': typeof RunsRunIdRoute
+  '/downloads/$file': typeof DownloadsFileRoute
+  '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
+  '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
+  '/app/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
+  '/app/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/teams': typeof TeamsRoute
-  '/agents/$agentId': typeof AgentsAgentIdRoute
+  '/app': typeof AppRoute
+  '/download': typeof DownloadRoute
+  '/app_/settings': typeof AppSettingsRoute
   '/docs/$': typeof DocsSplatRoute
-  '/runs/$runId': typeof RunsRunIdRoute
+  '/downloads/$file': typeof DownloadsFileRoute
+  '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
+  '/app_/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app_/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
+  '/app_/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
+  '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/teams' | '/agents/$agentId' | '/docs/$' | '/runs/$runId'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/download'
+    | '/app/settings'
+    | '/docs/$'
+    | '/downloads/$file'
+    | '/api/webhooks/$agentId/$token'
+    | '/app/projects/$project/$view'
+    | '/app/projects/$project/teams/{-$section}'
+    | '/app/projects/$project/agents/$agent/{-$section}'
+    | '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/teams' | '/agents/$agentId' | '/docs/$' | '/runs/$runId'
+  to:
+    | '/'
+    | '/app'
+    | '/download'
+    | '/app/settings'
+    | '/docs/$'
+    | '/downloads/$file'
+    | '/api/webhooks/$agentId/$token'
+    | '/app/projects/$project/$view'
+    | '/app/projects/$project/teams/{-$section}'
+    | '/app/projects/$project/agents/$agent/{-$section}'
+    | '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
   id:
     | '__root__'
     | '/'
-    | '/teams'
-    | '/agents/$agentId'
+    | '/app'
+    | '/download'
+    | '/app_/settings'
     | '/docs/$'
-    | '/runs/$runId'
+    | '/downloads/$file'
+    | '/api/webhooks/$agentId/$token'
+    | '/app_/projects/$project/$view'
+    | '/app_/projects/$project/teams/{-$section}'
+    | '/app_/projects/$project/agents/$agent/{-$section}'
+    | '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  TeamsRoute: typeof TeamsRoute
-  AgentsAgentIdRoute: typeof AgentsAgentIdRoute
+  AppRoute: typeof AppRoute
+  DownloadRoute: typeof DownloadRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   DocsSplatRoute: typeof DocsSplatRoute
-  RunsRunIdRoute: typeof RunsRunIdRoute
+  DownloadsFileRoute: typeof DownloadsFileRoute
+  ApiWebhooksAgentIdTokenRoute: typeof ApiWebhooksAgentIdTokenRoute
+  AppProjectsProjectViewRoute: typeof AppProjectsProjectViewRoute
+  AppProjectsProjectTeamsChar123SectionChar125Route: typeof AppProjectsProjectTeamsChar123SectionChar125Route
+  AppProjectsProjectAgentsAgentChar123SectionChar125Route: typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
+  AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route: typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
 }
 
 declare module '@tanstack/react-router' {
@@ -94,18 +187,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/teams': {
-      id: '/teams'
-      path: '/teams'
-      fullPath: '/teams'
-      preLoaderRoute: typeof TeamsRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agents/$agentId': {
-      id: '/agents/$agentId'
-      path: '/agents/$agentId'
-      fullPath: '/agents/$agentId'
-      preLoaderRoute: typeof AgentsAgentIdRouteImport
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/settings': {
+      id: '/app_/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/$': {
@@ -115,11 +215,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/runs/$runId': {
-      id: '/runs/$runId'
-      path: '/runs/$runId'
-      fullPath: '/runs/$runId'
-      preLoaderRoute: typeof RunsRunIdRouteImport
+    '/downloads/$file': {
+      id: '/downloads/$file'
+      path: '/downloads/$file'
+      fullPath: '/downloads/$file'
+      preLoaderRoute: typeof DownloadsFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/$agentId/$token': {
+      id: '/api/webhooks/$agentId/$token'
+      path: '/api/webhooks/$agentId/$token'
+      fullPath: '/api/webhooks/$agentId/$token'
+      preLoaderRoute: typeof ApiWebhooksAgentIdTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/projects/$project/$view': {
+      id: '/app_/projects/$project/$view'
+      path: '/app/projects/$project/$view'
+      fullPath: '/app/projects/$project/$view'
+      preLoaderRoute: typeof AppProjectsProjectViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/projects/$project/teams/{-$section}': {
+      id: '/app_/projects/$project/teams/{-$section}'
+      path: '/app/projects/$project/teams/{-$section}'
+      fullPath: '/app/projects/$project/teams/{-$section}'
+      preLoaderRoute: typeof AppProjectsProjectTeamsChar123SectionChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/projects/$project/agents/$agent/{-$section}': {
+      id: '/app_/projects/$project/agents/$agent/{-$section}'
+      path: '/app/projects/$project/agents/$agent/{-$section}'
+      fullPath: '/app/projects/$project/agents/$agent/{-$section}'
+      preLoaderRoute: typeof AppProjectsProjectAgentsAgentChar123SectionChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}': {
+      id: '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}'
+      path: '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
+      fullPath: '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
+      preLoaderRoute: typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -127,10 +262,19 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  TeamsRoute: TeamsRoute,
-  AgentsAgentIdRoute: AgentsAgentIdRoute,
+  AppRoute: AppRoute,
+  DownloadRoute: DownloadRoute,
+  AppSettingsRoute: AppSettingsRoute,
   DocsSplatRoute: DocsSplatRoute,
-  RunsRunIdRoute: RunsRunIdRoute,
+  DownloadsFileRoute: DownloadsFileRoute,
+  ApiWebhooksAgentIdTokenRoute: ApiWebhooksAgentIdTokenRoute,
+  AppProjectsProjectViewRoute: AppProjectsProjectViewRoute,
+  AppProjectsProjectTeamsChar123SectionChar125Route:
+    AppProjectsProjectTeamsChar123SectionChar125Route,
+  AppProjectsProjectAgentsAgentChar123SectionChar125Route:
+    AppProjectsProjectAgentsAgentChar123SectionChar125Route,
+  AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route:
+    AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

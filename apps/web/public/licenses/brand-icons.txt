@@ -1,0 +1,7 @@
+Brand marks used for product and platform identification:
+Apple, Microsoft Windows, Linux (Tux), OpenAI, and Anthropic Claude.
+The marks remain the property of their respective owners.
+
+SVG mark sources: https://t3.codes/ and https://t3.codes/download
+(T3 Code, https://github.com/pingdotgg/t3code, MIT licensed).
+Linux silhouette: Simple Icons (CC0), https://simpleicons.org/.

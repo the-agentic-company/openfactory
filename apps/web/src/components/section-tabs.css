@@ -1,0 +1,27 @@
+.section-tabs {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  margin: 6px 0 16px;
+}
+.section-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #aaa1b6;
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.section-tabs button:hover {
+  color: #e9e4e1;
+}
+.section-tabs button[aria-pressed='true'] {
+  background: #3c2f26;
+  border-color: #6c5343;
+  color: #f4e4da;
+}

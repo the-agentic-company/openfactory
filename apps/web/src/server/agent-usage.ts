@@ -9,20 +9,24 @@ import { z } from 'zod';
 import { createCodexUsageParser, estimateCost, ratesSchema } from './agent-usage-parser';
 
 const projectionSchema = threadHistorySchema.extend({
-  providerThreads: z.array(
-    z.object({
-      id: z.string(),
-      nativeThreadRef: z.object({ driver: z.string(), nativeId: z.string() }).nullable(),
-    }),
-  ),
-  providerTurns: z.array(
-    z.object({
-      providerThreadId: z.string(),
-      runAttemptId: z.string(),
-      nativeTurnRef: z.object({ driver: z.string(), nativeId: z.string() }).nullable(),
-    }),
-  ),
-  attempts: z.array(z.object({ id: z.string(), runId: z.string() })),
+  providerThreads: z
+    .array(
+      z.object({
+        id: z.string(),
+        nativeThreadRef: z.object({ driver: z.string(), nativeId: z.string() }).nullable(),
+      }),
+    )
+    .default([]),
+  providerTurns: z
+    .array(
+      z.object({
+        providerThreadId: z.string(),
+        runAttemptId: z.string(),
+        nativeTurnRef: z.object({ driver: z.string(), nativeId: z.string() }).nullable(),
+      }),
+    )
+    .default([]),
+  attempts: z.array(z.object({ id: z.string(), runId: z.string() })).default([]),
 });
 export const getAgentUsage = createServerFn({ method: 'GET' })
   .validator(
@@ -128,9 +132,39 @@ export const getAgentUsage = createServerFn({ method: 'GET' })
         /* Missing or unreadable transcripts are reported as partial coverage below. */
       }
     }
+    let missingDirect = false;
+    for (const raw of projections) {
+      const projection = threadHistorySchema.parse(raw);
+      if (projection.thread.runtime !== 'openfactory') {
+        continue;
+      }
+      for (const run of projection.runs) {
+        const day = dayKey(run.requestedAt);
+        if (day < data.sinceDay || day > data.untilDay) {
+          continue;
+        }
+        if (!run.usage) {
+          if (run.status === 'completed') {
+            missingDirect = true;
+          }
+          continue;
+        }
+        totals.input += run.usage.input;
+        totals.cached += run.usage.cached;
+        totals.cacheWrite += run.usage.cacheWrite;
+        totals.output += run.usage.output;
+        totals.records++;
+        if (run.usage.costUsd === null) {
+          totals.unpriced++;
+        } else {
+          totals.costUsd += run.usage.costUsd;
+        }
+        measuredTurns.add(run.id);
+      }
+    }
     const recent = runs.filter(
       (r) =>
-        r.source === 't3' &&
+        ['t3', 'openfactory'].includes(r.source) &&
         dayKey(r.requestedAt) >= data.sinceDay &&
         dayKey(r.requestedAt) <= data.untilDay,
     );
@@ -140,7 +174,11 @@ export const getAgentUsage = createServerFn({ method: 'GET' })
       runs: recent.length,
       completed: recent.filter((r) => ['completed', 'succeeded'].includes(r.status)).length,
       failed: recent.filter((r) => r.status === 'failed').length,
-      partial: truncated || foundSessions.size < sessions.size,
+      partial:
+        truncated ||
+        missingDirect ||
+        foundSessions.size < sessions.size ||
+        (recent.some((run) => run.source === 't3') && sessions.size === 0),
       measuredTurns: measuredTurns.size,
       pricingAt: rates ? new Date(rates.fetchedAtMs).toISOString() : null,
     };

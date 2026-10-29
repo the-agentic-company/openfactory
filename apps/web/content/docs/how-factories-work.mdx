@@ -1,0 +1,34 @@
+---
+title: How factories work
+description: The projects, agents, and runs behind your workspace.
+---
+
+## Factories
+
+A factory is the workspace for a project. It brings the project's agents, execution history, and repository activity together. Selecting another factory changes the project you are viewing.
+
+Projects can appear before they have any scheduled agents. An empty agent list means there are no agents to show for that project.
+
+## Agents
+
+An agent has instructions, runtime settings, and a trigger. OpenFactory reads scheduled agents from OpenFactory and lets you inspect their configuration, run them manually, or control their schedules.
+
+An agent's page also gives you access to its conversation and previous runs. Changes to an agent's schedule affect real work on the connected host.
+
+## Schedules and triggers
+
+Timer triggers dispatch work at an interval or a scheduled time. Webhook triggers dispatch work when a request reaches the agent's webhook.
+
+OpenFactory owns scheduling and execution, and starts Codex CLI or Claude Code CLI directly. Timer schedules depend on the host being available, and daily times use the host's timezone. Pause an agent when you want to stop future scheduled dispatches.
+
+## Runs and conversations
+
+A run records an execution request and its available outcome. Conversations contain the user messages and assistant responses associated with the work.
+
+Dispatch status and task completion are different. Check the saved output in the run or conversation before treating the work as finished.
+
+## Definitions
+
+Definitions describe agents and their configuration in files. OpenFactory's reference starts with Warp's factory format and documents OpenFactory's supported behavior separately.
+
+Read the [compatibility section](/docs/factory-definition#openfactory-compatibility) before relying on a configuration field. A field appearing in the broader reference does not mean the connected runtime executes it.

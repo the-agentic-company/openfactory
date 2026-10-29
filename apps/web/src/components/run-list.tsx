@@ -1,3 +1,5 @@
+import { runPathParams } from '../run-path';
+import { projectName } from '../project-path';
 import { relativeRunTime, runBucket, runLinks, type Agent } from '@openfactory/core';
 import { Link } from '@tanstack/react-router';
 import {
@@ -87,9 +89,15 @@ export function RunList({
         return (
           <Link
             key={`${run.threadId}:${run.id}`}
-            to="/runs/$runId"
-            params={{ runId: run.id }}
-            search={{ thread: run.threadId, project }}
+            to="/app/projects/$project/threads/$thread/runs/$runId/{-$section}"
+            params={{
+              ...runPathParams({
+                project: projectName(project),
+                id: run.id,
+                threadId: run.threadId,
+              }),
+              section: undefined,
+            }}
             className="compact-run-row"
             aria-label={`Open ${run.title}`}
           >
@@ -126,28 +134,16 @@ export function RunList({
 }
 export const runFilters = [
   { id: 'all', label: 'All runs' },
-  { id: 'mine', label: 'My runs' },
   { id: 'running', label: 'Running' },
   { id: 'complete', label: 'Complete' },
   { id: 'failed', label: 'Failed' },
   { id: 'blocked', label: 'Blocked' },
   { id: 'cancelled', label: 'Cancelled' },
-  { id: 'background', label: 'Background runs' },
-  { id: 'scheduled', label: 'Scheduled' },
 ] as const;
 export type RunFilter = (typeof runFilters)[number]['id'];
 export function matchesRunFilter(run: FactoryRun, filter: RunFilter) {
   if (filter === 'all') {
     return true;
-  }
-  if (filter === 'mine') {
-    return run.createdBy === 'user' && !run.agentId;
-  }
-  if (filter === 'scheduled') {
-    return Boolean(run.agentId);
-  }
-  if (filter === 'background') {
-    return Boolean(run.createdBy && run.createdBy !== 'user' && !run.agentId);
   }
   return runBucket(run.status) === filter;
 }

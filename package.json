@@ -5,12 +5,18 @@
   "scripts": {
     "dev": "vp run @openfactory/web#dev",
     "build": "vp run -r build",
+    "build:site": "pnpm --filter @openfactory/web build:site",
+    "verify:site": "node scripts/verify-public-site.mjs",
     "check": "pnpm --filter @openfactory/web docs:generate && vp check",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
-    "test": "vp test",
-    "ready": "vp check && vp test && vp run -r build"
+    "test": "vp test && node --test scripts/*.test.mjs",
+    "ready": "vp check && pnpm test && vp run -r build",
+    "runtime:build": "vp run @openfactory/runtime#build",
+    "runtime:start": "node packages/runtime/dist/runtime.mjs serve",
+    "runtime:migrate": "node apps/web/scripts/migrate-t3.mjs",
+    "openfactory": "node packages/runtime/dist/runtime.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

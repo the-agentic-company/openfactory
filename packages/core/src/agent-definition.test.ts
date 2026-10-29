@@ -23,9 +23,19 @@ describe('agent.md definitions', () => {
     expect(parseAgentDefinition(agentDefinition(agent))).toEqual({
       description: agent.title,
       agentType: 'CUSTOM',
-      harness: { model: 'gpt-6.1-sol' },
+      schedule: agent.schedule,
+      enabled: false,
+      harness: { type: 'codex', model: 'gpt-6.1-sol' },
       prompt: agent.prompt,
     });
+  });
+  it.each([
+    { type: 'interval', everyMs: 300000 },
+    { type: 'fixed_time', timeOfDay: '09:30', weekdays: [1, 3, 5] },
+    { type: 'webhook', signature: { header: 'x-signature', encoding: 'hex', prefix: 'sha256=' } },
+  ])('includes the complete $type schedule in agent.md', (schedule) => {
+    const scheduled = agentSchema.parse({ ...agent, schedule });
+    expect(parseAgentDefinition(agentDefinition(scheduled)).schedule).toEqual(schedule);
   });
   it('accepts empty optional frontmatter and Windows line endings', () => {
     expect(parseAgentDefinition('---\n---\nReview changes.')).toEqual({
@@ -38,6 +48,8 @@ describe('agent.md definitions', () => {
   it.each([
     'description: first\ndescription: second',
     'runner: linux',
+    'schedule: { type: interval, everyMs: 0 }',
+    'schedule: { type: unknown }',
     'agentType: FOREMAN',
     'harness:\n  auth: secret',
     'description: &name Review\nharness:\n  model: *name',

@@ -1,0 +1,44 @@
+---
+title: Quickstart
+description: Connect your runtime and explore your first factory.
+---
+
+## Open your workspace
+
+Open the OpenFactory instance connected to your OpenFactory host. If it is already running, go to the [workspace overview](/app).
+
+For a local checkout, use Node 26 and pnpm 12.15.0:
+
+```sh
+pnpm install
+pnpm runtime:build
+pnpm runtime:start
+# In another terminal:
+pnpm dev
+```
+
+Open [your local workspace](http://localhost:8018/app). Install and sign in to Codex CLI or Claude Code CLI on the computer running the runtime. OpenFactory reuses that authentication; T3 Code is not required. Keep the workspace on a trusted network, such as a private tailnet.
+
+## Choose a factory
+
+Select a project under **Factories** in the sidebar. OpenFactory lists projects from the OpenFactory runtime, including projects without scheduled agents.
+
+The factory dashboard shows the activity available for that project. Use **Agents** to see its scheduled agents and **Runs** to inspect execution history.
+
+## Inspect an agent
+
+Open an agent card. Review its instructions, model, schedule, and recent runs before starting work.
+
+Use **Runs & assistant** to read a previous run or continue the live conversation. Historical transcripts are read-only; switch to the live assistant to send a new message.
+
+## Start a run
+
+Choose **Run now** on an agent you want to execute. This dispatches real work through the connected runtime.
+
+Open the resulting run or conversation to read the outcome. Dispatch success confirms that the runtime accepted the request, rather than that the agent finished its task.
+
+## Manage scheduled work
+
+Pause an agent to stop future scheduled dispatches, or resume it to enable them again. Timer schedules use the runtime host's timezone and require that host to remain running.
+
+Continue with [How factories work](/docs/how-factories-work) for the workspace concepts, or the [factory definition reference](/docs/factory-definition) for configuration details.

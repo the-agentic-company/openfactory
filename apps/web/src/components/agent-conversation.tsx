@@ -1,17 +1,14 @@
 import {
   AssistantRuntimeProvider,
-  ComposerPrimitive,
-  MessagePrimitive,
-  ThreadPrimitive,
   useExternalStoreRuntime,
   type AppendMessage,
   type ThreadMessageLike,
 } from '@assistant-ui/react';
-import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, ArrowUp, Bot, Clock3, MessageSquare, RefreshCw, Square } from 'lucide-react';
+import { Activity, Clock3, MessageSquare, RefreshCw } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { Agent, HistoryMessage } from '@openfactory/core';
+import { ChatComposer, ChatThread } from './assistant-chat';
 import { getAgentHistory, sendAgentMessage, stopAgentRun } from '../server/history';
 
 const convertMessage = (message: HistoryMessage): ThreadMessageLike => ({
@@ -28,28 +25,6 @@ function timestamp(value: string) {
     minute: '2-digit',
   });
 }
-function MarkdownText() {
-  return <MarkdownTextPrimitive />;
-}
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root className="chat-message user-message">
-      <div className="message-author">You</div>
-      <MessagePrimitive.Content components={{ Text: MarkdownText }} />
-    </MessagePrimitive.Root>
-  );
-}
-function AssistantMessage() {
-  return (
-    <MessagePrimitive.Root className="chat-message assistant-message">
-      <div className="message-author">
-        <Bot size={14} /> Assistant
-      </div>
-      <MessagePrimitive.Content components={{ Text: MarkdownText }} />
-    </MessagePrimitive.Root>
-  );
-}
-
 export function AgentConversation({ agent }: { agent: Agent }) {
   const client = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -59,8 +34,14 @@ export function AgentConversation({ agent }: { agent: Agent }) {
     queryFn: () => getAgentHistory({ data: { id: agent.id } }),
     refetchInterval: 5000,
   });
-  const selected = query.data?.runs.find((run) => run.id === selectedId);
-  const messages = selected?.messages ?? query.data?.messages ?? [];
+  const latest = query.data?.runs.find((run) => run.source === 'openfactory');
+  const selected =
+    query.data?.runs.find((run) => run.id === selectedId) ?? latest ?? query.data?.runs[0];
+  const messages = selected?.messages ?? [];
+  const readOnly = !selected || selected.source !== 'openfactory' || selected.id !== latest?.id;
+  const running = Boolean(
+    selected && ['preparing', 'queued', 'starting', 'running', 'waiting'].includes(selected.status),
+  );
   const mutation = useMutation({
     mutationFn: (data: Parameters<typeof sendAgentMessage>[0]['data']) =>
       sendAgentMessage({ data }),
@@ -72,7 +53,7 @@ export function AgentConversation({ agent }: { agent: Agent }) {
   });
   const onNew = useCallback(
     async (message: AppendMessage) => {
-      if (!query.data?.coordinatorId) {
+      if (!selected || readOnly) {
         throw new Error('Run the agent first to create a conversation.');
       }
       const text = message.content
@@ -80,20 +61,21 @@ export function AgentConversation({ agent }: { agent: Agent }) {
         .join('\n');
       await mutation.mutateAsync({
         id: agent.id,
-        threadId: query.data.coordinatorId,
+        threadId: selected.threadId,
+        runId: selected.id,
         text,
         requestId: crypto.randomUUID(),
       });
     },
-    [agent.id, query.data, mutation],
+    [agent.id, selected, readOnly, mutation],
   );
   const cancel = useMutation({
     mutationFn: () => {
-      if (!query.data?.coordinatorId) {
+      if (!selected || readOnly) {
         throw new Error('No live conversation.');
       }
       return stopAgentRun({
-        data: { id: agent.id, threadId: query.data.coordinatorId, requestId: crypto.randomUUID() },
+        data: { id: agent.id, threadId: selected.threadId, requestId: crypto.randomUUID() },
       });
     },
     onSuccess: () => {
@@ -106,8 +88,8 @@ export function AgentConversation({ agent }: { agent: Agent }) {
     convertMessage,
     onNew,
     onCancel: () => cancel.mutateAsync().then(() => undefined),
-    isRunning: !selected && (query.data?.running || mutation.isPending),
-    isDisabled: Boolean(selected) || !query.data?.coordinatorId,
+    isRunning: !readOnly && (running || mutation.isPending),
+    isDisabled: readOnly,
   });
   return (
     <div className="conversation-layout">
@@ -123,16 +105,6 @@ export function AgentConversation({ agent }: { agent: Agent }) {
             <RefreshCw size={14} />
           </button>
         </div>
-        <button
-          className={`history-row live-row ${selectedId === null ? 'selected' : ''}`}
-          onClick={() => setSelectedId(null)}
-        >
-          <MessageSquare size={15} />
-          <div>
-            <strong>Live assistant</strong>
-            <small>Current conversation</small>
-          </div>
-        </button>
         {query.isPending && <p className="history-notice">Loading previous runs…</p>}
         {query.isError && (
           <p role="alert" className="error-banner">
@@ -144,7 +116,7 @@ export function AgentConversation({ agent }: { agent: Agent }) {
         )}
         {query.data?.runs.map((run) => (
           <button
-            className={`history-row ${selectedId === run.id ? 'selected' : ''}`}
+            className={`history-row ${selected?.id === run.id ? 'selected' : ''}`}
             key={run.id}
             onClick={() => setSelectedId(run.id)}
           >
@@ -153,35 +125,26 @@ export function AgentConversation({ agent }: { agent: Agent }) {
               <strong>{run.title}</strong>
               <small>{timestamp(run.requestedAt)}</small>
               <span className={`run-status ${run.status}`}>{run.status}</span>
-              <small>
-                {run.source === 'codex_archive'
-                  ? 'Imported Codex history'
-                  : run.source === 'coordinator'
-                    ? 'Shared coordinator'
-                    : 'OpenFactory run'}
-              </small>
             </div>
           </button>
         ))}
         {query.data?.truncated && (
-          <p className="history-notice">
-            Showing recent conversations and the latest 100 live messages.
-          </p>
+          <p className="history-notice">Showing recent run conversations.</p>
         )}
       </aside>
       <section className="assistant-pane" aria-label="Agent assistant">
         <div className="assistant-heading">
           <div>
             <h3>{selected?.title ?? 'Assistant'}</h3>
-            <p>
-              {selected
-                ? `${selected.status} · ${timestamp(selected.requestedAt)}`
-                : 'Continue the conversation.'}
-            </p>
+            {selected && (
+              <p>
+                {selected.status} · {timestamp(selected.requestedAt)}
+              </p>
+            )}
           </div>
           <span className="assistant-mode">
             <Activity size={13} />
-            {selected ? 'Run transcript' : query.data?.running ? 'Working' : 'Live'}
+            {running ? 'Working' : readOnly ? 'Run transcript' : 'Latest run'}
           </span>
         </div>
         {selected?.source === 'codex_archive' && (
@@ -190,63 +153,48 @@ export function AgentConversation({ agent }: { agent: Agent }) {
           </p>
         )}
         <AssistantRuntimeProvider runtime={runtime}>
-          <ThreadPrimitive.Root className="assistant-thread">
-            <ThreadPrimitive.Viewport
-              className="assistant-viewport"
-              autoScroll={!selected}
-              scrollToBottomOnInitialize={!selected}
-            >
-              {messages.length === 0 && (
+          <ChatThread
+            key={selected?.id ?? 'empty'}
+            readOnly={readOnly}
+            working={running}
+            emptyState={
+              messages.length === 0 && (
                 <div className="chat-empty">
-                  <Bot size={28} />
+                  <img src="/openfactory.png" alt="" width={48} height={48} />
                   <h3>{selected ? 'No messages recorded' : 'Start a conversation'}</h3>
                   <p>
                     {selected
                       ? 'This run has no user or assistant text yet.'
-                      : query.data?.coordinatorId
-                        ? 'Ask a question or continue the work.'
-                        : 'Run this agent once to create its conversation.'}
+                      : 'Run this agent once to create its conversation.'}
                   </p>
                 </div>
-              )}
-              <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
-              {!selected && query.data?.running && (
-                <output className="chat-working">Agent is working…</output>
-              )}
-            </ThreadPrimitive.Viewport>
-            {selected ? (
-              <div className="transcript-footer">
-                <span>Saved run transcript</span>
-                <button className="button secondary" onClick={() => setSelectedId(null)}>
-                  Continue with assistant <MessageSquare size={13} />
-                </button>
-              </div>
-            ) : (
-              <div className="chat-composer-wrap">
-                {sendError && (
-                  <p className="error-banner" role="alert">
-                    {sendError}
-                  </p>
-                )}
-                <ComposerPrimitive.Root className="chat-composer">
-                  <ComposerPrimitive.Input
-                    aria-label="Message your agent"
-                    placeholder="Message your agent…"
-                    rows={2}
-                  />
-                  {query.data?.running ? (
-                    <ComposerPrimitive.Cancel className="chat-send" aria-label="Stop current run">
-                      <Square size={15} />
-                    </ComposerPrimitive.Cancel>
-                  ) : (
-                    <ComposerPrimitive.Send className="chat-send" aria-label="Send message">
-                      <ArrowUp size={17} />
-                    </ComposerPrimitive.Send>
+              )
+            }
+            footer={
+              readOnly ? (
+                <div className="transcript-footer">
+                  <span>Saved run transcript</span>
+                  {latest && (
+                    <button className="button secondary" onClick={() => setSelectedId(latest.id)}>
+                      Open latest run <MessageSquare size={13} />
+                    </button>
                   )}
-                </ComposerPrimitive.Root>
-              </div>
-            )}
-          </ThreadPrimitive.Root>
+                </div>
+              ) : (
+                <div className="chat-composer-wrap">
+                  {sendError && (
+                    <p className="error-banner" role="alert">
+                      {sendError}
+                    </p>
+                  )}
+                  <ChatComposer
+                    running={running || cancel.isPending}
+                    pending={mutation.isPending}
+                  />
+                </div>
+              )
+            }
+          />
         </AssistantRuntimeProvider>
       </section>
     </div>

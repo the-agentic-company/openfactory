@@ -39,7 +39,10 @@ describe('saved factory files', () => {
   });
   it('rejects stale edits before applying anything to the live runtime', async () => {
     const saved = await saveDefinition('project', null, definition);
-    await saveDefinition('project', saved.revision, definition);
+    await saveDefinition('project', saved.revision, {
+      ...definition,
+      files: { ...definition.files, 'factory.yaml': 'name: Changed by another editor\n' },
+    });
     let applied = false;
     await expect(
       saveDefinition('project', saved.revision, definition, async () => {
@@ -66,4 +69,31 @@ describe('saved factory files', () => {
     ).rejects.toThrow();
     expect(await readDefinition('project')).toBeNull();
   });
+});
+
+it('persists team folders and shared guidance without treating them as agent bindings', async () => {
+  const saved = await saveDefinition('team-project', null, {
+    files: {
+      ...definition.files,
+      'teams/reliability/team.yaml': 'name: Reliability',
+      'teams/reliability/instructions.md': 'Shared guidance',
+    },
+    bindings: definition.bindings,
+  });
+  expect(await readDefinition('team-project')).toEqual(saved);
+  expect(await readFile(join(saved.location, 'teams/reliability/instructions.md'), 'utf8')).toBe(
+    'Shared guidance',
+  );
+  await expect(
+    saveDefinition('bad-team', null, {
+      files: { 'teams/../instructions.md': 'unsafe' },
+      bindings: {},
+    }),
+  ).rejects.toThrow();
+  await expect(
+    saveDefinition('bad-binding', null, {
+      files: saved.files,
+      bindings: { 'teams/reliability/team.yaml': 'agent-id' },
+    }),
+  ).rejects.toThrow();
 });

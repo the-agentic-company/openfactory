@@ -1,0 +1,5 @@
+Source: apps/desktop/src/ui/logo.png (existing OpenFactory mascot).
+Edited with the built-in image generation tool, then resized to 1024x1024 for ICNS packaging.
+
+Prompt:
+Edit this existing OpenFactory mascot image for a macOS application icon. Preserve the exact same cute smiling yellow construction worker mascot, including face, helmet, vest, proportions, colors, rendering, pose, and all details. Do not redesign or reinterpret the mascot. The only requested change is replace the transparent background with a clean solid pure white (#FFFFFF) square background. Keep the mascot centered and fully visible, with tasteful small consistent white padding so helmet and shoulders do not touch the edges. No text, no letters, no borders, no extra objects, no gradients in the background, no shadow on the background. Output one square opaque PNG appropriate for an app icon.

@@ -1,3 +1,6 @@
+import { WorkspacePage } from './workspace-page';
+import type { FactoryProject } from './factory-navigation-item';
+import { Select, SelectItem } from './ui/select';
 import type { Agent } from '@openfactory/core';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, CalendarDays, RefreshCw } from 'lucide-react';
@@ -15,6 +18,9 @@ const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export function FactoryDashboard({
+  project,
+  factory,
+  status,
   runs,
   agents,
   loaded,
@@ -22,6 +28,9 @@ export function FactoryDashboard({
   onRefresh,
   renderRuns,
 }: {
+  project: string;
+  factory?: FactoryProject;
+  status: ReactNode;
   runs: Run[];
   agents: Agent[];
   loaded: boolean;
@@ -40,10 +49,15 @@ export function FactoryDashboard({
   const sinceDay = dateKey(days[0] ?? now);
   const untilDay = dateKey(now);
   const usage = useQuery({
-    queryKey: ['token-usage', sinceDay, untilDay],
+    queryKey: ['token-usage', project, sinceDay, untilDay],
     queryFn: () =>
       getTokenUsage({
-        data: { sinceDay, untilDay, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        data: {
+          project,
+          sinceDay,
+          untilDay,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       }),
     staleTime: 60000,
     refetchInterval: 60000,
@@ -118,19 +132,26 @@ export function FactoryDashboard({
     .sort((a, b) => b.value - a.value)
     .slice(0, 4);
   return (
-    <div className="analytics-dashboard">
-      <div className="analytics-toolbar">
-        <div>
-          <label className="analytics-period">
-            <CalendarDays size={14} />
-            <select
+    <WorkspacePage
+      project={factory}
+      title="Dashboard"
+      contentClassName="analytics-dashboard"
+      actions={
+        <div className="analytics-dashboard-actions">
+          <label
+            htmlFor="factory-dashboard-select-1"
+            className="analytics-period analytics-dashboard-period"
+          >
+            <CalendarDays className="analytics-period-calendar" size={14} aria-hidden="true" />
+            <Select
+              id="factory-dashboard-select-1"
               aria-label="Dashboard period"
               value={period}
-              onChange={(e) => setPeriod(Number(e.target.value))}
+              onValueChange={(value) => setPeriod(Number(value))}
             >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-            </select>
+              <SelectItem value={7}>Last 7 days</SelectItem>
+              <SelectItem value={30}>Last 30 days</SelectItem>
+            </Select>
           </label>
           <button
             className="button secondary"
@@ -144,17 +165,19 @@ export function FactoryDashboard({
             Reload
           </button>
         </div>
-      </div>
+      }
+    >
+      {status}
       <div className="analytics-metrics">
         <Metric
           label="Tokens processed"
           value={hasUsage ? compact(total) : '—'}
           note={
             hasUsage
-              ? `${partial ? 'Partial coverage · ' : ''}All local runtime usage`
+              ? `${partial ? 'Partial coverage · ' : ''}Factory agent runs`
               : usage.isPending
-                ? 'Loading runtime usage…'
-                : 'Runtime usage unavailable'
+                ? 'Loading factory usage…'
+                : 'Factory usage unavailable'
           }
         />
         <Metric
@@ -197,10 +220,7 @@ export function FactoryDashboard({
           </div>
         </section>
         <section className="analytics-panel">
-          <PanelHeading
-            title="Token usage"
-            detail="All local runtime usage · includes other projects"
-          />
+          <PanelHeading title="Token usage" detail="Selected factory’s agent runs" />
           {hasUsage ? (
             <BarChart
               series={tokenSeries}
@@ -212,8 +232,8 @@ export function FactoryDashboard({
               <span>{usage.isPending ? 'Loading token usage…' : 'Token usage is unavailable'}</span>
               <small>
                 {usage.isPending
-                  ? 'Reading provider transcripts from T3 Code.'
-                  : 'The connected runtime did not return usage data.'}
+                  ? 'Reading usage for this factory’s agent runs.'
+                  : 'Usage could not be attributed to this factory’s agent runs.'}
               </small>
               {usage.isError && (
                 <button className="text-button" onClick={() => void usage.refetch()}>
@@ -256,7 +276,7 @@ export function FactoryDashboard({
           title="Tokens by model"
           rows={models}
           empty={
-            hasUsage ? 'No tokens recorded in this period.' : 'Waiting for runtime usage data.'
+            hasUsage ? 'No tokens recorded in this period.' : 'Waiting for factory usage data.'
           }
           color="blue"
         />
@@ -265,12 +285,7 @@ export function FactoryDashboard({
         <PanelHeading title="Latest runs" detail={`${recent.length} recorded in this period`} />
         {loaded && renderRuns(recent.slice(0, 5))}
       </section>
-      <p className="analytics-footnote">
-        Run metrics follow the selected factory. Token metrics cover all provider transcripts on the
-        connected runtime.
-        {partial && hasUsage ? ' Some usage sources are missing or incomplete.' : ''}
-      </p>
-    </div>
+    </WorkspacePage>
   );
 }
 function Metric({ label, value, note }: { label: string; value: string; note: string }) {

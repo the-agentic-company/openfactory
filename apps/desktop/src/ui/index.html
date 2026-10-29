@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <title>OpenFactory</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="./renderer.js"></script>
+  </head>
+  <body>
+    <header class="window-chrome" aria-hidden="true"></header>
+    <aside class="sidebar">
+      <a class="brand" href="#"><img src="logo.png" alt="" width="36" height="36" />OpenFactory</a>
+      <p class="prototype">Desktop prototype</p>
+      <div class="nav-heading">Computers</div>
+      <nav id="computers" aria-label="Computers"></nav>
+      <button id="add-computer" class="nav-button">+ Add computer</button>
+      <div class="sidebar-bottom">
+        <button id="manage-computers" class="nav-button">Manage computers</button>
+        <p>Your computers. Your agents.</p>
+      </div>
+    </aside>
+    <main id="main" tabindex="-1"><p class="loading">Starting your OpenFactory host…</p></main>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+    <dialog id="dialog" aria-labelledby="dialog-title">
+      <div id="dialog-content"></div>
+    </dialog>
+  </body>
+</html>

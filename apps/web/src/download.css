@@ -1,0 +1,226 @@
+.download-page-heading {
+  text-align: center;
+  padding: 76px 0 54px;
+}
+.download-page-heading > img {
+  display: block;
+  margin: 0 auto 22px;
+}
+.download-page .download-page-heading h1 {
+  font-size: clamp(36px, 4.5vw, 54px);
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+.download-page-heading > p {
+  margin: 20px 0;
+  font-size: 16px;
+  color: var(--landing-muted);
+  line-height: 1.7;
+}
+.download-page-heading > span {
+  font-size: 12px;
+  color: var(--landing-muted);
+}
+.download-page-heading > span > span {
+  margin: 0 7px;
+}
+.download-platform-list {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 76px;
+}
+.download-platform-section {
+  padding: 27px 0 30px;
+  scroll-margin-top: 26px;
+}
+.download-platform-section + .download-platform-section {
+  border-top: 1px solid var(--workspace-line);
+}
+.download-platform-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+.download-page .download-platform-heading h2 {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.download-recommended {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-size: 11px;
+}
+.download-installer {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid #3a3637;
+  border-radius: 9px;
+  background: #161519;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+}
+.download-installer:hover {
+  border-color: #a26035;
+  background: #211b18;
+}
+.download-installer-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  background: #2e241e;
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+.download-installer > span:nth-child(2) {
+  display: grid;
+  gap: 7px;
+}
+.download-installer strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.download-installer > span:nth-child(2) > span {
+  font-size: 12px;
+  color: var(--landing-muted);
+}
+.download-format {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--landing-muted);
+}
+.download-platform-note {
+  color: var(--landing-muted);
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 15px 0 0;
+  max-width: 70ch;
+}
+.download-alternative {
+  margin-top: 15px;
+}
+.download-alternative summary {
+  display: inline-flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+  font-size: 12px;
+  color: var(--landing-muted);
+  padding: 5px 0;
+}
+.download-alternative summary::-webkit-details-marker {
+  display: none;
+}
+.download-alternative summary:hover {
+  color: var(--accent-text);
+}
+.download-alternative[open] summary svg {
+  transform: rotate(180deg);
+}
+.download-alternative a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0 5px;
+  color: var(--accent-text);
+  font-size: 13px;
+}
+.download-alternative a > span {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.download-next {
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 35px;
+  margin-top: 25px;
+}
+.download-page .download-next h2 {
+  font-size: 23px;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+.download-next p {
+  font-size: 14px;
+  color: var(--landing-muted);
+  line-height: 1.8;
+  max-width: 67ch;
+}
+.download-next a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-size: 13px;
+  margin-top: 10px;
+}
+@media (max-width: 700px) {
+  .download-page-heading {
+    padding: 54px 0 28px;
+  }
+  .download-page-heading > img {
+    width: 58px;
+    height: 58px;
+  }
+  .download-page-heading > p {
+    font-size: 14px;
+  }
+  .download-platform-list {
+    padding-bottom: 55px;
+  }
+  .download-installer {
+    padding: 17px 14px;
+    gap: 12px;
+  }
+  .download-installer strong {
+    font-size: 14px;
+  }
+  .download-installer > span:nth-child(2) > span {
+    font-size: 10px;
+  }
+  .download-format {
+    gap: 5px;
+    font-size: 11px;
+  }
+  .download-recommended {
+    font-size: 10px;
+  }
+  .download-page .download-platform-heading h2 {
+    font-size: 20px;
+  }
+}
+@media (max-width: 360px) {
+  .download-format > svg {
+    display: none;
+  }
+  .download-installer-icon {
+    width: 28px;
+  }
+}
+.download-page a.download-installer {
+  color: #eeeceb;
+  text-decoration: none;
+}
+.download-page .download-alternative a {
+  color: var(--accent-text);
+  text-decoration: none;
+}

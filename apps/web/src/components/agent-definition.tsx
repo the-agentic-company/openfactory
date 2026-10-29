@@ -29,7 +29,7 @@ export function AgentDefinition({ agent }: { agent: Agent }) {
       setBaseline(saved);
       setSource(saved);
       setEditing(false);
-      setNotice('Definition saved to T3.');
+      setNotice('Definition saved.');
       void client.invalidateQueries({ queryKey: ['agents'] });
     },
   });
@@ -66,7 +66,7 @@ export function AgentDefinition({ agent }: { agent: Agent }) {
       </div>
       <p className="detail-note">
         YAML configuration and Markdown instructions.{' '}
-        <Link to="/docs/$" params={{ _splat: '' }}>
+        <Link to="/docs/$" params={{ _splat: 'factory-definition' }}>
           About factory as code
         </Link>
       </p>
@@ -126,8 +126,8 @@ export function AgentDefinition({ agent }: { agent: Agent }) {
       )}
       {notice && <output>{notice}</output>}
       <p className="detail-note">
-        Saving updates this agent's name, instructions, and model. Its trigger and runtime
-        permissions stay in T3. Downloaded files are snapshots.
+        Saving updates this agent's instructions, provider, model, permissions, and schedule.
+        Downloaded files are snapshots.
       </p>
     </section>
   );

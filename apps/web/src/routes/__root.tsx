@@ -1,3 +1,4 @@
+import { DesktopChrome } from '../components/desktop-chrome';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router';
 import stylesheet from '../styles.css?url';
@@ -10,13 +11,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: 'OpenFactory — Agent workspace' },
       {
         name: 'description',
-        content: 'Your agents, schedules, and runs. Connected to T3 Code.',
+        content: 'Your agents, schedules, and runs. Run directly with Codex and Claude.',
       },
     ],
     links: [
       { rel: 'stylesheet', href: stylesheet },
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-      { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/openfactory.png' },
+      { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/favicon.png' },
       { rel: 'apple-touch-icon', href: '/openfactory.png' },
     ],
   }),
@@ -32,6 +33,7 @@ function Root() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
+          <DesktopChrome />
           <Outlet />
         </QueryClientProvider>
         <Scripts />

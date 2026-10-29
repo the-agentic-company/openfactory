@@ -1,3 +1,8 @@
+import { WorkspacePage } from './workspace-page';
+import type { FactoryProject } from './factory-navigation-item';
+import { Select, SelectItem } from './ui/select';
+import { runPathParams } from '../run-path';
+import { projectName } from '../project-path';
 import { scoreOutput, type Agent, type Scorer, type WorkspaceView } from '@openfactory/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -21,12 +26,12 @@ export function FactoryPages({
   view,
   project,
   agents,
-  factoryName,
+  factory,
 }: {
   view: Exclude<WorkspaceView, 'agents' | 'pull-requests' | 'definition'>;
   project: string;
   agents: Agent[];
-  factoryName?: string;
+  factory?: FactoryProject;
 }) {
   const query = useQuery({
     queryKey: ['factory-runs', project],
@@ -40,9 +45,11 @@ export function FactoryPages({
   const [runFilter, setRunFilter] = useState<RunFilter>('all');
   const openRun = (run: FactoryRun) => {
     void navigate({
-      to: '/runs/$runId',
-      params: { runId: run.id },
-      search: { thread: run.threadId, project },
+      to: '/app/projects/$project/threads/$thread/runs/$runId/{-$section}',
+      params: {
+        ...runPathParams({ project: projectName(project), id: run.id, threadId: run.threadId }),
+        section: undefined,
+      },
     });
   };
   const [creating, setCreating] = useState(false);
@@ -50,7 +57,7 @@ export function FactoryPages({
   const projectScorers = (scorers.data ?? []).filter(
     (s) => project === 'all' || s.project === project,
   );
-  return (
+  const status = (
     <>
       {query.isError && (
         <div className="error-banner" role="alert">
@@ -67,18 +74,36 @@ export function FactoryPages({
       {query.data && query.data.unavailable > 0 && (
         <p className="data-scope">{query.data.unavailable} conversations could not be read.</p>
       )}
-      {view === 'dashboard' && (
-        <FactoryDashboard
-          runs={runs}
-          agents={agents}
-          loaded={!!query.data}
-          refreshing={query.isFetching}
-          onRefresh={() => {
-            void query.refetch();
-          }}
-          renderRuns={(recent) => <RunList runs={recent} agents={agents} project={project} />}
-        />
-      )}
+    </>
+  );
+  if (view === 'dashboard') {
+    return (
+      <FactoryDashboard
+        factory={factory}
+        project={project}
+        runs={runs}
+        agents={agents}
+        loaded={!!query.data}
+        refreshing={query.isFetching}
+        onRefresh={() => void query.refetch()}
+        renderRuns={(recent) => <RunList runs={recent} agents={agents} project={project} />}
+        status={status}
+      />
+    );
+  }
+  return (
+    <WorkspacePage
+      project={factory}
+      title={view === 'runs' ? 'Runs' : 'Scorers'}
+      actions={
+        view === 'scorers' ? (
+          <button className="button primary" onClick={() => setCreating(true)}>
+            <Plus size={15} /> New scorer
+          </button>
+        ) : undefined
+      }
+    >
+      {status}
       {view === 'runs' && (
         <>
           <div className="runs-controls">
@@ -91,7 +116,7 @@ export function FactoryPages({
                   aria-pressed={runFilter === filter.id}
                   onClick={() => setRunFilter(filter.id)}
                 >
-                  {filter.id === 'all' ? (factoryName ?? 'All runs') : filter.label}
+                  {filter.label}
                 </button>
               ))}
             </nav>
@@ -135,10 +160,6 @@ export function FactoryPages({
         <>
           <div className="section-heading">
             <p>Repeatable checks against completed assistant output. No additional model calls.</p>
-            <button className="button primary" onClick={() => setCreating(true)}>
-              <Plus size={15} />
-              New scorer
-            </button>
           </div>
           {scorers.isError && (
             <div className="error-banner" role="alert">
@@ -168,7 +189,7 @@ export function FactoryPages({
       {creating && (
         <NewScorer project={project} agents={agents} onClose={() => setCreating(false)} />
       )}
-    </>
+    </WorkspacePage>
   );
 }
 function Empty({ title, text }: { title: string; text: string }) {
@@ -333,33 +354,38 @@ function NewScorer({
             placeholder="Successful smoke test"
           />
         </label>
-        <label>
+        <label htmlFor="factory-pages-select-1">
           Apply to
-          <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-            <option value="all">All runs in this factory</option>
+          <Select
+            id="factory-pages-select-1"
+            value={agentId}
+            onValueChange={(value) => setAgentId(value)}
+          >
+            <SelectItem value="all">All runs in this factory</SelectItem>
             {agents.map((a) => (
-              <option key={a.id} value={a.id}>
+              <SelectItem key={a.id} value={a.id}>
                 {a.title}
-              </option>
+              </SelectItem>
             ))}
-          </select>
+          </Select>
         </label>
-        <label>
+        <label htmlFor="factory-pages-select-2">
           Rule
-          <select
+          <Select
+            id="factory-pages-select-2"
             value={kind}
-            onChange={(e) => {
-              const v = e.target.value;
+            onValueChange={(value) => {
+              const v = value;
               if (v === 'contains' || v === 'excludes' || v === 'min_length') {
                 setKind(v);
               }
               setValue('');
             }}
           >
-            <option value="contains">Output includes text</option>
-            <option value="excludes">Output excludes text</option>
-            <option value="min_length">Minimum output length</option>
-          </select>
+            <SelectItem value="contains">Output includes text</SelectItem>
+            <SelectItem value="excludes">Output excludes text</SelectItem>
+            <SelectItem value="min_length">Minimum output length</SelectItem>
+          </Select>
         </label>
         <label>
           {kind === 'min_length' ? 'Characters' : 'Text to check'}

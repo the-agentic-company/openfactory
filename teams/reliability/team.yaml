@@ -1,0 +1,20 @@
+schemaVersion: v1alpha1
+name: Mibba Reliability
+description: Continuously improve SLOs, customer friction and agent outcomes under one chief of staff.
+instructions: ./instructions.md
+lead: operator
+members:
+  operator:
+    agent: agents/run-reliability-operator-blackhole%3Amibba%3Areliability-operator/agent.md
+  slo:
+    agent: agents/mibba-slo-owner-02de1126-1b31-49b5-a64b-22e8a8140360/agent.md
+    reportsTo: operator
+  customer-friction:
+    agent: agents/mibba-customer-friction-owner-3ad932d2-b355-4ff4-8fa9-eb12a70c6474/agent.md
+    reportsTo: operator
+  agent-traces:
+    agent: agents/mibba-agent-trace-friction-owner-c7c04c0f-390b-43a7-8e2a-d31c2452889d/agent.md
+    reportsTo: operator
+  digest:
+    agent: agents/run-reliability-daily-digest-blackhole%3Amibba%3Areliability-digest/agent.md
+    reportsTo: operator

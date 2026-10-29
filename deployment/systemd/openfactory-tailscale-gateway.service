@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenFactory HTTP redirect and HTTPS gateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=%h/.config/openfactory/service.env
+ExecStart=%h/.local/bin/node %h/git/openfactory/scripts/tailscale-gateway.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

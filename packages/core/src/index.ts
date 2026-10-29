@@ -146,7 +146,16 @@ export * from './history';
 export {
   parseTeamYaml,
   teamSchema,
-  teamTriggerLabel,
+  agentFilePathSchema,
+  teamFilePathSchema,
+  factoryTeamSetups,
+  resolveTeam,
+  resolvedTeamSchema,
+  teamSetupSchema,
+  stringifyTeamDefinition,
+  teamGuidance,
+  type TeamDefinition,
+  type TeamSetup,
   type AgentTeam,
   type TeamAgent,
 } from './team';
@@ -158,3 +167,5 @@ export { createFactoryFiles, validateFactoryFile } from './factory-definition';
 export { iconColorNames, firstEmoji, monogramSchema, type IconColor } from './appearance';
 
 export { runBucket, relativeRunTime, runLinks, type RunBucket } from './run-view';
+export { pullRequestResultSchema, type PullRequestResult } from './pull-requests';
+export { pullRequestSnapshotSchema, type PullRequestSnapshot } from './pull-requests';

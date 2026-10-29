@@ -1,0 +1,223 @@
+diff --git a/dist/cjs/generator.cjs b/dist/cjs/generator.cjs
+index 08b3a61b64e24b4e7eccd28dfed160c2973fe66e..b6a3030349c1f847ad2ca7d2bdf27d69d6837f2d 100644
+--- a/dist/cjs/generator.cjs
++++ b/dist/cjs/generator.cjs
+@@ -476,31 +476,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${require_uti
+ 		let shouldWriteRouteFile = false;
+ 		let shouldWriteTree = false;
+ 		if (!existingRouteFile.fileContent) {
+-			shouldWriteRouteFile = true;
+-			shouldWriteTree = true;
+-			if (node._fsRouteType === "lazy") {
+-				const tLazyRouteTemplate = this.targetTemplate.lazyRoute;
+-				updatedCacheEntry.fileContent = await require_template.fillTemplate(this.config, (this.config.customScaffolding?.lazyRouteTemplate || this.config.customScaffolding?.routeTemplate) ?? tLazyRouteTemplate.template(), {
+-					tsrImports: tLazyRouteTemplate.imports.tsrImports(),
+-					tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, "$1"),
+-					tsrExportStart: tLazyRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-					tsrExportEnd: tLazyRouteTemplate.imports.tsrExportEnd()
+-				});
+-			} else if (["layout", "static"].some((d) => d === node._fsRouteType) || [
+-				"component",
+-				"pendingComponent",
+-				"errorComponent",
+-				"notFoundComponent",
+-				"loader"
+-			].every((d) => d !== node._fsRouteType)) {
+-				const tRouteTemplate = this.targetTemplate.route;
+-				updatedCacheEntry.fileContent = await require_template.fillTemplate(this.config, this.config.customScaffolding?.routeTemplate ?? tRouteTemplate.template(), {
+-					tsrImports: tRouteTemplate.imports.tsrImports(),
+-					tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, "$1"),
+-					tsrExportStart: tRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-					tsrExportEnd: tRouteTemplate.imports.tsrExportEnd()
+-				});
+-			} else return null;
++			throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`);
+ 		}
+ 		if (!node.filePath.endsWith(".vue")) {
+ 			const transformResult = await require_transform.transform({
+@@ -660,25 +636,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${require_uti
+ 			node
+ 		};
+ 		if (!rootNodeFile.fileContent) {
+-			const rootTemplate = this.targetTemplate.rootRoute;
+-			const rootRouteContent = await require_template.fillTemplate(this.config, rootTemplate.template(), {
+-				tsrImports: rootTemplate.imports.tsrImports(),
+-				tsrPath: require_rootPathId.rootPathId,
+-				tsrExportStart: rootTemplate.imports.tsrExportStart(),
+-				tsrExportEnd: rootTemplate.imports.tsrExportEnd()
+-			});
+-			this.logger.log(`🟡 Creating ${node.fullPath}`);
+-			const stats = await this.safeFileWrite({
+-				filePath: node.fullPath,
+-				newContent: rootRouteContent,
+-				strategy: {
+-					type: "mtime",
+-					expectedMtimeMs: rootNodeFile.stat.mtimeMs,
+-					expectedContent: rootNodeFile.fileContent
+-				}
+-			});
+-			updatedCacheEntry.fileContent = rootRouteContent;
+-			updatedCacheEntry.mtimeMs = stats.mtimeMs;
++			throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`);
+ 		}
+ 		this.routeNodeShadowCache.set(node.fullPath, updatedCacheEntry);
+ 	}
+diff --git a/dist/esm/generator.js b/dist/esm/generator.js
+index b505499e6a84339f62ca3852ec2546a2b670c9f2..b6fa5bfcd27c6a8a800b57707e11e6be46014b2d 100644
+--- a/dist/esm/generator.js
++++ b/dist/esm/generator.js
+@@ -472,31 +472,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${getResolved
+ 		let shouldWriteRouteFile = false;
+ 		let shouldWriteTree = false;
+ 		if (!existingRouteFile.fileContent) {
+-			shouldWriteRouteFile = true;
+-			shouldWriteTree = true;
+-			if (node._fsRouteType === "lazy") {
+-				const tLazyRouteTemplate = this.targetTemplate.lazyRoute;
+-				updatedCacheEntry.fileContent = await fillTemplate(this.config, (this.config.customScaffolding?.lazyRouteTemplate || this.config.customScaffolding?.routeTemplate) ?? tLazyRouteTemplate.template(), {
+-					tsrImports: tLazyRouteTemplate.imports.tsrImports(),
+-					tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, "$1"),
+-					tsrExportStart: tLazyRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-					tsrExportEnd: tLazyRouteTemplate.imports.tsrExportEnd()
+-				});
+-			} else if (["layout", "static"].some((d) => d === node._fsRouteType) || [
+-				"component",
+-				"pendingComponent",
+-				"errorComponent",
+-				"notFoundComponent",
+-				"loader"
+-			].every((d) => d !== node._fsRouteType)) {
+-				const tRouteTemplate = this.targetTemplate.route;
+-				updatedCacheEntry.fileContent = await fillTemplate(this.config, this.config.customScaffolding?.routeTemplate ?? tRouteTemplate.template(), {
+-					tsrImports: tRouteTemplate.imports.tsrImports(),
+-					tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, "$1"),
+-					tsrExportStart: tRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-					tsrExportEnd: tRouteTemplate.imports.tsrExportEnd()
+-				});
+-			} else return null;
++			throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`);
+ 		}
+ 		if (!node.filePath.endsWith(".vue")) {
+ 			const transformResult = await transform({
+@@ -656,25 +632,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${getResolved
+ 			node
+ 		};
+ 		if (!rootNodeFile.fileContent) {
+-			const rootTemplate = this.targetTemplate.rootRoute;
+-			const rootRouteContent = await fillTemplate(this.config, rootTemplate.template(), {
+-				tsrImports: rootTemplate.imports.tsrImports(),
+-				tsrPath: rootPathId,
+-				tsrExportStart: rootTemplate.imports.tsrExportStart(),
+-				tsrExportEnd: rootTemplate.imports.tsrExportEnd()
+-			});
+-			this.logger.log(`🟡 Creating ${node.fullPath}`);
+-			const stats = await this.safeFileWrite({
+-				filePath: node.fullPath,
+-				newContent: rootRouteContent,
+-				strategy: {
+-					type: "mtime",
+-					expectedMtimeMs: rootNodeFile.stat.mtimeMs,
+-					expectedContent: rootNodeFile.fileContent
+-				}
+-			});
+-			updatedCacheEntry.fileContent = rootRouteContent;
+-			updatedCacheEntry.mtimeMs = stats.mtimeMs;
++			throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`);
+ 		}
+ 		this.routeNodeShadowCache.set(node.fullPath, updatedCacheEntry);
+ 	}
+diff --git a/src/generator.ts b/src/generator.ts
+index 91f87dadda28d7e724c400a7233dd23f95d93f09..9703d281b61755f5de29d1e4c78ae86e25afe909 100644
+--- a/src/generator.ts
++++ b/src/generator.ts
+@@ -1034,57 +1034,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${getResolved
+     let shouldWriteTree = false
+     // now we need to either scaffold the file or transform it
+     if (!existingRouteFile.fileContent) {
+-      shouldWriteRouteFile = true
+-      shouldWriteTree = true
+-      // Creating a new lazy route file
+-      if (node._fsRouteType === 'lazy') {
+-        const tLazyRouteTemplate = this.targetTemplate.lazyRoute
+-        // Check by default check if the user has a specific lazy route template
+-        // If not, check if the user has a route template and use that instead
+-        updatedCacheEntry.fileContent = await fillTemplate(
+-          this.config,
+-          (this.config.customScaffolding?.lazyRouteTemplate ||
+-            this.config.customScaffolding?.routeTemplate) ??
+-            tLazyRouteTemplate.template(),
+-          {
+-            tsrImports: tLazyRouteTemplate.imports.tsrImports(),
+-            tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, '$1'),
+-            tsrExportStart:
+-              tLazyRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-            tsrExportEnd: tLazyRouteTemplate.imports.tsrExportEnd(),
+-          },
+-        )
+-      } else if (
+-        // Creating a new normal route file
+-        (['layout', 'static'] satisfies Array<FsRouteType>).some(
+-          (d) => d === node._fsRouteType,
+-        ) ||
+-        (
+-          [
+-            'component',
+-            'pendingComponent',
+-            'errorComponent',
+-            'notFoundComponent',
+-            'loader',
+-          ] satisfies Array<FsRouteType>
+-        ).every((d) => d !== node._fsRouteType)
+-      ) {
+-        const tRouteTemplate = this.targetTemplate.route
+-        updatedCacheEntry.fileContent = await fillTemplate(
+-          this.config,
+-          this.config.customScaffolding?.routeTemplate ??
+-            tRouteTemplate.template(),
+-          {
+-            tsrImports: tRouteTemplate.imports.tsrImports(),
+-            tsrPath: escapedRoutePath.replaceAll(/\{(.+?)\}/gm, '$1'),
+-            tsrExportStart:
+-              tRouteTemplate.imports.tsrExportStart(escapedRoutePath),
+-            tsrExportEnd: tRouteTemplate.imports.tsrExportEnd(),
+-          },
+-        )
+-      } else {
+-        return null
+-      }
++      throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`)
+     }
+ 
+     // Check if this is a Vue component file
+@@ -1369,30 +1319,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${getResolved
+ 
+     // scaffold the root route
+     if (!rootNodeFile.fileContent) {
+-      const rootTemplate = this.targetTemplate.rootRoute
+-      const rootRouteContent = await fillTemplate(
+-        this.config,
+-        rootTemplate.template(),
+-        {
+-          tsrImports: rootTemplate.imports.tsrImports(),
+-          tsrPath: rootPathId,
+-          tsrExportStart: rootTemplate.imports.tsrExportStart(),
+-          tsrExportEnd: rootTemplate.imports.tsrExportEnd(),
+-        },
+-      )
+-
+-      this.logger.log(`🟡 Creating ${node.fullPath}`)
+-      const stats = await this.safeFileWrite({
+-        filePath: node.fullPath,
+-        newContent: rootRouteContent,
+-        strategy: {
+-          type: 'mtime',
+-          expectedMtimeMs: rootNodeFile.stat.mtimeMs,
+-          expectedContent: rootNodeFile.fileContent,
+-        },
+-      })
+-      updatedCacheEntry.fileContent = rootRouteContent
+-      updatedCacheEntry.mtimeMs = stats.mtimeMs
++      throw new Error(`Refusing to scaffold empty route file ${node.fullPath}; finish saving the route and retry.`)
+     }
+ 
+     this.routeNodeShadowCache.set(node.fullPath, updatedCacheEntry)

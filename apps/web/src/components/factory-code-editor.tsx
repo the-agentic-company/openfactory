@@ -19,9 +19,12 @@ export default function FactoryCodeEditor({
       value={source}
       theme="dark"
       height="100%"
-      minHeight="420px"
       extensions={[
-        path.endsWith('.yaml') ? yaml() : yamlFrontmatter({ content: markdown() }),
+        path.endsWith('.yaml')
+          ? yaml()
+          : path.endsWith('/agent.md')
+            ? yamlFrontmatter({ content: markdown() })
+            : markdown(),
         EditorView.contentAttributes.of({ 'aria-label': `Source code for ${path}` }),
       ]}
       editable={!disabled}

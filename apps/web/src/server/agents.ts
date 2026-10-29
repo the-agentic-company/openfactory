@@ -1,14 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import { agentSchema, deliverySchema, type AgentAppearance } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { t3Rpc } from './t3-rpc';
+import { runtimeRpc } from './runtime-rpc';
 import { readAppearances, readFactoryProfiles } from './factory-store';
+import { nativeConnection } from './native-runtime.server';
 
 export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
+  const connection = await nativeConnection();
+  const native = Boolean(connection);
+  const cacheScope = connection?.origin ?? 'local';
   try {
     const [rawTasks, rawShell] = await Promise.all([
-      t3Rpc('scheduledTasks.list', {}),
-      t3Rpc('orchestration.subscribeShell', {}),
+      runtimeRpc('agents.list', {}),
+      runtimeRpc('workspace.snapshot', {}),
     ]);
     const tasks = z.object({ tasks: z.array(agentSchema) }).parse(rawTasks);
     const shell = z
@@ -42,6 +47,8 @@ export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
       projects,
       appearances: await readAppearances(agents.map((agent) => agent.id)),
       connected: true,
+      native,
+      cacheScope,
       error: null,
       syncedAt: new Date().toISOString(),
     };
@@ -51,7 +58,9 @@ export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
       projects: [],
       appearances: await readAppearances([]),
       connected: false,
-      error: 'T3 Code is unavailable. Check its server and connection settings.',
+      native,
+      cacheScope,
+      error: 'The runtime is unavailable. Check the selected computer in Settings.',
       syncedAt: null,
     };
   }
@@ -59,9 +68,11 @@ export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
 export const agentAction = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string().min(1), action: z.enum(['run', 'pause', 'resume']) }))
   .handler(async ({ data }) => {
-    const result = await t3Rpc(
-      data.action === 'run' ? 'scheduledTasks.runNow' : 'scheduledTasks.setEnabled',
-      data.action === 'run' ? { id: data.id } : { id: data.id, enabled: data.action === 'resume' },
+    const result = await runtimeRpc(
+      data.action === 'run' ? 'agents.run' : 'agents.setEnabled',
+      data.action === 'run'
+        ? { id: data.id, requestId: randomUUID() }
+        : { id: data.id, enabled: data.action === 'resume' },
     );
     return z.object({ task: agentSchema }).parse(result).task;
   });
@@ -70,7 +81,7 @@ export const getDeliveries = createServerFn({ method: 'GET' })
   .handler(
     async ({ data }) =>
       z.object({ deliveries: z.array(deliverySchema) }).parse(
-        await t3Rpc('scheduledTasks.listWebhookDeliveries', {
+        await runtimeRpc('agents.deliveries', {
           id: data.id,
           acceptAnyOutcome: true,
         }),
@@ -82,49 +93,49 @@ export const createAgent = createServerFn({ method: 'POST' })
     z.object({
       title: z.string().trim().min(1).max(120),
       prompt: z.string().trim().min(1).max(16000),
-      sourceId: z.string().min(1),
       projectId: z.string().min(1).optional(),
-      trigger: z.enum(['interval', 'fixed_time', 'webhook']),
+      workspaceRoot: z.string().min(1).optional(),
+      provider: z.enum(['codex', 'claude-code']),
+      model: z.string().trim().min(1),
+      runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'full-access']),
+      trigger: z.enum(['manual', 'interval', 'fixed_time', 'webhook']),
       minutes: z.number().int().min(1).max(525600),
       timeOfDay: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     }),
   )
   .handler(async ({ data }) => {
-    const raw = z
-      .object({ tasks: z.array(z.record(z.string(), z.unknown())) })
-      .parse(await t3Rpc('scheduledTasks.list', {}));
-    const result = z.object({ tasks: z.array(agentSchema) }).parse(raw);
-    const source = result.tasks.find((task) => task.id === data.sourceId);
-    if (!source) {
-      throw new Error('The selected runtime is no longer available. Refresh and try again.');
-    }
-    if (data.projectId) {
-      const shell = z
-        .object({ snapshot: z.object({ projects: z.array(z.object({ id: z.string() })) }) })
-        .parse(await t3Rpc('orchestration.subscribeShell', {}));
-      if (!shell.snapshot.projects.some((project) => project.id === data.projectId)) {
-        throw new Error('This factory no longer exists. Refresh and try again.');
+    let projectId = data.projectId;
+    if (!projectId) {
+      if (!data.workspaceRoot) {
+        throw new Error('Choose a working directory for this factory.');
       }
+      const project = z.object({ id: z.string() }).parse(
+        await runtimeRpc('projects.upsert', {
+          id: data.workspaceRoot,
+          title: data.workspaceRoot.split('/').filter(Boolean).at(-1) ?? data.workspaceRoot,
+          workspaceRoot: data.workspaceRoot,
+        }),
+      );
+      projectId = project.id;
     }
     const schedule =
-      data.trigger === 'interval'
-        ? { type: 'interval', everyMs: data.minutes * 60_000 }
-        : data.trigger === 'fixed_time'
-          ? { type: 'fixed_time', timeOfDay: data.timeOfDay }
-          : { type: 'webhook' };
-    // Copy the complete runtime settings from the server, never trust a browser-supplied runtime mode.
-    const original = raw.tasks.find((task) => task.id === source.id)!;
-    const saved = await t3Rpc('scheduledTasks.upsert', {
+      data.trigger === 'manual'
+        ? { type: 'manual' }
+        : data.trigger === 'interval'
+          ? { type: 'interval', everyMs: data.minutes * 60000 }
+          : data.trigger === 'fixed_time'
+            ? { type: 'fixed_time', timeOfDay: data.timeOfDay }
+            : { type: 'webhook' };
+    const result = await runtimeRpc('agents.upsert', {
       title: data.title,
       prompt: data.prompt,
-      enabled: false,
+      projectId,
       schedule,
-      projectId: data.projectId ?? source.projectId,
-      threadId: null,
+      enabled: false,
+      modelSelection: { instanceId: data.provider, model: data.model },
+      runtimeMode: data.runtimeMode,
+      interactionMode: 'default',
       workspaceStrategy: { type: 'root' },
-      modelSelection: original.modelSelection,
-      runtimeMode: original.runtimeMode,
-      interactionMode: original.interactionMode,
     });
-    return z.object({ task: agentSchema }).parse(saved).task;
+    return z.object({ task: agentSchema }).parse(result).task;
   });

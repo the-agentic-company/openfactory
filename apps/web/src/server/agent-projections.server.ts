@@ -1,11 +1,11 @@
 import { agentSchema } from '@openfactory/core';
 import { z } from 'zod';
-import { t3Rpc } from './t3-rpc';
+import { runtimeRpc } from './runtime-rpc';
 
 export async function loadAgent(id: string) {
   const { tasks } = z
     .object({ tasks: z.array(agentSchema) })
-    .parse(await t3Rpc('scheduledTasks.list', {}));
+    .parse(await runtimeRpc('agents.list', {}));
   const agent = tasks.find((task) => task.id === id);
   if (!agent) {
     throw new Error('This agent no longer exists. Refresh the agent list.');
@@ -23,22 +23,25 @@ export async function loadAgentProjections(id: string) {
             projectId: z.string(),
             title: z.string(),
             createdAt: z.string(),
+            agentIds: z.array(z.string()).optional(),
           }),
         ),
       }),
     })
-    .parse(await t3Rpc('orchestration.subscribeShell', {}));
+    .parse(await runtimeRpc('workspace.snapshot', {}));
   const candidates = shell.snapshot.threads
     .filter(
       (thread) =>
         thread.projectId === agent.projectId &&
-        (thread.id === agent.threadId || thread.title === agent.title),
+        (thread.id === agent.threadId ||
+          thread.title === agent.title ||
+          thread.agentIds?.includes(agent.id)),
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const projections = await Promise.all(
     candidates.slice(0, 30).map(async (thread) => {
       const snapshot = z.object({ projection: z.unknown() }).parse(
-        await t3Rpc('orchestration.subscribeThread', {
+        await runtimeRpc('sessions.read', {
           threadId: thread.id,
           acceptBoundedSnapshot: false,
         }),

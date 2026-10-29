@@ -1,4 +1,6 @@
+import { Select, SelectItem } from './ui/select';
 import { useQuery } from '@tanstack/react-query';
+import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tanstack/react-table';
 import {
   ArrowUpRight,
   CircleCheck,
@@ -11,9 +13,11 @@ import {
   ShieldAlert,
   X,
 } from 'lucide-react';
+import type { PullRequestSnapshot } from '@openfactory/core';
 import { useState } from 'react';
 import { getPullRequests } from '../server/pull-requests';
 import '../pull-requests.css';
+import { pullRequestQueryOptions } from '../client/pull-request-query';
 
 const states = {
   OPEN: { label: 'Open', icon: GitPullRequest, color: 'clean' },
@@ -46,17 +50,127 @@ function relativeTime(date: string) {
   }
   return `${Math.floor(minutes / 1440)}d ago`;
 }
-export function PullRequests({ project }: { project: string }) {
+
+type PullRequest = Awaited<ReturnType<typeof getPullRequests>>['pulls'][number];
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, PullRequest>();
+const columns = [
+  columnHelper.display({
+    id: 'title',
+    header: 'Pull request',
+    cell: ({ row: { original: pr } }) => {
+      return (
+        <>
+          <a className="pr-title" href={pr.url} target="_blank" rel="noreferrer">
+            <span>#{pr.number}</span> {pr.title} <ArrowUpRight size={12} className="pr-external" />
+          </a>
+          <div className="pr-meta">
+            <a href={`https://github.com/${pr.repository}`} target="_blank" rel="noreferrer">
+              {pr.repository}
+            </a>
+            <span aria-hidden="true">·</span>
+            <a href={`https://github.com/${pr.author}`} target="_blank" rel="noreferrer">
+              {pr.author}
+            </a>
+          </div>
+        </>
+      );
+    },
+  }),
+  columnHelper.display({
+    id: 'state',
+    header: 'Status',
+    cell: ({ row: { original: pr } }) => {
+      const state = states[pr.state];
+      return (
+        <>
+          <span className={`pr-outcome ${state.color}`}>
+            <state.icon size={15} />
+            {state.label}
+          </span>
+        </>
+      );
+    },
+  }),
+  columnHelper.display({
+    id: 'review',
+    header: 'Review',
+    cell: ({ row: { original: pr } }) => {
+      return <>{reviews[pr.review]}</>;
+    },
+  }),
+  columnHelper.display({
+    id: 'checks',
+    header: 'Checks',
+    cell: ({ row: { original: pr } }) => {
+      const check = checks[pr.checks];
+      return (
+        <>
+          <span className={`pr-outcome ${check.color}`}>
+            <check.icon size={14} />
+            {check.label}
+          </span>
+        </>
+      );
+    },
+  }),
+  columnHelper.display({
+    id: 'changes',
+    header: 'Changes',
+    cell: ({ row: { original: pr } }) => {
+      return (
+        <>
+          <span className="pr-additions">+{pr.additions}</span>{' '}
+          <span className="pr-deletions">−{pr.deletions}</span>
+        </>
+      );
+    },
+  }),
+  columnHelper.display({
+    id: 'updatedAt',
+    header: 'Updated',
+    cell: ({ row: { original: pr } }) => {
+      return (
+        <time dateTime={pr.updatedAt} title={pr.updatedAt}>
+          {relativeTime(pr.updatedAt)}
+        </time>
+      );
+    },
+  }),
+];
+
+export function PullRequests({
+  project,
+  scope,
+  snapshot,
+}: {
+  project: string;
+  scope: string;
+  snapshot: PullRequestSnapshot | null;
+}) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [repository, setRepository] = useState('all');
   const [author, setAuthor] = useState('all');
   const [period, setPeriod] = useState<1 | 7 | 30>(30);
+  const initial = snapshot?.scope === scope && snapshot.project === project ? snapshot : null;
   const query = useQuery({
-    queryKey: ['pull-requests', project, period],
-    queryFn: () => getPullRequests({ data: { project, days: period } }),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    ...pullRequestQueryOptions(scope, project, period, () =>
+      getPullRequests({ data: { project, days: period } }),
+    ),
+    initialData: initial
+      ? {
+          ...initial.result,
+          pulls:
+            period === initial.days
+              ? initial.result.pulls
+              : initial.result.pulls.filter(
+                  (pr) => Date.parse(pr.updatedAt) >= initial.updatedAt - period * 86400000,
+                ),
+        }
+      : undefined,
+    initialDataUpdatedAt: initial?.updatedAt,
+    refetchOnMount: 'always',
   });
   const pulls = query.data?.pulls ?? [];
   const shown = pulls.filter(
@@ -68,6 +182,12 @@ export function PullRequests({ project }: { project: string }) {
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
+  const table = useTable({
+    columns,
+    data: shown,
+    features,
+    getRowId: (pr) => pr.url,
+  });
   const filtered =
     search !== '' || status !== 'all' || repository !== 'all' || author !== 'all' || period !== 30;
   function clearFilters() {
@@ -90,50 +210,51 @@ export function PullRequests({ project }: { project: string }) {
           />
         </label>
         <div className="pr-filters">
-          <select
+          <Select
             aria-label="Repository"
             value={repository}
-            onChange={(event) => setRepository(event.target.value)}
+            onValueChange={(value) => setRepository(value)}
           >
-            <option value="all">All repositories</option>
+            <SelectItem value="all">All repositories</SelectItem>
             {(query.data?.repositories ?? []).map((name) => (
-              <option key={name}>{name}</option>
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
             ))}
-          </select>
-          <select
-            aria-label="Author"
-            value={author}
-            onChange={(event) => setAuthor(event.target.value)}
-          >
-            <option value="all">All authors</option>
+          </Select>
+          <Select aria-label="Author" value={author} onValueChange={(value) => setAuthor(value)}>
+            <SelectItem value="all">All authors</SelectItem>
             {[...new Set(pulls.map((pr) => pr.author))].sort().map((name) => (
-              <option key={name}>{name}</option>
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             aria-label="Updated within"
             value={period}
-            onChange={(event) =>
-              setPeriod(event.target.value === '1' ? 1 : event.target.value === '7' ? 7 : 30)
-            }
+            onValueChange={(value) => setPeriod(value === '1' ? 1 : value === '7' ? 7 : 30)}
           >
-            <option value="1">Last 24 hours</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
+            <SelectItem value="1">Last 24 hours</SelectItem>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+          </Select>
           <button
             className="icon-button"
             aria-label="Refresh pull requests"
             disabled={query.isFetching}
             onClick={() => void query.refetch()}
           >
-            <RefreshCw size={15} className={query.isFetching ? 'spinning' : ''} />
+            <RefreshCw size={15} className={query.isPending ? 'spinning' : ''} />
           </button>
         </div>
       </div>
       {query.isError && (
         <div className="error-banner" role="alert">
-          Could not load pull requests. {query.error.message}
+          {query.data
+            ? 'Could not refresh pull requests. Showing saved results.'
+            : 'Could not load pull requests.'}{' '}
+          {query.error.message}
           <button onClick={() => void query.refetch()}>Retry</button>
         </div>
       )}
@@ -144,17 +265,17 @@ export function PullRequests({ project }: { project: string }) {
         </div>
       )}
       <div className="pr-list-heading">
-        <select
+        <Select
           aria-label="Pull request status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onValueChange={(value) => setStatus(value)}
         >
-          <option value="all">All statuses</option>
-          <option value="OPEN">Open</option>
-          <option value="DRAFT">Draft</option>
-          <option value="MERGED">Merged</option>
-          <option value="CLOSED">Closed</option>
-        </select>
+          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="OPEN">Open</SelectItem>
+          <SelectItem value="DRAFT">Draft</SelectItem>
+          <SelectItem value="MERGED">Merged</SelectItem>
+          <SelectItem value="CLOSED">Closed</SelectItem>
+        </Select>
         <output>
           {query.isPending
             ? 'Loading…'
@@ -169,65 +290,24 @@ export function PullRequests({ project }: { project: string }) {
       <section className="pr-table-scroll" aria-label="Pull request results">
         <table className="pr-table">
           <thead>
-            <tr>
-              <th scope="col">Pull request</th>
-              <th scope="col">Status</th>
-              <th scope="col">Review</th>
-              <th scope="col">Checks</th>
-              <th scope="col">Changes</th>
-              <th scope="col">Updated</th>
-            </tr>
+            {table.getHeaderGroups().map((group) => (
+              <tr key={group.id}>
+                {group.headers.map((header) => (
+                  <th key={header.id} scope="col">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
           <tbody>
-            {shown.map((pr) => {
-              const state = states[pr.state];
-              const check = checks[pr.checks];
-              return (
-                <tr key={pr.url}>
-                  <td>
-                    <a className="pr-title" href={pr.url} target="_blank" rel="noreferrer">
-                      <span>#{pr.number}</span> {pr.title}{' '}
-                      <ArrowUpRight size={12} className="pr-external" />
-                    </a>
-                    <div className="pr-meta">
-                      <a
-                        href={`https://github.com/${pr.repository}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {pr.repository}
-                      </a>
-                      <span aria-hidden="true">·</span>
-                      <a href={`https://github.com/${pr.author}`} target="_blank" rel="noreferrer">
-                        {pr.author}
-                      </a>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`pr-outcome ${state.color}`}>
-                      <state.icon size={15} />
-                      {state.label}
-                    </span>
-                  </td>
-                  <td>{reviews[pr.review]}</td>
-                  <td>
-                    <span className={`pr-outcome ${check.color}`}>
-                      <check.icon size={14} />
-                      {check.label}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="pr-additions">+{pr.additions}</span>{' '}
-                    <span className="pr-deletions">−{pr.deletions}</span>
-                  </td>
-                  <td>
-                    <time dateTime={pr.updatedAt} title={pr.updatedAt}>
-                      {relativeTime(pr.updatedAt)}
-                    </time>
-                  </td>
-                </tr>
-              );
-            })}
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getAllCells().map((cell) => (
+                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
         {query.isPending && (

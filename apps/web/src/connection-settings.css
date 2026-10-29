@@ -1,0 +1,119 @@
+.connection-settings {
+  max-width: 980px;
+}
+
+.settings-section {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--workspace-line);
+}
+.settings-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 7px;
+}
+.settings-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+.settings-section-heading p,
+.settings-help {
+  color: #a1a2b2;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+.settings-computer-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid #24252d;
+}
+.settings-computer-description {
+  flex: 1;
+  min-width: 0;
+}
+.settings-computer-description strong,
+.settings-computer-description span {
+  display: block;
+}
+.settings-computer-description strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.settings-computer-description span {
+  font-size: 12px;
+  color: #a1a2b2;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.settings-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #87c9a4;
+  font-size: 12px;
+}
+.settings-address {
+  color: #a1a2b2;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.settings-local-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.settings-pairing-code {
+  font-family: ui-monospace, monospace;
+  font-size: 36px;
+  letter-spacing: 5px;
+  margin: 28px 0 12px;
+  font-variant-numeric: tabular-nums;
+}
+.settings-notice {
+  padding: 12px 16px;
+  border: 1px solid #355443;
+  border-radius: 6px;
+  color: #a4d6b9;
+  font-size: 13px;
+}
+.settings-navigation {
+  margin-top: auto;
+  padding-top: 20px;
+}
+.desktop-title-bar {
+  display: none;
+}
+html.desktop-mac {
+  --desktop-titlebar-height: 46px;
+}
+html.desktop-mac body {
+  padding-top: 46px;
+}
+html.desktop-mac .desktop-title-bar {
+  display: block;
+  position: fixed;
+  inset: 0 0 auto;
+  height: 46px;
+  background: var(--workspace-background, #0c0d11);
+  app-region: drag;
+  z-index: 100;
+}
+html.desktop-mac .sidebar {
+  top: 46px;
+}
+@media (max-width: 700px) {
+  .settings-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .settings-computer-row {
+    flex-wrap: wrap;
+  }
+}

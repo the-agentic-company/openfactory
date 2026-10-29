@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { deserializePageTree } from 'fumadocs-core/source/client';
+import { ChartNoAxesCombined } from 'lucide-react';
 import collections from '../../.source/browser';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
@@ -26,21 +28,32 @@ export const Route = createFileRoute('/docs/$')({
 });
 function Documentation() {
   const page = Route.useLoaderData();
+  const tree = deserializePageTree(page.pageTree);
   return (
     <div className="openfactory-docs dark">
       <RootProvider search={{ enabled: false }} theme={{ enabled: false }}>
         <DocsLayout
-          tree={{
-            name: 'Documentation',
-            children: [
-              {
-                type: 'page',
-                name: 'Factory definition syntax',
-                url: '/docs',
-              },
-            ],
+          tree={tree}
+          sidebar={{ collapsible: false }}
+          nav={{
+            title: (
+              <span className="docs-brand">
+                <img src="/openfactory.png" width={28} height={28} alt="" />
+                <span className="docs-brand-text">
+                  <span>OpenFactory</span>
+                  <span className="docs-brand-label">Documentation</span>
+                </span>
+              </span>
+            ),
+            url: '/',
           }}
-          nav={{ title: 'Back to overview', url: '/' }}
+          links={[
+            {
+              text: import.meta.env.PUBLIC_SITE ? 'Get started' : 'Open app',
+              url: import.meta.env.PUBLIC_SITE ? '/docs/quickstart' : '/app',
+              icon: <ChartNoAxesCombined />,
+            },
+          ]}
           themeSwitch={{ enabled: false }}
         >
           <DocsPage toc={page.toc}>

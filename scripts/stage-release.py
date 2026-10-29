@@ -8,8 +8,13 @@ import uuid
 
 repository = Path(__file__).resolve().parent.parent
 source = repository / 'apps/web/.output'
+runtime_source = repository / 'packages/runtime/dist'
 if not (source / 'nitro.json').is_file() or not (source / 'server/index.mjs').is_file():
     raise SystemExit('No complete production build found. Run pnpm build first.')
+
+
+if not (runtime_source / 'runtime.mjs').is_file():
+    raise SystemExit('No runtime build found. Run pnpm build first.')
 
 
 def assert_no_build():
@@ -43,9 +48,11 @@ releases.mkdir(parents=True, exist_ok=True, mode=0o700)
 release = releases / uuid.uuid4().hex
 try:
     before = fingerprints(source)
+    runtime_before = fingerprints(runtime_source)
     shutil.copytree(source, release)
+    shutil.copytree(runtime_source, release / 'runtime')
     assert_no_build()
-    if fingerprints(release) != before or fingerprints(source) != before:
+    if {key: value for key, value in fingerprints(release).items() if not key.startswith('runtime/')} != before or fingerprints(source) != before or fingerprints(runtime_source) != runtime_before or fingerprints(release / 'runtime') != runtime_before:
         raise RuntimeError('The build changed while staging. Wait for the build to finish and retry.')
 except (Exception, SystemExit):
     if release.exists():

@@ -2,6 +2,7 @@ import { parseDocument, stringify } from 'yaml';
 import { z } from 'zod';
 import { agentDefinition, agentDirectory, parseAgentDefinition } from './agent-definition';
 import type { Agent } from './agents';
+import { agentFilePathSchema, teamFilePathSchema, parseTeamYaml } from './team';
 
 const factoryYamlSchema = z
   .object({
@@ -27,7 +28,14 @@ const factoryYamlSchema = z
   .passthrough();
 
 export function validateFactoryFile(path: string, source: string) {
+  if (teamFilePathSchema.safeParse(path).success) {
+    return parseTeamYaml(source);
+  }
+  if (/^teams\/[a-z][a-z0-9-]*\/instructions\.md$/.test(path)) {
+    return z.string().max(16000).parse(source);
+  }
   if (path !== 'factory.yaml') {
+    agentFilePathSchema.parse(path);
     return parseAgentDefinition(source);
   }
   if (source.length > 100000) {
