@@ -36,6 +36,7 @@
     "rxjs": "^7.8.2"
   },
   "build": {
+    "publish": null,
     "appId": "dev.openfactory.desktop.prototype",
     "productName": "OpenFactory",
     "executableName": "openfactory-prototype",
