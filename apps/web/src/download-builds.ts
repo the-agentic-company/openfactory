@@ -50,7 +50,8 @@ export const desktopBuilds = [
 
 export function desktopDownloadUrl(file: string) {
   const repository =
-    import.meta.env.VITE_OPENFACTORY_RELEASES_REPOSITORY ?? 'the-agentic-company/openfactory';
+    import.meta.env.VITE_OPENFACTORY_RELEASES_REPOSITORY ??
+    'the-agentic-company/openfactory-releases';
   return import.meta.env.PUBLIC_SITE
     ? `https://github.com/${repository}/releases/download/desktop-v${desktopVersion}/${file}`
     : `/downloads/${file}`;

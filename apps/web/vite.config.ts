@@ -42,9 +42,11 @@ export default defineConfig(({ mode }) => {
       ),
       nitro({
         preset: publicSite ? 'vercel' : 'node-server',
-        ...(process.env.OPENFACTORY_WEB_OUTPUT_DIR
-          ? { output: { dir: process.env.OPENFACTORY_WEB_OUTPUT_DIR } }
-          : {}),
+        ...(publicSite
+          ? { output: { dir: fileURLToPath(new URL('../../.vercel/output', import.meta.url)) } }
+          : process.env.OPENFACTORY_WEB_OUTPUT_DIR
+            ? { output: { dir: process.env.OPENFACTORY_WEB_OUTPUT_DIR } }
+            : {}),
       }),
       react(),
     ],

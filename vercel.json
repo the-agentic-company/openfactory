@@ -3,6 +3,11 @@
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build:site",
-  "outputDirectory": "apps/web/.vercel/output",
-  "redirects": [{ "source": "/app", "destination": "/docs/quickstart", "permanent": false }]
+  "redirects": [
+    {
+      "source": "/app",
+      "destination": "/docs/quickstart",
+      "permanent": false
+    }
+  ]
 }

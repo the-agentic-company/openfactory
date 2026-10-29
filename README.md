@@ -137,7 +137,7 @@ The dashboard, runs, assistant, scorer rules, and usage views read the owned run
 
 ### Host the landing page and docs on Vercel
 
-Import this repository into Vercel with the repository root as the project root. The root `vercel.json` runs `pnpm build:site` and deploys the output from `apps/web/.vercel/output`.
+Import this repository into Vercel with the repository root as the project root. The root `vercel.json` runs `pnpm build:site` and deploys the output from `.vercel/output`.
 
 The public build includes the landing page and documentation. Workspace routes, webhooks, and local download handlers are excluded from its route tree. Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
 
@@ -154,7 +154,7 @@ GitHub Actions builds installers on Linux, macOS, and Windows for pull requests 
 
 To publish installers, update the desktop package version and push the matching `desktop-v<version>` tag. The workflow publishes all installers together after every platform passes. Mac and Windows installers are unsigned previews.
 
-For public downloads from a private source repository, create a public repository for release assets. Set the source repository's Actions variable `OPENFACTORY_RELEASES_REPOSITORY` to `owner/repository` and its secret `OPENFACTORY_RELEASES_TOKEN` to a token with Contents write access to that release repository. Set `VITE_OPENFACTORY_RELEASES_REPOSITORY` to the same `owner/repository` in Vercel. Without these settings, releases and links use the source repository and require source-repository access.
+For public downloads from a private source repository, create a public repository for release assets. Set the source repository's Actions variable `OPENFACTORY_RELEASES_REPOSITORY` to `owner/repository` and its secret `OPENFACTORY_RELEASES_TOKEN` to a token with Contents write access to that release repository. Set `VITE_OPENFACTORY_RELEASES_REPOSITORY` to the same `owner/repository` in Vercel. The public site defaults to `the-agentic-company/openfactory-releases`; `VITE_OPENFACTORY_RELEASES_REPOSITORY` overrides it. Without the Actions variable, the release workflow publishes to the source repository.
 
 ### Run the workspace on your own host
 
