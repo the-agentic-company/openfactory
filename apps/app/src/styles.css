@@ -9,7 +9,7 @@
   position: fixed;
   inset: 0 auto 0 0;
   background: var(--workspace-sidebar-background);
-  border-right: 1px solid #23242d;
+  border-right: 1px solid var(--workspace-sidebar-border);
 
   padding: var(--workspace-sidebar-top) var(--workspace-sidebar-gutter) 20px;
   display: flex;
@@ -3142,7 +3142,90 @@ dialog.wide-panel[open] {
   padding-top: 16px;
   flex-shrink: 0;
 }
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sidebar-heading .brand {
+  padding: 0;
+  gap: 8px;
+  font-size: 18px;
+}
+.sidebar-collapse-toggle {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  color: #a1a2b2;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.sidebar-collapse-toggle:hover {
+  color: #e9e4e1;
+  background: var(--navigation-hover-background);
+}
+.sidebar--collapsed {
+  --workspace-sidebar-gutter: 10px;
+  padding-inline: var(--workspace-sidebar-gutter);
+}
+.sidebar--collapsed .sidebar-heading {
+  flex-direction: column;
+  gap: 16px;
+}
+.sidebar--collapsed .sidebar-label {
+  display: none;
+}
+.sidebar--collapsed .desktop-update-button > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.sidebar--collapsed .nav-link {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px;
+  justify-content: center;
+}
+.sidebar--collapsed .nav-link > svg {
+  flex-shrink: 0;
+}
+.sidebar--collapsed .desktop-update p,
+.sidebar--collapsed .desktop-update output {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+html:has(.sidebar--collapsed) {
+  --workspace-sidebar-width: 64px;
+}
 @media (min-width: 741px) {
+  body {
+    background: var(--workspace-sidebar-background);
+  }
+  .app-shell {
+    min-height: calc(100dvh - var(--desktop-titlebar-height, 0px));
+    padding: var(--workspace-panel-inset) var(--workspace-panel-inset) var(--workspace-panel-inset)
+      0;
+  }
+  .main-shell {
+    margin-left: calc(var(--workspace-sidebar-width) + var(--workspace-panel-inset));
+    height: calc(100dvh - var(--desktop-titlebar-height, 0px) - 2 * var(--workspace-panel-inset));
+    overflow: auto;
+    background: var(--workspace-background);
+    border: 1px solid var(--workspace-sidebar-border);
+    border-radius: 10px;
+  }
+  main.workspace-page--fill {
+    height: 100%;
+  }
   .sidebar {
     overflow: hidden;
   }
@@ -3176,6 +3259,21 @@ dialog.wide-panel[open] {
   .sidebar {
     flex-direction: column;
     align-items: stretch;
+  }
+  .sidebar--collapsed {
+    position: fixed;
+    inset: var(--desktop-titlebar-height, 0px) auto 0 0;
+    width: var(--workspace-sidebar-width);
+    padding: 18px var(--workspace-sidebar-gutter) 20px;
+    overflow-y: auto;
+    border-right: 1px solid var(--workspace-sidebar-border);
+    border-bottom: 0;
+  }
+  .sidebar--collapsed nav {
+    flex-direction: column;
+  }
+  .app-shell:has(.sidebar--collapsed) .main-shell {
+    margin-left: var(--workspace-sidebar-width);
   }
   .sidebar .project-navigation {
     width: 100%;

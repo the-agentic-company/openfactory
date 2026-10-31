@@ -92,20 +92,59 @@
 html.desktop-mac {
   --desktop-titlebar-height: 46px;
 }
+html.desktop-mac:has(.sidebar--collapsed) {
+  --workspace-sidebar-width: 88px;
+}
 html.desktop-mac body {
-  padding-top: 46px;
+  padding-top: var(--desktop-titlebar-height);
 }
 html.desktop-mac .desktop-title-bar {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 0 96px;
   position: fixed;
   inset: 0 0 auto;
-  height: 46px;
-  background: var(--workspace-background, #0c0d11);
+  height: var(--desktop-titlebar-height);
+  background: var(--workspace-sidebar-background);
   app-region: drag;
   z-index: 100;
 }
+html.desktop-mac .desktop-title-bar > * {
+  position: relative;
+  app-region: no-drag;
+}
+.desktop-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+html.desktop-mac .sidebar-heading {
+  display: none;
+}
 html.desktop-mac .sidebar {
-  top: 46px;
+  padding-top: 8px;
+}
+html.desktop-mac .sidebar .global-navigation {
+  margin-top: 8px;
+}
+html.desktop-mac .sidebar {
+  top: var(--desktop-titlebar-height);
+}
+@media (min-width: 741px) {
+  html.desktop-mac .desktop-title-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--workspace-sidebar-width);
+    background: var(--workspace-sidebar-background);
+    border-right: 1px solid var(--workspace-sidebar-border);
+  }
+}
+@media (max-width: 740px) {
+  html.desktop-mac .sidebar:not(.sidebar--collapsed) {
+    top: 0;
+  }
 }
 @media (max-width: 700px) {
   .settings-section-heading {

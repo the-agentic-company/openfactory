@@ -18,6 +18,9 @@ import { domAnimation, LazyMotion, useReducedMotion } from 'motion/react';
 import * as m from 'motion/react-m';
 import { useId, useState } from 'react';
 import { FactoryNavigationItem, type FactoryProject } from './factory-navigation-item';
+import { AppearanceGlyph } from './appearance-glyph';
+import { useSidebarState } from './sidebar-state';
+import { SidebarToggle } from './sidebar-toggle';
 
 const navigation = [
   { view: 'dashboard', label: 'Dashboard', icon: ChartNoAxesCombined },
@@ -41,6 +44,7 @@ export function WorkspaceSidebar({
   projects?: FactoryProject[];
   onAgentsClick?: () => void;
 }) {
+  const { collapsed } = useSidebarState();
   const projects: FactoryProject[] = suppliedProjects ?? [
     ...new Map(
       agents.map((agent) => [
@@ -55,36 +59,73 @@ export function WorkspaceSidebar({
   ];
   return (
     <LazyMotion features={domAnimation} strict>
-      <aside className="sidebar">
-        <Link to="/app" className="brand">
-          <span className="brand-mark">
-            <img src="/openfactory.png" width={28} height={28} alt="" />
-          </span>
-          OpenFactory
-        </Link>
+      <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
+        <div className="sidebar-heading">
+          <Link to="/app" className="brand" aria-label="OpenFactory" title="OpenFactory">
+            <span className="brand-mark">
+              <img src="/openfactory.png" width={28} height={28} alt="" />
+            </span>
+            <span className="sidebar-label">OpenFactory</span>
+          </Link>
+          <SidebarToggle />
+        </div>
         <nav className="global-navigation" aria-label="Workspace pages">
           <Link
             to="/app"
             activeOptions={{ exact: true }}
             className={`nav-link ${activeView === 'overview' ? 'active' : ''}`}
             aria-current={activeView === 'overview' ? 'page' : undefined}
+            aria-label="Overview"
+            title="Overview"
           >
             <ChartNoAxesCombined size={17} />
-            Overview
+            <span className="sidebar-label">Overview</span>
           </Link>
-          <a href={siteUrl('/marketplace')} target="_blank" rel="noreferrer" className="nav-link">
-            <Store size={17} /> Marketplace
+          <a
+            href={siteUrl('/marketplace')}
+            target="_blank"
+            rel="noreferrer"
+            className="nav-link"
+            aria-label="Marketplace"
+            title="Marketplace"
+          >
+            <Store size={17} /> <span className="sidebar-label">Marketplace</span>
           </a>
-          <a href={siteUrl('/docs')} target="_blank" rel="noreferrer" className="nav-link">
+          <a
+            href={siteUrl('/docs')}
+            target="_blank"
+            rel="noreferrer"
+            className="nav-link"
+            aria-label="Documentation"
+            title="Documentation"
+          >
             <BookOpen size={17} />
-            Documentation
+            <span className="sidebar-label">Documentation</span>
           </a>
         </nav>
         <div className="project-navigation">
-          <div className="nav-label">Factories</div>
+          <div className="nav-label sidebar-label">Factories</div>
           {projects.map((project) => {
             const active = activeProject === project.workspaceRoot;
             const count = agents.filter((agent) => agent.projectId === project.id).length;
+            if (collapsed) {
+              return (
+                <Link
+                  key={project.id}
+                  to="/app/projects/$project/$view"
+                  params={{ project: projectName(project.workspaceRoot), view: 'agents' }}
+                  className={`nav-link factory-rail-link ${active ? 'active' : ''}`}
+                  aria-label={`${project.title} agents`}
+                  title={project.title}
+                  onClick={onAgentsClick}
+                >
+                  <AppearanceGlyph
+                    appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
+                    size={17}
+                  />
+                </Link>
+              );
+            }
             return (
               <FactorySidebarGroup
                 key={project.id}
@@ -96,15 +137,19 @@ export function WorkspaceSidebar({
               />
             );
           })}
-          {projects.length === 0 && <p className="muted-copy">No factories available.</p>}
+          {projects.length === 0 && (
+            <p className="muted-copy sidebar-label">No factories available.</p>
+          )}
         </div>
         <nav className="settings-navigation" aria-label="Application settings">
           <Link
             to="/app/settings"
             className={`nav-link ${activeView === 'settings' ? 'active' : ''}`}
             aria-current={activeView === 'settings' ? 'page' : undefined}
+            aria-label="Settings"
+            title="Settings"
           >
-            <Settings size={17} /> Settings
+            <Settings size={17} /> <span className="sidebar-label">Settings</span>
           </Link>
         </nav>
       </aside>

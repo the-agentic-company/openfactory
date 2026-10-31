@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { useRouter } from '@tanstack/react-router';
+import { Link, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
 import '../connection-settings.css';
+import { SidebarToggle } from './sidebar-toggle';
 
 export function DesktopChrome() {
   const router = useRouter();
@@ -26,5 +27,12 @@ export function DesktopChrome() {
     });
     api.onPairingLink?.(incoming);
   }, [router]);
-  return <div className="desktop-title-bar" aria-hidden="true" />;
+  return (
+    <header className="desktop-title-bar" aria-label="Application title bar">
+      <Link to="/app" className="desktop-title">
+        OpenFactory
+      </Link>
+      <SidebarToggle />
+    </header>
+  );
 }

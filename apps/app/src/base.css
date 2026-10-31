@@ -3,7 +3,9 @@
 :root {
   --workspace-background: #0c0d11;
   --workspace-sidebar-width: 232px;
+  --workspace-panel-inset: 8px;
   --workspace-sidebar-background: #101116;
+  --workspace-sidebar-border: #23242d;
   --workspace-sidebar-gutter: 16px;
   --workspace-sidebar-top: 28px;
   --navigation-active-background: #322720;
