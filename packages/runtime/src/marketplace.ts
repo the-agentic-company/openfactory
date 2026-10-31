@@ -20,6 +20,28 @@ import {
 } from './definition-store';
 import { marketplaceStarters } from './marketplace-starters';
 
+async function limitedText(response: Response, limit: number) {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return '';
+  }
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      throw new Error('This repository response is too large.');
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 async function github(path: string) {
   const response = await fetch(`https://api.github.com/${path}`, {
     headers: { Accept: 'application/vnd.github+json' },
@@ -30,12 +52,11 @@ async function github(path: string) {
       `GitHub returned ${response.status}. Check the repository is public or try again after the rate limit resets.`,
     );
   }
-  const text = await response.text();
-  if (text.length > 4_000_000) {
-    throw new Error('This repository response is too large.');
-  }
-  return JSON.parse(text) as unknown;
+  const result: unknown = JSON.parse(await limitedText(response, 4_000_000));
+  return result;
 }
+
+const snapshots = new Map<string, ReturnType<typeof inspectMarketplaceFiles>>();
 
 export function inspectMarketplaceFiles(
   source: string,
@@ -92,6 +113,10 @@ export function inspectMarketplaceFiles(
 
 export async function previewMarketplace(sourceInput: string) {
   const source = marketplaceSourceSchema.parse(sourceInput);
+  const cached = snapshots.get(source);
+  if (cached) {
+    return cached;
+  }
   const starter = marketplaceStarters.find((item) => item.source === source);
   if (starter) {
     return inspectMarketplaceFiles(source, starter.files, starter.description);
@@ -142,29 +167,38 @@ export async function previewMarketplace(sourceInput: string) {
     throw new Error('Shared factories must use at most 100 regular files and 1 MB of definitions.');
   }
   const files: Record<string, string> = {};
-  // Bound concurrent requests to avoid exhausting GitHub's unauthenticated quota at once.
+  // Raw downloads at a fixed commit avoid spending the REST quota on every file.
   for (let index = 0; index < definitions.length; index += 5) {
     const batch = await Promise.all(
       definitions.slice(index, index + 5).map(async (file) => {
-        const blob = z
-          .object({ encoding: z.literal('base64'), content: z.string().max(150000) })
-          .parse(await github(`repos/${repository}/git/blobs/${file.sha}`));
-        return [
-          file.path.slice('factory/'.length),
-          Buffer.from(blob.content, 'base64').toString('utf8'),
-        ] as const;
+        const response = await fetch(
+          `https://raw.githubusercontent.com/${repository}/${commit.sha}/${file.path.split('/').map(encodeURIComponent).join('/')}`,
+          { signal: AbortSignal.timeout(15000) },
+        );
+        if (!response.ok) {
+          throw new Error(`Cannot download ${file.path}: GitHub returned ${response.status}.`);
+        }
+        return [file.path.slice('factory/'.length), await limitedText(response, 100000)] as const;
       }),
     );
     for (const [path, content] of batch) {
       files[path] = content;
     }
   }
-  return inspectMarketplaceFiles(
+  const preview = inspectMarketplaceFiles(
     `${repository}@${commit.sha}`,
     files,
     metadata.description ?? '',
     metadata.stargazers_count,
   );
+  if (snapshots.size >= 20) {
+    const oldest = snapshots.keys().next().value;
+    if (oldest) {
+      snapshots.delete(oldest);
+    }
+  }
+  snapshots.set(preview.source, preview);
+  return preview;
 }
 
 export async function marketplaceLeaderboard(kindInput: MarketplaceKind, query: string) {

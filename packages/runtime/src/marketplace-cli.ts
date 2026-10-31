@@ -1,54 +1,54 @@
+import { basename, resolve } from 'node:path';
+import { realpath } from 'node:fs/promises';
+import { parseArgs } from 'node:util';
+import { z } from 'zod';
 import {
   marketplaceKindSchema,
   marketplaceListingSchema,
   marketplacePreviewSchema,
+  marketplaceSourceSchema,
 } from '@openfactory/core';
 import { runtimeRpc } from './client';
 import { savedDefinitionSchema } from './definition-store';
+import { projectSchema } from './contracts';
 
-export async function factoryMarketplaceCommand(args: string[]) {
+export async function factoryMarketplaceCommand(
+  args: string[],
+  { rpc = runtimeRpc, cwd = process.cwd() }: { rpc?: typeof runtimeRpc; cwd?: string } = {},
+) {
   const [command, ...rest] = args;
-  const validFlags = [
-    '--type',
-    '--name',
-    '--project',
-    '--agent',
-    '--automation',
-    '--team',
-    '--factory',
-    '--dry-run',
-  ];
-  for (const argument of rest.filter((value) => value.startsWith('--'))) {
-    if (!validFlags.includes(argument)) {
-      throw new Error(`Unknown option ${argument}.`);
-    }
-  }
-  const flag = (name: string) => {
-    const index = rest.indexOf(name);
-    if (index < 0) {
-      return undefined;
-    }
-    const value = rest[index + 1];
-    if (!value || value.startsWith('--')) {
-      throw new Error(`Supply a value for ${name}.`);
-    }
-    return value;
-  };
-  const selections = marketplaceKindSchema.options.filter((kind) => rest.includes(`--${kind}`));
+  const { values, positionals } = parseArgs({
+    args: rest,
+    allowPositionals: true,
+    options: {
+      type: { type: 'string' },
+      name: { type: 'string' },
+      project: { type: 'string' },
+      path: { type: 'string' },
+      agent: { type: 'string' },
+      automation: { type: 'string' },
+      team: { type: 'string' },
+      factory: { type: 'string' },
+      'dry-run': { type: 'boolean' },
+    },
+  });
+  const selections = marketplaceKindSchema.options.filter((kind) => values[kind] !== undefined);
   if (
     selections.length > 1 ||
-    (selections.length > 0 && (rest.includes('--type') || rest.includes('--name')))
+    (selections.length > 0 && (values.type !== undefined || values.name !== undefined))
   ) {
     throw new Error(
       'Choose one of --factory, --agent, --automation, --team, or --type with --name.',
     );
   }
-  const kind = marketplaceKindSchema.parse(selections[0] ?? flag('--type') ?? 'factory');
-  const name = flag(`--${kind}`) ?? flag('--name') ?? 'factory';
+  if (values.project !== undefined && values.path !== undefined) {
+    throw new Error('Choose either --project <project-id> or --path <directory>.');
+  }
+  const kind = marketplaceKindSchema.parse(selections[0] ?? values.type ?? 'factory');
+  const name = values[kind] ?? values.name ?? 'factory';
   if (command === 'leaderboard' || command === 'find') {
-    const query = rest[0]?.startsWith('--') ? '' : (rest[0] ?? '');
     const result = marketplaceListingSchema.parse(
-      await runtimeRpc('marketplace.leaderboard', { kind, query }),
+      await rpc('marketplace.leaderboard', { kind, query: positionals.join(' ') }),
     );
     const rows = result.entries
       .map(
@@ -56,27 +56,47 @@ export async function factoryMarketplaceCommand(args: string[]) {
           `${entry.stars === null ? 'starter' : `${entry.stars} stars`}\t${entry.source}\t${entry.kind}\t${entry.name}\t${entry.title}`,
       )
       .join('\n');
-    return `${rows || 'No matching entries.'}\n${result.warning ?? ''}\nOpen a repository: openfactory factory show <owner/repo>\nImport: openfactory factory add <owner/repo> --type ${kind} --name <name> --project <project-id>`;
+    return `${rows || 'No matching entries.'}\n${result.warning ?? ''}\nOpen a repository: openfactory factory show https://github.com/owner/repo\nImport into the current directory: openfactory factory add https://github.com/owner/repo${kind === 'factory' ? '' : ` --${kind} <name>`}`;
   }
   if (command === 'show' || command === 'add') {
-    const source = rest[0];
-    if (!source || source.startsWith('--')) {
-      throw new Error('Supply an owner/repo or a bundled starter source.');
+    if (positionals.length !== 1) {
+      throw new Error('Supply one GitHub repository URL, owner/repo, or bundled starter source.');
     }
-    const preview = marketplacePreviewSchema.parse(
-      await runtimeRpc('marketplace.show', { source }),
-    );
-    if (command === 'show' || rest.includes('--dry-run')) {
+    const source = marketplaceSourceSchema.parse(positionals[0]);
+    const preview = marketplacePreviewSchema.parse(await rpc('marketplace.show', { source }));
+    if (command === 'show') {
       return JSON.stringify(preview, null, 2);
     }
-    const projectId = flag('--project');
-    if (!projectId) {
+    if (!preview.entries.some((entry) => entry.kind === kind && entry.name === name)) {
       throw new Error(
-        'Choose the target with --project <project-id>. Register a directory with openfactory project <path> first.',
+        `No ${kind} named ${name} in this repository. Use factory show to list its contents.`,
       );
     }
-    const current = savedDefinitionSchema.parse(await runtimeRpc('definitions.get', { projectId }));
-    const result = await runtimeRpc('marketplace.add', {
+    if (values['dry-run']) {
+      return JSON.stringify(preview, null, 2);
+    }
+    let projectId = values.project;
+    if (!projectId) {
+      const workspaceRoot = await realpath(resolve(cwd, values.path ?? '.'));
+      const workspace = z
+        .object({ snapshot: z.object({ projects: z.array(projectSchema) }) })
+        .parse(await rpc('workspace.snapshot', {}));
+      const existing = workspace.snapshot.projects.find(
+        (project) => project.workspaceRoot === workspaceRoot,
+      );
+      const project =
+        existing ??
+        projectSchema.parse(
+          await rpc('projects.upsert', {
+            id: workspaceRoot,
+            title: basename(workspaceRoot),
+            workspaceRoot,
+          }),
+        );
+      projectId = project.id;
+    }
+    const current = savedDefinitionSchema.parse(await rpc('definitions.get', { projectId }));
+    const result = await rpc('marketplace.add', {
       source: preview.source,
       kind,
       name,
@@ -87,6 +107,6 @@ export async function factoryMarketplaceCommand(args: string[]) {
     return `${JSON.stringify(result, null, 2)}\nImported agents are paused. Review their instructions before enabling them.`;
   }
   throw new Error(
-    'Usage: openfactory factory leaderboard|find [query] [--type factory|agent|automation|team] | show <owner/repo> | add <owner/repo> --project <project-id> [--type <type>] [--name <name>] [--dry-run]',
+    'Usage: openfactory factory leaderboard|find [query] [--type factory|agent|automation|team] | show <github-url|owner/repo> | add <github-url|owner/repo> [--agent|--automation|--team <name>] [--path <directory> | --project <project-id>] [--dry-run]. Imports default to the current directory.',
   );
 }

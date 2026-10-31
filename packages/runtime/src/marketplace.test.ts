@@ -131,9 +131,9 @@ it('fetches public GitHub definitions at one immutable commit and rejects symlin
           sha: String(index),
         })),
       };
-    } else if (path.includes('/git/blobs/')) {
-      const content = Object.values(preview.files)[Number(path.split('/').at(-1))] ?? '';
-      result = { encoding: 'base64', content: Buffer.from(content).toString('base64') };
+    } else if (new URL(url).hostname === 'raw.githubusercontent.com') {
+      const file = path.split('/factory/')[1] ?? '';
+      return new Response(preview.files[file] ?? '');
     } else {
       result = { description: 'Shared reviewer', stargazers_count: 42 };
     }
@@ -143,6 +143,9 @@ it('fetches public GitHub definitions at one immutable commit and rejects symlin
     const remote = await previewMarketplace('example/reviewers');
     expect(remote.source).toBe(`example/reviewers@${sha}`);
     expect(remote.files).toEqual(preview.files);
+    const beforeImport = requests.length;
+    expect(await previewMarketplace(remote.source)).toEqual(remote);
+    expect(requests).toHaveLength(beforeImport);
     expect(remote.entries[0]).toMatchObject({
       stars: 42,
       url: `https://github.com/example/reviewers/tree/${sha}`,
