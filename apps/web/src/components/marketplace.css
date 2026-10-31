@@ -253,3 +253,9 @@
     -webkit-line-clamp: 3;
   }
 }
+@media (max-width: 740px) {
+  .workspace-page:has(> .marketplace) .workspace-page-header {
+    grid-template-rows: 44px;
+    height: 44px;
+  }
+}

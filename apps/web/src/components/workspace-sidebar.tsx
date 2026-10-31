@@ -64,6 +64,7 @@ export function WorkspaceSidebar({
         <nav className="global-navigation" aria-label="Workspace pages">
           <Link
             to="/app"
+            activeOptions={{ exact: true }}
             className={`nav-link ${activeView === 'overview' ? 'active' : ''}`}
             aria-current={activeView === 'overview' ? 'page' : undefined}
           >

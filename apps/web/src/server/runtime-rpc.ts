@@ -10,5 +10,13 @@ export async function runtimeRpc(method: string, payload: unknown): Promise<unkn
   }
   return z
     .object({ value: z.unknown() })
-    .parse(await nativeRequest(native, '/v1/rpc', 'POST', { method, payload })).value;
+    .parse(
+      await nativeRequest(
+        native,
+        '/v1/rpc',
+        'POST',
+        { method, payload },
+        method.startsWith('marketplace.') ? 60000 : 15000,
+      ),
+    ).value;
 }

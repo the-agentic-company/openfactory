@@ -45,7 +45,9 @@ export function runtimeRequest(method, payload) {
         });
       },
     );
-    req.setTimeout(30000, () => req.destroy(new Error('The OpenFactory runtime did not respond.')));
+    req.setTimeout(method.startsWith('marketplace.') ? 60000 : 30000, () =>
+      req.destroy(new Error('The OpenFactory runtime did not respond.')),
+    );
     req.on('error', () =>
       reject(
         new Error('The OpenFactory runtime is stopped. Restart OpenFactory on this computer.'),

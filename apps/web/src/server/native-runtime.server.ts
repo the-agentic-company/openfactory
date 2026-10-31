@@ -91,11 +91,12 @@ export async function nativeRequest(
   path: string,
   method = 'GET',
   data?: unknown,
+  timeoutMs = 15000,
 ): Promise<unknown> {
   const response = await fetch(`${connection.origin}${path}`, {
     method,
     redirect: 'error',
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: {
       authorization: `Bearer ${connection.token}`,
       ...(data === undefined ? {} : { 'content-type': 'application/json' }),

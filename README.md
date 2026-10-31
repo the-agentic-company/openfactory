@@ -231,3 +231,7 @@ The script renders `scripts/readme-animation.html` locally and exports a looping
 OpenFactory is licensed under the [Apache License 2.0](LICENSE).
 Third-party code and assets retain their own licenses and attribution; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+GitHub secret scanning and push protection are enabled. The Secret scan workflow
+runs Gitleaks against Git history on pull requests and pushes to `main`. To scan
+locally with Gitleaks 8.30.1, run `gitleaks git --log-opts="--all" --redact`.
