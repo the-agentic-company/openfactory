@@ -6,6 +6,11 @@ const { default: site } = await import('../.vercel/output/functions/__server.fun
 for (const [path, title] of [
   ['/', 'Your agents, on your computers'],
   ['/download', 'Download OpenFactory'],
+  ['/marketplace', 'Factory marketplace'],
+  ['/marketplace/agent', 'Factory marketplace'],
+  ['/marketplace/automation', 'Factory marketplace'],
+  ['/marketplace/team', 'Factory marketplace'],
+  ['/marketplace/factory/code-review', 'Code review'],
   ['/docs', 'Introduction'],
   ['/docs/quickstart', 'Quickstart'],
   ['/docs/how-factories-work', 'How factories work'],
@@ -54,6 +59,9 @@ for (const path of [
   '/api/webhooks/private/token',
   '/downloads/OpenFactory-0.1.1-arm64.zip',
   '/docs/missing-page',
+  '/marketplace/factory/missing-example',
+  '/marketplace/unknown',
+  '/marketplace/unknown/missing-example',
 ]) {
   const response = await site.fetch(new Request(`https://openfactory.test${path}`));
   assert.equal(response.status, 404, path);

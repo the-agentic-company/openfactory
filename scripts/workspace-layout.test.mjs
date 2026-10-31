@@ -20,7 +20,7 @@ await test('workspace pages cannot recreate their own main or breadcrumb toolbar
     if (
       !file.pathname.endsWith('.tsx') ||
       file.pathname.endsWith('/workspace-page.tsx') ||
-      /\/routes\/(index|download)\.tsx$/.test(file.pathname)
+      /\/(?:routes\/(?:index|download)|components\/marketplace)\.tsx$/.test(file.pathname)
     ) {
       continue;
     }

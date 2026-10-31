@@ -3,31 +3,34 @@ title: Marketplace
 description: Discover and import factories, agents, automations, and teams from GitHub.
 ---
 
-Open **Marketplace** in the workspace sidebar. Each import type has its own page: factories, agents, automations, and teams. Search the leaderboard or enter a public GitHub `owner/repo` directly. Open an entry to inspect every source file and choose a local factory to import into.
+Open [Marketplace](/marketplace) from the website navigation. The catalog is a standalone page, separate from the local workspace. Each import type has its own page: factories, agents, automations, and teams. Search the examples, then open an entry to inspect its source files and example import command.
 
-The leaderboard ranks public GitHub repositories by stars. Bundled OpenFactory starters appear below the GitHub results. Stars measure repository popularity, not installations. If GitHub is unavailable or rate limited, the page keeps the starters available and displays the error.
+The website currently displays a labeled mock catalog. Its repository names and star counts are fictional. It works without a running local runtime, and its examples cannot be imported from GitHub.
+
+The CLI discovers real public GitHub repositories by topic and ranks them by stars. Bundled OpenFactory starters appear below GitHub results. Stars measure repository popularity, not installations. If GitHub is unavailable or rate limited, the CLI keeps the starters available and displays the error.
 
 ## CLI
 
-Register the destination directory first, then browse and import:
+Run these commands from your project directory:
 
 ```sh
-openfactory project /absolute/path/to/project
 openfactory factory leaderboard
 openfactory factory find review --type agent
-openfactory factory show owner/repo
-openfactory factory add owner/repo --project /absolute/path/to/project
-openfactory factory add owner/repo --agent reviewer --project /absolute/path/to/project
-openfactory factory add owner/repo --automation daily-brief --project /absolute/path/to/project
-openfactory factory add owner/repo --team code-review --project /absolute/path/to/project
+openfactory factory show https://github.com/owner/repo
+openfactory factory add https://github.com/owner/repo
+openfactory factory add https://github.com/owner/repo --agent reviewer
+openfactory factory add https://github.com/owner/repo --automation daily-brief
+openfactory factory add https://github.com/owner/repo --team code-review
 ```
+
+`add` imports into the current directory and registers it as a local factory when necessary. Use `--path /other/directory` to choose another directory, or `--project <project-id>` to target an existing registered factory. Both destination options are optional.
 
 `show` lists all available names and the source files. `add --dry-run` prints that preview without writing files. Both commands require the local OpenFactory runtime. In a source checkout, use `pnpm openfactory` in place of `openfactory`.
 
 Try a bundled starter:
 
 ```sh
-openfactory factory add openfactory/code-review --project /absolute/path/to/project
+openfactory factory add openfactory/code-review
 ```
 
 ## Publish a repository
@@ -50,7 +53,7 @@ Agents need stable IDs in their YAML frontmatter. Team members reference agent f
 
 Add the appropriate GitHub repository topics to appear in the corresponding leaderboard: `openfactory-factory`, `openfactory-agent`, `openfactory-automation`, and `openfactory-team`. A repository can use several topics. Topics advertise its contents; OpenFactory validates the actual definitions when you open the repository. Repositories without a topic can still be opened and imported directly.
 
-Only public GitHub repositories are supported. A source can be pinned to a commit with `owner/repo@<40-character-commit-sha>`. The UI shows the pinned source and copies a command using that revision.
+Only public GitHub repositories are supported. Sources accept full URLs such as `https://github.com/owner/repo`, as well as `owner/repo` shorthand. Pin a source with `owner/repo@<40-character-commit-sha>` or `https://github.com/owner/repo/tree/<40-character-commit-sha>`.
 
 ## Import behavior
 

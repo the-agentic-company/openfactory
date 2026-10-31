@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { deserializePageTree } from 'fumadocs-core/source/client';
-import { Download } from 'lucide-react';
+import { Download, Store } from 'lucide-react';
 import collections from '../../.source/browser';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
@@ -48,8 +48,9 @@ function Documentation() {
             url: '/',
           }}
           links={[
+            { text: 'Marketplace', url: '/marketplace', icon: <Store /> },
             {
-              text: 'Download OpenFactory',
+              text: 'Download',
               url: '/download',
               icon: <Download />,
             },

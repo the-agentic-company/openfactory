@@ -72,8 +72,8 @@ export function WorkspaceSidebar({
             Overview
           </Link>
           <Link
-            to="/app/marketplace/{-$type}"
-            params={{ type: 'factory' }}
+            to="/marketplace/{-$type}"
+            params={{ type: undefined }}
             className={`nav-link ${activeView === 'marketplace' ? 'active' : ''}`}
             aria-current={activeView === 'marketplace' ? 'page' : undefined}
           >

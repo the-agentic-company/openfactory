@@ -8,32 +8,14 @@
   display: flex;
   flex-direction: column;
   color: #f5f5f5;
-  background: #000;
-  scrollbar-color: #525252 #000;
+  background: var(--workspace-background);
+  scrollbar-color: #525252 var(--workspace-background);
 }
 .download-page .landing-nav {
-  width: 100%;
-  max-width: 1240px;
-  min-height: 60px;
-  padding: 12px 32px;
+  width: calc(100% - 80px);
+  max-width: 1120px;
   margin: 0 auto;
-  border: 0;
-}
-.download-page .landing-brand {
-  font-size: 16px;
-  font-weight: 500;
-}
-.download-page .landing-nav .landing-brand img {
-  width: 24px;
-  height: 24px;
-}
-.download-page .landing-nav nav {
-  gap: 20px;
-  color: var(--landing-muted);
-  font-size: 13px;
-}
-.download-page .landing-open {
-  display: none;
+  color: #eeeceb;
 }
 .download-page > main {
   flex: 1;
@@ -166,7 +148,8 @@
   text-decoration-color: #a1a1aa66;
   text-underline-offset: 3px;
 }
-.download-page a:hover {
+.download-page main a:hover,
+.download-page .landing-footer a:hover {
   color: #fff;
 }
 .download-releases {
@@ -190,12 +173,14 @@
 }
 .download-page .landing-footer .landing-brand {
   font-size: 13px;
+  font-weight: 500;
   color: var(--download-dim);
 }
 .download-page .landing-footer a {
   color: var(--landing-muted);
 }
-.download-page a:focus-visible {
+.download-page main a:focus-visible,
+.download-page .landing-footer a:focus-visible {
   outline: 2px solid #f5f5f5;
   outline-offset: 4px;
 }
@@ -203,19 +188,12 @@
   background: #484848;
   color: #fff;
 }
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .download-page .landing-nav {
-    padding: 12px 20px;
-    gap: 12px;
+    width: calc(100% - 44px);
   }
-  .download-page .landing-nav nav {
-    display: flex;
-    gap: 14px;
-    font-size: 12px;
-  }
-  .download-page .landing-nav nav > a:first-child {
-    display: none;
-  }
+}
+@media (max-width: 640px) {
   .download-page > main {
     padding: 0 20px 64px;
   }

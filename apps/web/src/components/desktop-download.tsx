@@ -65,8 +65,17 @@ export function MarketingHeader() {
         <Link to="/" hash="features">
           Features
         </Link>
-        <Link to="/download">Download</Link>
-        <Link to="/docs/$" params={{ _splat: '' }}>
+        <Link
+          to="/marketplace/{-$type}"
+          params={{ type: undefined }}
+          className="landing-nav-marketplace"
+        >
+          Marketplace
+        </Link>
+        <Link to="/download" className="landing-nav-download">
+          Download
+        </Link>
+        <Link to="/docs/$" params={{ _splat: '' }} className="landing-nav-docs">
           Docs
         </Link>
         <Link to="/download" className="landing-open">
@@ -84,10 +93,18 @@ export function MarketingFooter() {
         <img src="/openfactory.png" width={28} height={28} alt="" />
         OpenFactory
       </Link>
-      <span>Built for the computers you already own.</span>
       <div>
-        <Link to="/download">Download</Link>
-        <Link to="/docs/$" params={{ _splat: '' }}>
+        <Link
+          to="/marketplace/{-$type}"
+          params={{ type: undefined }}
+          className="landing-nav-marketplace"
+        >
+          Marketplace
+        </Link>
+        <Link to="/download" className="landing-nav-download">
+          Download
+        </Link>
+        <Link to="/docs/$" params={{ _splat: '' }} className="landing-nav-docs">
           Docs <ArrowUpRight size={14} />
         </Link>
       </div>
