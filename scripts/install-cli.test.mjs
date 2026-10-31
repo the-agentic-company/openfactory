@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
-const installer = new URL('../apps/web/src/install.sh', import.meta.url);
+const installer = new URL('../apps/site/src/install.sh', import.meta.url);
 
 async function fixture(
   t,

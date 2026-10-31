@@ -5,7 +5,7 @@ if [ "$openfactory_repo" != "$HOME/git/openfactory" ]; then
   echo 'The supplied units expect ~/git/openfactory. Adjust the units for another checkout.' >&2
   exit 1
 fi
-test -f "$openfactory_repo/apps/web/.output/server/index.mjs"
+test -f "$openfactory_repo/apps/app/.output/server/index.mjs"
 python3 "$openfactory_repo/scripts/stage-release.py"
 mkdir -p "$HOME/.config/systemd/user"
 cp "$openfactory_repo"/deployment/systemd/openfactory.service "$openfactory_repo"/deployment/systemd/openfactory-runtime.service "$HOME/.config/systemd/user/"

@@ -1,6 +1,6 @@
 {
   "name": "@openfactory/desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "OpenFactory desktop and independent agent host prototype",
   "homepage": "https://github.com/the-agentic-company/openfactory",
@@ -74,7 +74,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "OpenFactory prototype maintainers",
-      "icon": "../web/public/favicon.png"
+      "icon": "../app/public/favicon.png"
     },
     "win": {
       "executableName": "OpenFactory",

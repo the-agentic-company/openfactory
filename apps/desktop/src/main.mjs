@@ -7,6 +7,7 @@ import {
   nativeTheme,
   safeStorage,
   session,
+  shell,
 } from 'electron';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -23,6 +24,7 @@ import { syncPullInputSchema, validateSyncBatch } from './sync-contracts.mjs';
 import { watchHostChanges } from './sync-transport.mjs';
 import { installBackgroundService, startBackgroundService } from './background.mjs';
 import { startWorkspaceServices } from './workspace-services.mjs';
+import { configureWorkspaceNavigation } from './workspace-navigation.mjs';
 
 const exec = promisify(execFile);
 if (process.platform === 'darwin') {
@@ -175,14 +177,16 @@ function createWindow() {
     },
   });
   window.setMenuBarVisibility(false);
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.webContents.on('will-navigate', (event, url) => {
-    if (!workspace || new URL(url).origin !== workspace.origin) {
-      event.preventDefault();
-    }
+  configureWorkspaceNavigation(window.webContents, {
+    origin: workspace.origin,
+    openExternal: (url) => {
+      void shell.openExternal(url).catch((error) => {
+        dialog.showErrorBox('Could not open browser', error.message);
+      });
+    },
   });
-  window.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => {
-    if (isMainFrame) {
+  window.webContents.on('did-start-navigation', (_event, url, _inPlace, isMainFrame) => {
+    if (isMainFrame && URL.canParse(url) && new URL(url).origin === workspace?.origin) {
       stopSyncConnections();
     }
   });

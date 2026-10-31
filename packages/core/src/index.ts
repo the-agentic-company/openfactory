@@ -122,7 +122,16 @@ export function selectStack(input: unknown) {
 }
 
 export const workspacePackages = [
-  { path: 'apps/web', name: '@openfactory/web', purpose: 'Application and server functions' },
+  {
+    path: 'apps/app',
+    name: '@openfactory/app',
+    purpose: 'Workspace UI and local server functions',
+  },
+  {
+    path: 'apps/site',
+    name: '@openfactory/site',
+    purpose: 'Public website, documentation, and marketplace',
+  },
   {
     path: 'packages/core',
     name: '@openfactory/core',

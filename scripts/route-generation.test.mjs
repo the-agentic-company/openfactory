@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 // Exercise the generator used by Start, including the installed pnpm patch.
-const web = createRequire(new URL('../apps/web/package.json', import.meta.url));
+const web = createRequire(new URL('../apps/app/package.json', import.meta.url));
 const start = createRequire(web.resolve('@tanstack/react-start/package.json'));
 const core = createRequire(start.resolve('@tanstack/start-plugin-core/package.json'));
 const router = createRequire(core.resolve('@tanstack/router-plugin/package.json'));

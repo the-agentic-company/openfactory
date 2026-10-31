@@ -15,7 +15,7 @@ const { version } = JSON.parse(await readFile(join(root, 'apps/desktop/package.j
 const archive = `openfactory-cli-${version}-${process.platform}-${process.arch}.tar.gz`;
 const bytes = await readFile(join(root, 'apps/desktop/dist', archive));
 const checksum = createHash('sha256').update(bytes).digest('hex');
-const script = await readFile(join(root, 'apps/web/src/install.sh'), 'utf8');
+const script = await readFile(join(root, 'apps/site/src/install.sh'), 'utf8');
 const server = createServer((request, response) => {
   if (request.url === '/install.sh') {
     response.end(script);

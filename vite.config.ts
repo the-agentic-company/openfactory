@@ -17,6 +17,6 @@ export default defineConfig({
     ],
     rules: { curly: 'error', 'react/react-in-jsx-scope': 'off' },
   },
-  test: { include: ['packages/**/*.test.ts', 'apps/web/src/server/**/*.test.ts'] },
+  test: { include: ['packages/**/*.test.ts', 'apps/{app,site}/src/**/*.test.ts'] },
   run: { cache: true },
 });

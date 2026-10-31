@@ -7,7 +7,7 @@ import shutil
 import uuid
 
 repository = Path(__file__).resolve().parent.parent
-source = repository / 'apps/web/.output'
+source = repository / 'apps/app/.output'
 runtime_source = repository / 'packages/runtime/dist'
 if not (source / 'nitro.json').is_file() or not (source / 'server/index.mjs').is_file():
     raise SystemExit('No complete production build found. Run pnpm build first.')

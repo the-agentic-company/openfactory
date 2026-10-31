@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-const sourceRoot = new URL('../apps/web/src/', import.meta.url);
+const sourceRoot = new URL('../apps/app/src/', import.meta.url);
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   return (

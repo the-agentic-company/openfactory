@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/openfactory.png" alt="OpenFactory mascot" width="96" />
+  <img src="apps/site/public/openfactory.png" alt="OpenFactory mascot" width="96" />
 </p>
 
 <h1 align="center">OpenFactory</h1>
@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="#start">Get started</a> &middot;
-  <a href="apps/web/content/docs/quickstart.mdx">Documentation</a> &middot;
+  <a href="apps/site/content/docs/quickstart.mdx">Documentation</a> &middot;
   <a href="apps/desktop/README.md">Desktop app</a>
 </p>
 
@@ -177,7 +177,11 @@ The dashboard, runs, assistant, scorer rules, and usage views read the owned run
 
 Import this repository into Vercel with the repository root as the project root. The root `vercel.json` runs `pnpm build:site` and deploys the output from `.vercel/output`. Connect `the-agentic-company/openfactory` in the project's Git settings and use `main` as the production branch. Pushes to `main` deploy production automatically; other branches create preview deployments.
 
-The public build includes the landing page and documentation. Workspace routes, webhooks, and local download handlers are excluded from its route tree. Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
+The public website lives in `apps/site` (`@openfactory/site`) and contains the landing page, downloads, documentation, and marketplace. The product UI and local server live in `apps/app` (`@openfactory/app`); `apps/desktop` packages that app with the runtime. Each frontend owns its routes, styles, dependencies, and build. Build guards reject imports across the app/site boundary or runtime code in the public site.
+
+Run `pnpm dev` for the workspace on port 8018, or `pnpm dev:site` for the public website on port 8020. `pnpm build:app` builds the workspace; `pnpm build:site` builds the public deployment. Workspace documentation and marketplace links open `https://open-factory.app` in the browser. Set `VITE_OPENFACTORY_SITE_URL` at app build time to use another origin, such as `http://localhost:8020` for local development.
+
+Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
 
 The public download links use the `desktop-v<version>` GitHub Release matching `apps/desktop/package.json`. Mac uses DMG installers, Linux offers `.deb` and `.AppImage`, and Windows uses `.exe`. The download page also links the Intel Mac DMG.
 
@@ -187,6 +191,15 @@ To build the public site locally:
 pnpm build:site
 pnpm verify:site
 ```
+
+To build and verify the workspace without any public pages:
+
+```sh
+pnpm build:app
+pnpm verify:app
+```
+
+After `pnpm --filter @openfactory/desktop build:workspace`, run `node scripts/verify-app.mjs apps/desktop/web` to check the exact web payload packaged by desktop.
 
 GitHub Actions builds installers on Linux, macOS, and Windows for pull requests and pushes to `main`. Each build launches its packaged host and checks the runtime, persistence, and authenticated API before uploading artifacts. The macOS job also verifies both Apple Silicon and Intel archives.
 

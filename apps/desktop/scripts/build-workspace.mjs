@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const webOutput = join(root, '.cache/workspace-web');
+const webOutput = join(root, '.cache/workspace-app');
 const runtimeOutput = join(root, '.cache/workspace-runtime');
 function run(args, environment = {}) {
   return new Promise((accept, reject) => {
@@ -30,7 +30,7 @@ function run(args, environment = {}) {
   });
 }
 await run(['--filter', '@openfactory/runtime', 'exec', 'vp', 'build', '--outDir', runtimeOutput]);
-await run(['--filter', '@openfactory/web', 'build'], { OPENFACTORY_WEB_OUTPUT_DIR: webOutput });
+await run(['--filter', '@openfactory/app', 'build'], { OPENFACTORY_APP_OUTPUT_DIR: webOutput });
 rmSync(join(root, 'web'), { recursive: true, force: true });
 cpSync(webOutput, join(root, 'web'), { recursive: true, dereference: true });
 mkdirSync(join(root, 'runtime'), { recursive: true });

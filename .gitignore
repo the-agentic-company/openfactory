@@ -40,7 +40,7 @@ dist-ssr
 *.tsbuildinfo
 
 # Generated documentation collections
-apps/web/.source/
+apps/site/.source/
 
 # Transient repository factory save journal
 factory.lock/
