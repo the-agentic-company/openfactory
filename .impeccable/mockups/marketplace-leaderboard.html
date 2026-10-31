@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --of-text: var(--foreground);
+        --of-muted: var(--muted-foreground);
+        --of-line: var(--border);
+        --of-accent: var(--warning);
+        --of-panel: var(--card);
+        --of-base: var(--background);
+        font-family: var(--font-sans, system-ui);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      #factory-market {
+        color: var(--of-text);
+        font-size: 13px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 152px minmax(0, 1fr);
+      }
+      aside {
+        background: var(--of-panel);
+        padding: 22px 12px;
+        border-right: 1px solid var(--of-line);
+      }
+      .brand {
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: -0.4px;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .mark {
+        color: var(--of-accent);
+      }
+      .side-label {
+        color: var(--of-muted);
+        font-size: 10px;
+        margin: 32px 8px 12px;
+      }
+      .nav-item {
+        padding: 11px 9px;
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        color: var(--of-muted);
+        margin-top: 5px;
+      }
+      .nav-item.current {
+        background: color-mix(in srgb, var(--of-accent) 12%, transparent);
+        color: var(--of-accent);
+        border-radius: 5px;
+      }
+      .side-note {
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--of-muted);
+        margin: 10px 9px;
+      }
+      .app-main {
+        padding: 22px 24px 14px;
+        min-width: 0;
+      }
+      .breadcrumb {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--of-muted);
+        font-size: 11px;
+      }
+      .mock-label {
+        color: var(--of-accent);
+        border: 1px solid var(--of-line);
+        padding: 3px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .intro {
+        margin: 32px 0 22px;
+      }
+      .intro h1 {
+        font-size: 29px;
+        letter-spacing: -0.8px;
+        line-height: 1.18;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .intro p {
+        font-size: 12px;
+        color: var(--of-muted);
+        line-height: 1.7;
+        max-width: 48ch;
+        margin: 0;
+      }
+      .terminal {
+        background: var(--of-panel);
+        border: 1px solid var(--of-line);
+        padding: 14px 12px;
+        border-radius: 5px;
+        display: flex;
+        gap: 10px;
+        font-size: 10px;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+      }
+      .terminal code {
+        font-family: var(--font-mono, monospace);
+        min-width: 0;
+      }
+      .dollar {
+        color: var(--of-muted);
+      }
+      .tabs {
+        display: flex;
+        gap: 21px;
+        border-bottom: 1px solid var(--of-line);
+        margin: 22px 0 18px;
+      }
+      .tabs button {
+        background: transparent;
+        color: var(--of-muted);
+        border: 0;
+        border-bottom: 2px solid transparent;
+        padding: 11px 0;
+        font-size: 12px;
+      }
+      .tabs button[aria-pressed='true'] {
+        color: var(--of-accent);
+        border-bottom-color: var(--of-accent);
+      }
+      .search {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--of-line);
+        border-radius: 5px;
+        padding: 10px 12px;
+      }
+      .search input {
+        color: var(--of-text);
+        background: transparent;
+        border: 0;
+        width: 100%;
+        min-width: 0;
+        font-size: 12px;
+        outline-offset: 4px;
+      }
+      .search input::placeholder {
+        color: var(--of-muted);
+      }
+      .list-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 25px 0 0;
+      }
+      .list-heading h2 {
+        font-size: 14px;
+        font-weight: 550;
+        margin: 0;
+      }
+      .list-heading span {
+        font-size: 10px;
+        color: var(--of-muted);
+      }
+      .disclosure {
+        font-size: 10px;
+        color: var(--of-muted);
+        margin: 8px 0 14px;
+        line-height: 1.6;
+      }
+      .rows {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .row {
+        border: 0;
+        border-top: 1px solid var(--of-line);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 17px 0;
+        color: var(--of-text);
+        background: transparent;
+        text-align: left;
+      }
+      .row:hover {
+        background: var(--of-panel);
+      }
+      .rank {
+        width: 16px;
+        flex-shrink: 0;
+        font-size: 10px;
+        color: var(--of-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .summary {
+        flex: 1;
+        min-width: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .summary strong {
+        font-size: 13px;
+        font-weight: 550;
+      }
+      .source {
+        font-size: 10px;
+        color: var(--of-muted);
+        overflow-wrap: anywhere;
+      }
+      .description {
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--of-muted);
+      }
+      .stars {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+      .arrow {
+        color: var(--of-muted);
+      }
+      .foot {
+        border-top: 1px solid var(--of-line);
+        color: var(--of-muted);
+        font-size: 10px;
+        line-height: 1.7;
+        padding: 16px 0 0;
+        margin-top: 4px;
+      }
+      .icon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+      .back {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: var(--of-accent);
+        font-size: 12px;
+        margin: 25px 0 20px;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .detail h2 {
+        font-size: 23px;
+        margin: 0 0 10px;
+        letter-spacing: -0.4px;
+      }
+      .detail p {
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--of-muted);
+      }
+      .detail h3 {
+        font-size: 13px;
+        font-weight: 550;
+        margin: 24px 0 12px;
+      }
+      .inventory {
+        display: flex;
+        gap: 15px;
+        padding: 13px 0;
+        border-block: 1px solid var(--of-line);
+        font-size: 11px;
+        color: var(--of-muted);
+        flex-wrap: wrap;
+      }
+      .file {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--of-line);
+        padding: 10px 0;
+        color: var(--of-muted);
+        background: transparent;
+        font: 10px var(--font-mono, monospace);
+        overflow-wrap: anywhere;
+      }
+      .file[aria-pressed='true'] {
+        color: var(--of-accent);
+      }
+      .source-code {
+        background: var(--of-panel);
+        border: 1px solid var(--of-line);
+        padding: 14px;
+        font: 10px/1.8 var(--font-mono, monospace);
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+        margin: 15px 0;
+      }
+      .import-button {
+        background: var(--of-accent);
+        color: var(--warning-foreground);
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 5px;
+        font-size: 12px;
+        margin-top: 18px;
+      }
+      .feedback {
+        font-size: 12px;
+        color: var(--success);
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 560px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          display: none;
+        }
+        .app-main {
+          padding: 14px 0;
+        }
+        .intro {
+          margin-top: 26px;
+        }
+        .intro h1 {
+          font-size: 27px;
+        }
+        .description {
+          font-size: 11px;
+        }
+        .tabs {
+          gap: 23px;
+        }
+        .row {
+          gap: 9px;
+        }
+        .breadcrumb {
+          padding-right: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="factory-market">
+      <div class="shell">
+        <aside>
+          <div class="brand"><i class="icon mark" data-lucide="factory"></i>OpenFactory</div>
+          <div class="nav-item">
+            <i class="icon" data-lucide="chart-no-axes-combined"></i>Overview
+          </div>
+          <div class="nav-item current"><i class="icon" data-lucide="store"></i>Marketplace</div>
+          <div class="nav-item"><i class="icon" data-lucide="book-open"></i>Documentation</div>
+          <div class="side-label">FACTORIES</div>
+          <div class="nav-item"><i class="icon" data-lucide="folder-git-2"></i>My project</div>
+          <div class="side-note">Your imported agents<br />and teams live here.</div>
+        </aside>
+        <main class="app-main">
+          <div class="breadcrumb">
+            <span>Marketplace</span><span class="mock-label">Mock data · interactive preview</span>
+          </div>
+          <div id="browse">
+            <header class="intro">
+              <h1>Good work is worth sharing.</h1>
+              <p>
+                Discover factories, agents, and automations. Inspect their definitions, then make
+                them yours.
+              </p>
+            </header>
+            <div class="terminal">
+              <span class="dollar">$</span
+              ><code>openfactory factory add owner/repo --project ./my-project</code>
+            </div>
+            <nav class="tabs" aria-label="Import type">
+              <button data-kind="factory" aria-pressed="true">Factories</button
+              ><button data-kind="agent" aria-pressed="false">Agents</button
+              ><button data-kind="automation" aria-pressed="false">Automations</button
+              ><button data-kind="team" aria-pressed="false">Teams</button>
+            </nav>
+            <label class="search"
+              ><i class="icon" data-lucide="search" aria-hidden="true"></i
+              ><input
+                id="market-search"
+                aria-label="Search mock marketplace"
+                placeholder="Search factories or enter owner/repo…"
+            /></label>
+            <div class="list-heading">
+              <h2>Leaderboard</h2>
+              <span>GitHub stars</span>
+            </div>
+            <p class="disclosure">
+              Sample entries and star counts. Select an entry to inspect its contents.
+            </p>
+            <ol id="market-rows" class="rows"></ol>
+            <div class="foot">
+              Definitions live in GitHub. Imports are editable local copies. Agents start paused.
+            </div>
+          </div>
+          <section id="detail" class="detail" hidden aria-label="Source details">
+            <button id="back" class="back">
+              <i class="icon" data-lucide="arrow-left" aria-hidden="true"></i> Back to leaderboard
+            </button>
+            <h2 id="detail-title"></h2>
+            <div id="detail-repo" class="source"></div>
+            <p id="detail-description"></p>
+            <h3>What’s inside</h3>
+            <div id="inventory" class="inventory"></div>
+            <h3>Source files</h3>
+            <div id="files"></div>
+            <pre id="source-code" class="source-code"></pre>
+            <h3>Import with the CLI</h3>
+            <div class="terminal">
+              <span class="dollar">$</span><code id="import-command"></code>
+            </div>
+            <button id="demo-import" class="import-button">Import into My project</button>
+            <div id="feedback" class="feedback" role="status"></div>
+            <p class="disclosure">
+              Preview only. This button simulates an import and does not modify any factory.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const root = document.getElementById('factory-market');
+        const find = (id) => root.querySelector('#' + id);
+        const datasets = {
+          factory: [
+            [
+              'Code review',
+              'sample-labs/review-factory',
+              'A code reviewer and test specialist that check changes together.',
+              '2.4k',
+              2,
+              1,
+            ],
+            [
+              'Engineering team',
+              'sample-labs/engineering',
+              'Plan, implement, review, and verify repository changes.',
+              '1.8k',
+              4,
+              1,
+            ],
+            [
+              'Issue triage',
+              'example-org/issue-triage',
+              'Turn incoming issues into reproducible, scoped work.',
+              '986',
+              3,
+              1,
+            ],
+            [
+              'Documentation studio',
+              'example-org/docs-studio',
+              'Keep documentation aligned with product changes.',
+              '742',
+              2,
+              1,
+            ],
+            [
+              'Release operations',
+              'demo-tools/release-ops',
+              'Check release readiness and prepare a release brief.',
+              '518',
+              3,
+              1,
+            ],
+          ],
+          agent: [
+            [
+              'Code reviewer',
+              'sample-labs/review-factory',
+              'Find concrete bugs and trace their effects through callers.',
+              '2.4k',
+              1,
+              0,
+            ],
+            [
+              'Test specialist',
+              'sample-labs/review-factory',
+              'Run relevant checks and identify missing behavior coverage.',
+              '2.4k',
+              1,
+              0,
+            ],
+            [
+              'Repository guide',
+              'example-org/repository-guide',
+              'Explain architecture, entry points, and conventions.',
+              '823',
+              1,
+              0,
+            ],
+            [
+              'Documentation editor',
+              'example-org/docs-studio',
+              'Update documentation with verified source references.',
+              '742',
+              1,
+              0,
+            ],
+          ],
+          automation: [
+            [
+              'Daily project brief',
+              'sample-labs/daily-brief',
+              'Summarize recent commits and unfinished work every morning.',
+              '1.2k',
+              1,
+              0,
+            ],
+            [
+              'Dependency review',
+              'demo-tools/dependency-review',
+              'Review dependency updates on a weekly schedule.',
+              '674',
+              1,
+              0,
+            ],
+            [
+              'Release readiness',
+              'demo-tools/release-ops',
+              'Check release blockers and prepare a scheduled report.',
+              '518',
+              1,
+              0,
+            ],
+          ],
+          team: [
+            [
+              'Review team',
+              'sample-labs/review-factory',
+              'A lead reviewer paired with a test specialist.',
+              '2.4k',
+              2,
+              1,
+            ],
+            [
+              'Engineering team',
+              'sample-labs/engineering',
+              'An implementer, reviewer, tester, and team lead.',
+              '1.8k',
+              4,
+              1,
+            ],
+            [
+              'Documentation team',
+              'example-org/docs-studio',
+              'An editor and source researcher with shared guidance.',
+              '742',
+              2,
+              1,
+            ],
+          ],
+        };
+        let kind = 'factory',
+          current = null;
+        const slug = (s) => s.toLowerCase().replaceAll(' ', '-');
+        const escape = (s) =>
+          s
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;');
+        const icons = () => {
+          if (window.lucide) lucide.createIcons({ attrs: { width: 14, height: 14 } });
+        };
+        function draw() {
+          const q = find('market-search').value.toLowerCase();
+          const rows = datasets[kind].filter((x) =>
+            x.slice(0, 3).join(' ').toLowerCase().includes(q),
+          );
+          find('market-rows').innerHTML = rows.length
+            ? rows
+                .map(
+                  (x, i) =>
+                    '<li><button class="row" data-index="' +
+                    datasets[kind].indexOf(x) +
+                    '"><span class="rank">' +
+                    (i + 1) +
+                    '</span><span class="summary"><strong>' +
+                    escape(x[0]) +
+                    '</strong><span class="source">' +
+                    escape(x[1]) +
+                    '</span><span class="description">' +
+                    escape(x[2]) +
+                    '</span></span><span class="stars"><i class="icon" data-lucide="star" aria-hidden="true"></i>' +
+                    x[3] +
+                    '</span><i class="icon arrow" data-lucide="arrow-up-right" aria-hidden="true"></i></button></li>',
+                )
+                .join('')
+            : '<li class="disclosure">No matches. Try another search.</li>';
+          icons();
+        }
+        function open(index) {
+          current = datasets[kind][index];
+          const [title, repo, description, , agents, teams] = current;
+          find('browse').hidden = true;
+          find('detail').hidden = false;
+          find('detail-title').textContent = title;
+          find('detail-repo').textContent = repo + ' · example repository';
+          find('detail-description').textContent = description;
+          find('inventory').textContent =
+            agents +
+            ' ' +
+            (agents === 1 ? 'agent' : 'agents') +
+            ' · ' +
+            teams +
+            ' ' +
+            (teams === 1 ? 'team' : 'teams') +
+            ' · ' +
+            (kind === 'automation' ? 'Scheduled daily' : 'Runs on demand');
+          const name = kind === 'agent' || kind === 'automation' ? slug(title) : 'reviewer';
+          const files = {
+            'factory/factory.yaml':
+              'schemaVersion: v1alpha1\nname: ' +
+              title +
+              '\nrepositories: []\nagentDefaults:\n  model: auto',
+            ['factory/agents/' + name + '/agent.md']:
+              '---\nid: ' +
+              name +
+              '\ndescription: ' +
+              title +
+              '\nenabled: false\nruntimeMode: approval-required\nschedule:\n  type: ' +
+              (kind === 'automation' ? 'interval\n  everyMs: 86400000' : 'manual') +
+              '\n---\n\n' +
+              description +
+              '\nFollow the repository instructions and cite source files.',
+          };
+          if (agents > 1)
+            files['factory/agents/test-specialist/agent.md'] =
+              '---\nid: test-specialist\nenabled: false\n---\n\nRun the relevant checks and report reproducible failures.';
+          for (let i = 2; i < agents; i++)
+            files['factory/agents/worker-' + i + '/agent.md'] =
+              '---\nid: worker-' +
+              i +
+              '\nenabled: false\n---\n\nFollow the team lead and verify the assigned work.';
+          if (teams)
+            files['factory/teams/' + slug(title) + '/team.yaml'] =
+              'schemaVersion: v1alpha1\nname: ' +
+              title +
+              '\ndescription: Review changes together.\nlead: reviewer\nmembers:\n  reviewer:\n    agent: agents/reviewer/agent.md\n  tester:\n    agent: agents/test-specialist/agent.md\n    reportsTo: reviewer';
+          find('files').replaceChildren();
+          for (const [path, code] of Object.entries(files)) {
+            const b = document.createElement('button');
+            b.className = 'file';
+            b.textContent = path;
+            b.setAttribute('aria-pressed', 'false');
+            b.onclick = () => {
+              find('source-code').textContent = code;
+              find('files')
+                .querySelectorAll('button')
+                .forEach((el) => el.setAttribute('aria-pressed', String(el === b)));
+            };
+            find('files').append(b);
+          }
+          find('files').firstElementChild.click();
+          find('import-command').textContent =
+            'openfactory factory add ' +
+            repo +
+            (kind === 'factory' ? '' : ' --' + kind + ' ' + slug(title)) +
+            ' --project ./my-project';
+          find('feedback').textContent = '';
+          find('demo-import').disabled = false;
+          find('demo-import').textContent = 'Import into My project';
+          icons();
+        }
+        root.querySelectorAll('[data-kind]').forEach(
+          (button) =>
+            (button.onclick = () => {
+              kind = button.dataset.kind;
+              root
+                .querySelectorAll('[data-kind]')
+                .forEach((el) => el.setAttribute('aria-pressed', String(el === button)));
+              find('market-search').placeholder =
+                'Search ' +
+                { factory: 'factories', agent: 'agents', automation: 'automations', team: 'teams' }[
+                  kind
+                ] +
+                ' or enter owner/repo…';
+              draw();
+            }),
+        );
+        find('market-search').oninput = draw;
+        find('market-rows').onclick = (e) => {
+          const b = e.target.closest('[data-index]');
+          if (b) open(Number(b.dataset.index));
+        };
+        find('back').onclick = () => {
+          find('detail').hidden = true;
+          find('browse').hidden = false;
+        };
+        find('demo-import').onclick = () => {
+          find('feedback').textContent =
+            'Demo import complete. Agents would appear in My project, paused and ready to review.';
+          find('demo-import').disabled = true;
+          find('demo-import').textContent = 'Demo imported';
+        };
+        draw();
+      })();
+    </script>
+  </body>
+</html>
