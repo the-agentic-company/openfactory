@@ -205,7 +205,7 @@ function Features() {
         <div className="landing-provider-panel">
           <div className="landing-provider">
             <span className="landing-provider-mark">
-              <img src="/brands/openai.svg" width={27} height={27} alt="" />
+              <img src="/brands/codex.svg" width={27} height={27} alt="" />
             </span>
             <div>
               <strong>Codex CLI</strong>
@@ -215,7 +215,7 @@ function Features() {
           </div>
           <div className="landing-provider">
             <span className="landing-provider-mark claude-mark">
-              <img src="/brands/claude.svg" width={29} height={29} alt="" />
+              <img src="/brands/claude-code.svg" width={29} height={29} alt="" />
             </span>
             <div>
               <strong>Claude Code</strong>
@@ -369,13 +369,9 @@ function GettingStarted() {
 function Questions() {
   return (
     <section className="landing-faq" aria-labelledby="faq-title">
-      <h2 id="faq-title">Before you clock in.</h2>
+      <h2 id="faq-title">Frequent questions</h2>
       <div>
         {[
-          [
-            'Do I need T3 Code?',
-            'No. OpenFactory owns its runtime and starts Codex CLI or Claude Code CLI directly. Install and authenticate the provider you want to use on each execution computer.',
-          ],
           [
             'Does my computer need to stay on?',
             'Yes. The computer running an agent needs to be awake and its OpenFactory host needs to be running for scheduled work to start. On Mac, you can enable Start host at login in Settings.',
