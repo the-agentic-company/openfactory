@@ -21,6 +21,13 @@ for arch in ['arm64', 'x64']:
     try:
         assert (mount / 'Applications').is_symlink(), 'Missing drag-to-Applications link'
         assert os.readlink(mount / 'Applications') == '/Applications'
+        if os.environ.get('OPENFACTORY_MAC_RELEASE') == 'true':
+            app = str(mount / 'OpenFactory.app')
+            subprocess.run(['codesign', '--verify', '--deep', '--strict', '--verbose=2', app], check=True)
+            assessment = subprocess.run(['spctl', '--assess', '--verbose=2', '--type', 'execute', app], check=True, capture_output=True, text=True)
+            assert 'source=Notarized Developer ID' in assessment.stderr, assessment.stderr
+            subprocess.run(['xcrun', 'stapler', 'validate', app], check=True)
+            subprocess.run(['codesign', '--verify', '--strict', str(image)], check=True)
         with zipfile.ZipFile(project / 'dist' / f'OpenFactory-{version}-{arch}.zip') as archive:
             for entry in archive.infolist():
                 if entry.is_dir():

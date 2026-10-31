@@ -14,6 +14,13 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const signedRelease = process.env.OPENFACTORY_MAC_RELEASE === 'true';
+if (signedRelease && process.platform !== 'darwin') {
+  throw new Error('Signed Mac releases must be built on macOS.');
+}
+if (signedRelease) {
+  createRequire(import.meta.url)('../build/mac-release.cjs');
+}
 const snapshot = join(root, '.cache/mac-build/app');
 rmSync(snapshot, { recursive: true, force: true });
 mkdirSync(snapshot, { recursive: true });
@@ -71,6 +78,7 @@ const result = spawnSync(
     '--x64',
     '--publish',
     'never',
+    ...(signedRelease ? ['--config=build/mac-release.cjs'] : []),
     `--config.directories.app=${snapshot}`,
   ],
   { cwd: root, stdio: 'inherit' },

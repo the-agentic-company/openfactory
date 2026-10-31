@@ -131,17 +131,18 @@ Removing a package does not delete your factory history or revoke tokens stored 
 
 ## Try it on macOS
 
-Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.1-arm64.dmg` for Apple Silicon (M1 or newer), or
-`dist/OpenFactory-0.1.1-x64.dmg` for an Intel Mac. Open the disk image and drag
+Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.3-arm64.dmg` for Apple Silicon (M1 or newer), or
+`dist/OpenFactory-0.1.3-x64.dmg` for an Intel Mac. Open the disk image and drag
 **OpenFactory.app** into **Applications** before opening it, so the background host
 has a permanent location. Codex and the Tailscale CLI must be installed and signed in on that Mac.
 Homebrew's `/opt/homebrew/bin` and `/usr/local/bin` are included in the app's command lookup.
 
-DMG installers are built on macOS in the release workflow. They are unsigned and unnotarized.
-macOS launch and device pairing have not been verified on physical Apple hardware. Gatekeeper may block the first launch;
+Tagged release builds require Developer ID signing and Apple notarization before publication.
+Local builds and pull-request artifacts are unsigned and unnotarized.
+macOS launch and device pairing have not been verified on physical Apple hardware. For unsigned builds, Gatekeeper may block the first launch;
 use **System Settings → Privacy & Security → Open Anyway** for this specific app.
-If macOS reports that the app's signature is invalid or the app is damaged, apply a local
-ad-hoc signature to this prototype, then try opening it again:
+If an unsigned local build reports an invalid signature or a damaged app, apply a local
+ad-hoc signature to that build, then try opening it again:
 
 ```sh
 codesign --force --deep --sign - "/Applications/OpenFactory.app"
@@ -168,12 +169,41 @@ No T3 runtime code is imported. Networking follows
 [Electron's security recommendations](https://www.electronjs.org/docs/latest/tutorial/security).
 
 This version uses manual host addition. It does not bundle Tailscale or Codex, install updates,
-or build signed macOS or Windows installers. Linux x64 launch is verified. Mac verification
+or build signed Windows installers. Linux x64 launch is verified. Mac verification
 compares the mounted DMGs with the ZIP bundles and checks their contents; a Mac launch test is still required. A second physical
 computer is still needed to confirm end-to-end tailnet pairing on your devices; local two-host
 verification does not prove your tailnet ACLs or network configuration.
 
 ## Release formats and terminal installation
+
+### Configure Mac release signing
+
+Add these secrets to the source repository's GitHub Actions settings:
+
+- `MAC_CSC_LINK`: the base64-encoded Developer ID Application `.p12` certificate, including its private key.
+- `MAC_CSC_KEY_PASSWORD`: the password for that `.p12` file.
+- `APPLE_API_KEY_BASE64`: the base64-encoded App Store Connect API `.p8` key.
+- `APPLE_API_KEY_ID`: the API key ID.
+- `APPLE_API_ISSUER`: the API key's issuer ID.
+
+An Apple login password alone cannot sign a release. The certificate must belong to an active
+Apple Developer Program team. See [electron-builder's notarization setup](https://www.electron.build/v26/docs/notarization/).
+
+Push a `desktop-v<version>` tag matching `package.json` to build both Mac architectures.
+The workflow imports the certificate, signs with hardened runtime, notarizes the app,
+and staples Apple's ticket before packaging. It checks the app in each mounted DMG with
+`codesign`, Gatekeeper, and `stapler` before publication. Missing credentials or failed
+verification stop the release. The temporary API key file is removed even if the build fails.
+
+To build a signed release locally on a Mac, set `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY_ID`,
+and `APPLE_API_ISSUER`. Set `APPLE_API_KEY` to the `.p8` file path, then run:
+
+```sh
+OPENFACTORY_MAC_RELEASE=true CSC_IDENTITY_AUTO_DISCOVERY=true pnpm --filter @openfactory/desktop build:mac
+OPENFACTORY_MAC_RELEASE=true pnpm --filter @openfactory/desktop test:mac
+```
+
+### Installer formats
 
 The Linux build produces `.deb` and `.AppImage` files for x86-64. Mark the AppImage as executable before opening it. The native macOS build produces `.dmg` installers and companion ZIPs for verification on Apple Silicon and Intel. Linux cross-builds produce only the verification ZIPs because DMG creation needs macOS.
 

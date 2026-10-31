@@ -51,7 +51,8 @@ jobs:
             command: build:windows
     runs-on: ${{ matrix.os }}
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && 'true' || 'false' }}
+      OPENFACTORY_MAC_RELEASE: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -62,10 +63,37 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify local runtime transport
         run: pnpm exec vp test packages/runtime/src/ipc.test.ts
+      - name: Prepare Apple notarization key
+        if: env.OPENFACTORY_MAC_RELEASE == 'true'
+        env:
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          encoded = os.environ.get('APPLE_API_KEY_BASE64', '').strip()
+          if not encoded:
+              raise SystemExit('Missing APPLE_API_KEY_BASE64 GitHub Actions secret')
+          key = Path(os.environ['RUNNER_TEMP']) / 'openfactory-notary.p8'
+          key.touch(mode=0o600, exist_ok=False)
+          key.write_bytes(base64.b64decode(encoded, validate=True))
+          PY
       - name: Build installer
         run: pnpm --filter @openfactory/desktop ${{ matrix.command }}
         env:
           GH_TOKEN: ${{ github.token }}
+          CSC_LINK: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_API_KEY: ${{ runner.temp }}/openfactory-notary.p8
+          APPLE_API_KEY_ID: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.APPLE_API_ISSUER || '' }}
+      - name: Remove Apple notarization key
+        if: always() && env.OPENFACTORY_MAC_RELEASE == 'true'
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/openfactory-notary.p8"
       - name: Verify packaged host and runtime
         working-directory: apps/desktop
         run: node scripts/verify-package.mjs
@@ -143,4 +171,4 @@ jobs:
             --repo "$RELEASE_REPOSITORY" \
             "${tag_options[@]}" \
             --title "OpenFactory ${GITHUB_REF_NAME#desktop-v}" \
-            --notes "Desktop preview for Apple Silicon and Intel Macs, Linux, and Windows. Mac and Windows builds are unsigned. Install and authenticate Codex CLI or Claude Code CLI on each execution computer."
+            --notes "Desktop preview for Apple Silicon and Intel Macs, Linux, and Windows. Mac builds are Developer ID signed and notarized by Apple. Windows builds are unsigned. Install and authenticate Codex CLI or Claude Code CLI on each execution computer."
