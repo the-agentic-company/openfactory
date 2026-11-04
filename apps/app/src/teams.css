@@ -1,16 +1,16 @@
 .team-factory {
   --team-gutter: var(--workspace-gutter);
-  --team-bg: #0c0d11;
-  --team-surface: #111217;
-  --team-line: #2a2b35;
-  --team-muted: #a1a2b2;
+  --team-bg: var(--color-canvas);
+  --team-surface: var(--color-surface);
+  --team-line: var(--color-border);
+  --team-muted: var(--color-muted);
   --team-accent: var(--accent);
   min-height: 100vh;
-  color: #e9e4e1;
+  color: var(--color-text);
 }
 .team-factory ::selection {
-  background: #695242;
-  color: #fff;
+  background: var(--color-border-strong);
+  color: var(--color-text);
 }
 .team-factory :is(button, a):focus-visible {
   outline: 2px solid var(--team-accent);
@@ -25,15 +25,15 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #302924;
-  color: #cdbdb3;
+  background: var(--color-inset);
+  color: var(--color-muted);
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 .team-glyph.lead {
-  color: #edd3c2;
-  background: #3e2e24;
+  color: var(--color-accent-text);
+  background: var(--color-hover);
 }
 .team-factory {
   background: var(--team-bg);
@@ -56,13 +56,13 @@
   align-items: center;
   gap: 8px;
   padding: 10px 0 17px;
-  color: #abd5bd;
+  color: var(--color-success);
   font-size: 11px;
 }
 .team-notice button {
   border: 0;
   background: transparent;
-  color: #d0c6c0;
+  color: var(--color-text);
   text-decoration: underline;
   margin-left: auto;
 }
@@ -73,24 +73,47 @@
   overflow: auto;
   scrollbar-color: var(--team-line) var(--team-bg);
 }
+.team-section + .team-section {
+  border-top: 1px solid var(--team-line);
+}
+.team-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px var(--team-gutter) 16px;
+}
+.team-section-header > div {
+  min-width: 0;
+}
+.team-section-header h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.team-section-header p {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--team-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.team-section-header .button {
+  flex-shrink: 0;
+}
+@media (max-width: 740px) {
+  .team-section-header {
+    flex-wrap: wrap;
+  }
+}
 .team-definition {
   width: 100%;
   min-width: 0;
   max-width: 1120px;
   padding: 32px var(--team-gutter) 40px;
   margin: 0;
-}
-.team-definition h1 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 500;
-}
-.team-definition header p {
-  margin: 0 0 28px;
-  max-width: 70ch;
-  color: var(--team-muted);
-  font-size: 13px;
-  line-height: 1.6;
 }
 .team-definition-file {
   display: flex;
@@ -125,7 +148,7 @@
   border: 1px solid var(--team-line);
   border-top: 0;
   background: var(--team-surface);
-  color: #ddd3cc;
+  color: var(--color-text);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font:
@@ -142,14 +165,33 @@
 .org-canvas {
   width: 100%;
   height: 100%;
+  min-height: 480px;
+}
+.org-team-heading {
+  height: 160px;
+  overflow: auto;
+  text-align: center;
+}
+.org-team-heading h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.org-team-heading p {
+  margin: 0 0 12px;
+  color: var(--team-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .team-factory .react-flow {
   --xy-background-color: var(--team-bg);
-  --xy-edge-stroke: #756052;
-  --xy-controls-button-background-color: #191920;
-  --xy-controls-button-background-color-hover: #2b221c;
-  --xy-controls-button-color: #cfbeb2;
-  --xy-controls-button-border-color: #38333f;
+  --xy-edge-stroke: var(--color-muted);
+  --xy-controls-button-background-color: var(--color-text);
+  --xy-controls-button-background-color-hover: var(--color-inset);
+  --xy-controls-button-color: var(--color-muted);
+  --xy-controls-button-border-color: var(--color-border);
   --xy-controls-box-shadow: none;
 }
 .org-canvas .react-flow__controls {
@@ -177,18 +219,18 @@
   width: 200px;
   min-height: 150px;
   padding: 13px;
-  background: #191920;
-  border: 1px solid #38333f;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   position: relative;
 }
 .org-agent:hover {
-  background: #2b221c;
-  border-color: #b68f75;
+  background: var(--color-inset);
+  border-color: var(--color-border-strong);
 }
 .react-flow__node.selected .org-agent {
-  background: #322720;
-  border-color: #e4bda3;
+  background: var(--color-inset);
+  border-color: var(--color-border-strong);
 }
 .org-agent-heading {
   display: flex;
@@ -205,13 +247,13 @@
   font:
     9px ui-monospace,
     monospace;
-  color: #bfb0a6;
+  color: var(--color-muted);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .org-agent-heading > svg {
   margin-left: auto;
-  color: #cfb3a1;
+  color: var(--color-accent-text);
 }
 .org-agent strong {
   font-size: 11px;
@@ -221,7 +263,7 @@
 }
 .org-agent-role {
   font-size: 9px;
-  color: #ada8b9;
+  color: var(--color-muted);
   margin-top: 3px;
   line-height: 1.4;
 }
@@ -229,7 +271,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #c8b8ae;
+  color: var(--color-muted);
   font-size: 9px;
   margin-top: 12px;
   width: 100%;
@@ -245,7 +287,7 @@
   font-size: 10px;
 }
 .team-inspector-top code {
-  color: #dfc2af;
+  color: var(--color-accent-text);
   font-size: 9px;
 }
 .team-inspector-title {
@@ -287,7 +329,7 @@
 }
 .team-agent-facts dd {
   margin: 0;
-  color: #ddd3cc;
+  color: var(--color-text);
   overflow-wrap: anywhere;
 }
 .team-prompt {
@@ -306,14 +348,14 @@
   white-space: pre-wrap;
   font-size: 11px;
   line-height: 1.85;
-  color: #c7bbb3;
+  color: var(--color-muted);
 }
 .team-inspector-workspace {
   display: flex;
   gap: 9px;
   border-top: 1px solid var(--team-line);
   padding: 18px 20px;
-  color: #c5b1a3;
+  color: var(--color-muted);
 }
 .team-inspector-workspace span {
   display: block;
@@ -359,7 +401,7 @@
 }
 .team-loading {
   padding: 40px;
-  color: #eacbb6;
+  color: var(--color-accent-text);
   font-size: 14px;
 }
 
@@ -373,13 +415,12 @@
 }
 .team-create-form input:not([type='checkbox']),
 .team-create-form .ui-select-trigger,
-.team-create-form textarea,
-.team-picker .ui-select-trigger {
+.team-create-form textarea {
   width: 100%;
   padding: 10px;
   color: inherit;
-  background: var(--surface, #171717);
-  border: 1px solid var(--border, #333);
+  background: var(--surface, var(--color-surface));
+  border: 1px solid var(--border, var(--color-border));
   border-radius: 6px;
   font: inherit;
 }
@@ -387,19 +428,10 @@
   display: grid;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--border, #333);
+  border: 1px solid var(--border, var(--color-border));
 }
 .team-member-choice {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.team-picker {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px var(--team-gutter);
-}
-.team-picker .ui-select-trigger {
-  width: auto;
 }

@@ -4,7 +4,6 @@
 
 .settings-section {
   padding: 28px 0;
-  border-bottom: 1px solid var(--workspace-line);
 }
 .settings-section h2 {
   font-size: 16px;
@@ -20,7 +19,7 @@
 }
 .settings-section-heading p,
 .settings-help {
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 13px;
   line-height: 1.7;
   margin: 0;
@@ -30,7 +29,6 @@
   align-items: center;
   gap: 14px;
   padding: 18px 0;
-  border-bottom: 1px solid #24252d;
 }
 .settings-computer-description {
   flex: 1;
@@ -46,7 +44,7 @@
 }
 .settings-computer-description span {
   font-size: 12px;
-  color: #a1a2b2;
+  color: var(--color-muted);
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
@@ -54,11 +52,11 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #87c9a4;
+  color: var(--color-success);
   font-size: 12px;
 }
 .settings-address {
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 13px;
   overflow-wrap: anywhere;
 }
@@ -77,9 +75,9 @@
 }
 .settings-notice {
   padding: 12px 16px;
-  border: 1px solid #355443;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: #a4d6b9;
+  color: var(--color-success);
   font-size: 13px;
 }
 .settings-navigation {
@@ -101,6 +99,7 @@ html.desktop-mac body {
 html.desktop-mac .desktop-title-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   padding: 0 16px 0 96px;
   position: fixed;
@@ -115,9 +114,15 @@ html.desktop-mac .desktop-title-bar > * {
   app-region: no-drag;
 }
 .desktop-title {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-right: auto;
+}
+.desktop-title img {
+  display: block;
 }
 html.desktop-mac .sidebar-heading {
   display: none;
@@ -132,13 +137,17 @@ html.desktop-mac .sidebar {
   top: var(--desktop-titlebar-height);
 }
 @media (min-width: 741px) {
-  html.desktop-mac .desktop-title-bar::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: var(--workspace-sidebar-width);
-    background: var(--workspace-sidebar-background);
-    border-right: 1px solid var(--workspace-sidebar-border);
+  html.desktop-mac body {
+    padding-top: 0;
+  }
+  html.desktop-mac .desktop-title-bar {
+    width: var(--workspace-sidebar-animated-width, var(--workspace-sidebar-width));
+  }
+  html.desktop-mac:has(.sidebar--collapsed) .desktop-title {
+    display: none;
+  }
+  html.desktop-mac:has(.sidebar--collapsed) .desktop-title-bar {
+    padding: 0;
   }
 }
 @media (max-width: 740px) {
@@ -155,4 +164,98 @@ html.desktop-mac .sidebar {
   .settings-computer-row {
     flex-wrap: wrap;
   }
+}
+
+.settings-appearance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.settings-appearance label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--color-surface);
+}
+.settings-appearance label:has(:checked) {
+  border-color: var(--accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+.settings-appearance label:has(:disabled) {
+  color: var(--color-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.settings-appearance input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.desktop-update p,
+.desktop-update output {
+  color: var(--color-muted);
+}
+
+.settings-computer-health {
+  margin-top: 10px;
+}
+.settings-health-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.settings-computer-description .settings-health-status {
+  font-size: 12px;
+  margin: 0;
+  font-weight: 500;
+}
+.settings-computer-description .settings-health-status--reachable {
+  color: var(--color-success);
+}
+.settings-computer-description .settings-health-status--timeout,
+.settings-computer-description .settings-health-status--unreachable,
+.settings-computer-description .settings-health-status--access-denied,
+.settings-computer-description .settings-health-status--error {
+  color: var(--color-danger);
+}
+.settings-health-retry {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent-text);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.settings-health-retry:disabled {
+  color: var(--color-muted);
+  cursor: wait;
+}
+.settings-health-problem {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.settings-health-problem p {
+  margin: 0 0 6px;
+}
+.settings-health-problem summary {
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.settings-health-problem pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  margin: 8px 0 0;
 }

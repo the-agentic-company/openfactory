@@ -1,22 +1,11 @@
-import { runtimeRpc as localRuntimeRpc } from '@openfactory/runtime/client';
-import { z } from 'zod';
-import { nativeConnection, nativeRequest } from './native-runtime.server';
+import { runtimeRpc as callRuntime, type RuntimeConnection } from '@openfactory/runtime/client';
+import type { RuntimeMethod, RuntimePayload } from '@openfactory/runtime/rpc';
+import { nativeConnection } from './native-runtime.server';
 
-// Paired desktop hosts keep their existing transport; the default host uses the owned runtime.
-export async function runtimeRpc(method: string, payload: unknown): Promise<unknown> {
-  const native = await nativeConnection();
-  if (!native) {
-    return localRuntimeRpc(method, payload);
-  }
-  return z
-    .object({ value: z.unknown() })
-    .parse(
-      await nativeRequest(
-        native,
-        '/v1/rpc',
-        'POST',
-        { method, payload },
-        method.startsWith('marketplace.') ? 60000 : 15000,
-      ),
-    ).value;
+export async function runtimeRpc<const Method extends RuntimeMethod>(
+  method: Method,
+  payload: RuntimePayload<Method>,
+) {
+  const connection: RuntimeConnection | null = await nativeConnection();
+  return callRuntime(method, payload, connection ?? undefined);
 }

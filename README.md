@@ -67,11 +67,19 @@ pnpm openfactory resume '<agent-id>'
 pnpm openfactory status
 ```
 
+The app, CLI, and desktop host use Effect RPC with shared contracts in `packages/runtime/src/rpc-contracts.ts`. Local calls use HTTP over a Unix socket or Windows named pipe. Paired computers use the desktop host's authenticated HTTP endpoint; migration operations remain local. After upgrading from the custom RPC protocol, rebuild and restart the runtime and desktop app on both computers.
+
 Each manual, timer, or webhook run creates a provider session. Follow-ups resume its saved native session ID and queue behind active work. The run page also shows the command for resuming in `codex resume` or `claude --resume` yourself. Stop active OpenFactory work before taking over that native session in another terminal.
 
 Use `pnpm openfactory project /absolute/path [name]` to register a factory from the terminal. `pnpm openfactory create <json-file>` creates an agent using the fields in `packages/runtime/src/contracts.ts`'s `upsertSchema`.
 
 ## Agent definitions
+
+Agent replies can include interactive charts, diagrams, and other self-contained HTML visuals. Ask an agent to visualize its answer; Codex and Claude receive the format automatically. Visuals follow the app theme, resize with their content, and offer Source, Reset, and Expand controls. They are saved with the conversation.
+
+To provide one explicitly, use a fenced `openfactory-html` block containing HTML, inline CSS, and optional inline JavaScript. Ordinary `html` blocks remain source examples. Visuals run in sandboxed frames, without host access or external scripts, images, or API requests. Use inline SVG or data images for graphics. Blocks over 1 MB display as source.
+
+Run `pnpm exec playwright install chromium` once, then `pnpm verify:visualizations` to verify rendering, interactions, layout, themes, and isolation in a real browser.
 
 The **Definition** tab edits `agent.md` directly:
 
@@ -179,7 +187,11 @@ Import this repository into Vercel with the repository root as the project root.
 
 The public website lives in `apps/site` (`@openfactory/site`) and contains the landing page, downloads, documentation, and marketplace. The product UI and local server live in `apps/app` (`@openfactory/app`); `apps/desktop` packages that app with the runtime. Each frontend owns its routes, styles, dependencies, and build. Build guards reject imports across the app/site boundary or runtime code in the public site.
 
-Run `pnpm dev` for the workspace on port 8018, or `pnpm dev:site` for the public website on port 8020. `pnpm build:app` builds the workspace; `pnpm build:site` builds the public deployment. Workspace documentation and marketplace links open `https://open-factory.app` in the browser. Set `VITE_OPENFACTORY_SITE_URL` at app build time to use another origin, such as `http://localhost:8020` for local development.
+Run `pnpm dev` to start everything together: Electron, the browser workspace on port 8018, and the public website on port 8020. Open `http://127.0.0.1:8018` in a browser alongside Electron; they share one app server. Vite+ runs desktop and site development in parallel with labeled logs.
+
+Use `pnpm dev:app` for only the browser workspace, `pnpm dev:desktop` for the workspace with Electron, or `pnpm dev:site` for only the public website. Stop the combined command before starting one of these on the same ports.
+
+`pnpm build:app` builds the workspace; `pnpm build:site` builds the public deployment. Workspace documentation and marketplace links open `https://open-factory.app` in the browser. Set `VITE_OPENFACTORY_SITE_URL` at app build time to use another origin, such as `http://localhost:8020` for local development.
 
 Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
 

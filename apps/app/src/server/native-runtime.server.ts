@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { getCookie } from '@tanstack/react-start/server';
 
 const nativeAgent = z.object({
   id: z.string(),
@@ -74,7 +75,14 @@ export async function localNativeConnection(): Promise<NativeConnection> {
   };
 }
 export async function nativeConnection(): Promise<NativeConnection | null> {
-  if (process.env.OPENFACTORY_RUNTIME_ORIGIN && process.env.OPENFACTORY_RUNTIME_TOKEN) {
+  const desktopSession = process.env.OPENFACTORY_DESKTOP_SESSION;
+  if (desktopSession && process.env.OPENFACTORY_DESKTOP_CONNECTION_FILE) {
+    if (getCookie(`openfactory-desktop-${process.env.PORT}`) === desktopSession) {
+      return z
+        .object({ origin: z.string().url(), token: z.string().min(1) })
+        .parse(JSON.parse(await readFile(process.env.OPENFACTORY_DESKTOP_CONNECTION_FILE, 'utf8')));
+    }
+  } else if (process.env.OPENFACTORY_RUNTIME_ORIGIN && process.env.OPENFACTORY_RUNTIME_TOKEN) {
     return {
       origin: process.env.OPENFACTORY_RUNTIME_ORIGIN,
       token: process.env.OPENFACTORY_RUNTIME_TOKEN,
@@ -105,10 +113,14 @@ export async function nativeRequest(
   });
   const result: unknown = await response.json();
   if (!response.ok) {
-    throw new Error(z.object({ error: z.string() }).parse(result).error);
+    throw new Error(
+      `HTTP ${response.status}: ${z.object({ error: z.string() }).parse(result).error}`,
+    );
   }
   return result;
 }
-export async function nativeState(connection: NativeConnection) {
-  return nativeStateSchema.parse(await nativeRequest(connection, '/v1/state'));
+export async function nativeState(connection: NativeConnection, timeoutMs = 15000) {
+  return nativeStateSchema.parse(
+    await nativeRequest(connection, '/v1/state', 'GET', undefined, timeoutMs),
+  );
 }

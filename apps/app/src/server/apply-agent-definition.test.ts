@@ -55,7 +55,6 @@ describe('saving agent schedules', () => {
       schedule,
       enabled: false,
       projectId: raw.projectId,
-      threadId: raw.threadId,
       workspaceStrategy: raw.workspaceStrategy,
       modelSelection: raw.modelSelection,
       runtimeMode: raw.runtimeMode,

@@ -127,7 +127,7 @@ it('moves saved edits and global metadata into the repository, preserves identit
     'name: Studio',
   );
   expect(
-    await runtime.rpc('factory.settings', {
+    await runtime.operations['factory.settings']({
       operation: 'read',
       section: 'appearances',
       ids: [agent.id],
@@ -140,11 +140,17 @@ it('moves saved edits and global metadata into the repository, preserves identit
 });
 it('exports a runtime-only factory and refuses to use global definitions during normal operation', async () => {
   oldAgent();
-  await expect(runtime.rpc('agents.list', {})).rejects.toThrow('factory/factory.yaml is missing');
+  await expect(runtime.operations['agents.list']({})).rejects.toThrow(
+    'factory/factory.yaml is missing',
+  );
   await migrateDefinitions(runtime.store, { settingsDirectory: settings, apply: true });
-  expect(await runtime.rpc('agents.list', {})).toMatchObject({ tasks: [{ id: 'existing-agent' }] });
+  expect(await runtime.operations['agents.list']({})).toMatchObject({
+    tasks: [{ id: 'existing-agent' }],
+  });
   await rm(join(repository, 'factory'), { recursive: true });
-  await expect(runtime.rpc('agents.list', {})).rejects.toThrow('factory/factory.yaml is missing');
+  await expect(runtime.operations['agents.list']({})).rejects.toThrow(
+    'factory/factory.yaml is missing',
+  );
 });
 it('preflights destination conflicts without overwriting either definition', async () => {
   const { root } = await legacySnapshot();
@@ -175,10 +181,10 @@ it('moves a scorer for an unregistered repository into that repository without e
   await writeFile(join(settings, 'scorers', `${scorer.id}.json`), JSON.stringify(scorer));
   await migrateDefinitions(runtime.store, { settingsDirectory: settings, apply: true });
   expect(readDefinition(other)?.files['factory.yaml']).toContain('Existing scorer');
-  expect(await runtime.rpc('factory.settings', { operation: 'read', section: 'scorers' })).toEqual([
-    scorer,
-  ]);
-  expect(await runtime.rpc('agents.list', {})).toEqual({ tasks: [] });
+  expect(
+    await runtime.operations['factory.settings']({ operation: 'read', section: 'scorers' }),
+  ).toEqual([scorer]);
+  expect(await runtime.operations['agents.list']({})).toEqual({ tasks: [] });
 });
 
 it('rejects a repository edit made after migration planning instead of overwriting it', async () => {
@@ -214,8 +220,8 @@ it('keeps scorers reached through a repository alias in the same factory', async
     apply: true,
   });
   expect(result.factories).toHaveLength(1);
-  expect(await runtime.rpc('factory.settings', { operation: 'read', section: 'scorers' })).toEqual([
-    { ...scorer, project: repository },
-  ]);
-  expect(await runtime.rpc('agents.list', {})).toMatchObject({ tasks: [{ id: agent.id }] });
+  expect(
+    await runtime.operations['factory.settings']({ operation: 'read', section: 'scorers' }),
+  ).toEqual([{ ...scorer, project: repository }]);
+  expect(await runtime.operations['agents.list']({})).toMatchObject({ tasks: [{ id: agent.id }] });
 });

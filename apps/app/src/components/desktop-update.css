@@ -1,0 +1,37 @@
+.desktop-update {
+  margin-bottom: 8px;
+}
+.desktop-update-button {
+  cursor: pointer;
+  line-height: 1.5;
+}
+.desktop-update-button > svg {
+  flex-shrink: 0;
+}
+.desktop-update-button.desktop-update-available {
+  color: var(--accent-text);
+  background: var(--navigation-active-background);
+}
+.desktop-update-button:disabled {
+  cursor: default;
+}
+.desktop-update-button:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.desktop-update p,
+.desktop-update output {
+  display: block;
+  margin: 6px 12px;
+  color: #a1a2b2;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.desktop-update progress {
+  display: block;
+  width: calc(100% - 24px);
+  height: 4px;
+  margin: 8px 12px;
+  accent-color: var(--accent);
+}

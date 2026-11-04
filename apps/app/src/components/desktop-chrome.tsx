@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
 import '../connection-settings.css';
-import { SidebarToggle } from './sidebar-toggle';
 
 export function DesktopChrome() {
   const router = useRouter();
@@ -29,10 +28,9 @@ export function DesktopChrome() {
   }, [router]);
   return (
     <header className="desktop-title-bar" aria-label="Application title bar">
-      <Link to="/app" className="desktop-title">
-        OpenFactory
+      <Link to="/app" className="desktop-title" aria-label="OpenFactory">
+        <img src="/openfactory.png" width={28} height={28} alt="" />
       </Link>
-      <SidebarToggle />
     </header>
   );
 }

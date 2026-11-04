@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { WebSocketServer } from 'ws';
+import { build } from 'vite-plus';
 import { expect, it } from 'vite-plus/test';
 import { z } from 'zod';
 import { serveRuntime } from '../../../../packages/runtime/src/server';
@@ -13,6 +14,10 @@ import { threadHistorySchema } from '@openfactory/core';
 
 const exec = promisify(execFile);
 it('drains T3, refreshes completed history and due times, and preserves local pause decisions on retry', async () => {
+  await build({
+    configFile: resolve('packages/runtime/vite.config.ts'),
+    root: resolve('packages/runtime'),
+  });
   const directory = await mkdtemp(join(tmpdir(), 'openfactory-cutover-'));
   const server = await serveRuntime(directory);
   const t3 = new WebSocketServer({ port: 0, host: '127.0.0.1' });

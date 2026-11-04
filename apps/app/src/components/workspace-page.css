@@ -27,7 +27,7 @@ main.workspace-page {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
@@ -82,7 +82,7 @@ main.workspace-page--fill {
 }
 .overview-summary {
   margin: 0 0 var(--workspace-gap);
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 13px;
 }
 @media (max-width: 740px) {

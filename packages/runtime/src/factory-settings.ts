@@ -12,7 +12,7 @@ import { Store } from './store';
 
 const section = z.enum(['appearances', 'factories', 'scorers']);
 const id = z.string().min(1).max(4096);
-const inputSchema = z.discriminatedUnion('operation', [
+export const factorySettingsInputSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('read'), section, ids: z.array(id).max(1000).optional() }),
   z.object({ operation: z.literal('write'), section, id, value: z.unknown() }),
   z.object({ operation: z.literal('remove'), section, id }),
@@ -26,7 +26,7 @@ export async function factorySettings(
   raw: unknown,
   save: (projectId: string, revision: string, definition: DefinitionFiles) => Promise<unknown>,
 ) {
-  const input = inputSchema.parse(raw);
+  const input = factorySettingsInputSchema.parse(raw);
   const definitions = store.all('projects', projectSchema).map((project) => {
     const definition = readDefinition(project.workspaceRoot);
     if (!definition) {

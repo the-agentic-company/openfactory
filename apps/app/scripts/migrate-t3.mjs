@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
-import { runtimeRpc, runtimeDirectory } from '../../../packages/runtime/src/client.ts';
+import { runtimeRpc, runtimeDirectory } from '../../../packages/runtime/dist/client.mjs';
 import { nextScheduledAt } from '../../../packages/runtime/src/schedule.ts';
 
 const directory = join(runtimeDirectory(), 'migration-t3');

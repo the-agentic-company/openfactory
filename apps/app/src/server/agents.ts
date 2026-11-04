@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { agentSchema, deliverySchema, type AgentAppearance } from '@openfactory/core';
+import {
+  agentSchema,
+  deliverySchema,
+  scheduleSchema,
+  type AgentAppearance,
+} from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { runtimeRpc } from './runtime-rpc';
@@ -83,7 +88,6 @@ export const getDeliveries = createServerFn({ method: 'GET' })
       z.object({ deliveries: z.array(deliverySchema) }).parse(
         await runtimeRpc('agents.deliveries', {
           id: data.id,
-          acceptAnyOutcome: true,
         }),
       ).deliveries,
   );
@@ -130,7 +134,7 @@ export const createAgent = createServerFn({ method: 'POST' })
       title: data.title,
       prompt: data.prompt,
       projectId,
-      schedule,
+      schedule: scheduleSchema.parse(schedule),
       enabled: false,
       modelSelection: { instanceId: data.provider, model: data.model },
       runtimeMode: data.runtimeMode,

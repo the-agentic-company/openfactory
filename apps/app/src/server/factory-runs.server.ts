@@ -47,7 +47,6 @@ export async function loadFactoryRuns(project: string) {
         const { projection: raw } = z.object({ projection: z.unknown() }).parse(
           await runtimeRpc('sessions.read', {
             threadId: thread.id,
-            acceptBoundedSnapshot: false,
           }),
         );
         const projection = threadHistorySchema.parse(raw);

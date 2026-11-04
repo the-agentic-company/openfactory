@@ -1,11 +1,11 @@
 schemaVersion: v1alpha1
-name: openfactory
+name: OpenFactory
 repositories: []
 agentDefaults:
   model: auto
 icon:
   kind: emoji
-  value: 🔥
+  value: 👷‍♂️
 agentAppearances:
   scheduled-task:65a655d9-be0c-44b4-a7d0-b46bc58ac816:
     kind: emoji

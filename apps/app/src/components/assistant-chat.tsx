@@ -3,9 +3,12 @@ import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
 import { ArrowDown, ArrowUp, Square } from 'lucide-react';
 import type { ReactNode } from 'react';
 import './assistant-chat.css';
+import { HtmlVisualization } from './html-visualization';
+
+const visualComponents = { 'openfactory-html': { SyntaxHighlighter: HtmlVisualization } };
 
 function MarkdownText() {
-  return <MarkdownTextPrimitive />;
+  return <MarkdownTextPrimitive componentsByLanguage={visualComponents} />;
 }
 
 function UserMessage() {

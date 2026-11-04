@@ -102,7 +102,30 @@ function TeamAgentNode({ data }: NodeProps<AgentNode>) {
   );
 }
 
-const nodeTypes = { agent: TeamAgentNode };
+type TeamHeadingNode = Node<
+  { team: AgentTeam; run: () => void; pending: boolean; starting: boolean },
+  'team'
+>;
+
+function TeamHeading({ data }: NodeProps<TeamHeadingNode>) {
+  return (
+    <div className="org-team-heading">
+      <h2>{data.team.definition.name}</h2>
+      <p>{data.team.definition.description}</p>
+      <button
+        className="button secondary nodrag"
+        disabled={data.pending}
+        aria-label={`Run ${data.team.definition.name} lead`}
+        onClick={data.run}
+      >
+        <Play size={14} />
+        {data.starting ? 'Starting…' : 'Run lead'}
+      </button>
+    </div>
+  );
+}
+
+const nodeTypes = { agent: TeamAgentNode, team: TeamHeading };
 
 function createTeamGraph(team: AgentTeam, select: (id: string) => void) {
   const nodes: AgentNode[] = [];
@@ -147,15 +170,62 @@ function createTeamGraph(team: AgentTeam, select: (id: string) => void) {
   return { nodes, edges };
 }
 
-function TeamCanvas({ team, select }: { team: AgentTeam; select: (id: string) => void }) {
-  const [graph] = useState(() => createTeamGraph(team, select));
+function TeamCanvas({
+  teams,
+  select,
+  run,
+  pending,
+  runningPath,
+}: {
+  teams: AgentTeam[];
+  select: (teamPath: string, agentId: string) => void;
+  run: (path: string) => void;
+  pending: boolean;
+  runningPath: string | undefined;
+}) {
+  const nodes: (AgentNode | TeamHeadingNode)[] = [];
+  const edges: Edge[] = [];
+  let left = 0;
+  for (const team of teams) {
+    const graph = createTeamGraph(team, (agentId) => select(team.path, agentId));
+    const width = Math.max(360, ...graph.nodes.map((node) => node.position.x + 220));
+    const nodeId = (id: string) => JSON.stringify([team.path, id]);
+    nodes.push({
+      id: JSON.stringify([team.path]),
+      type: 'team',
+      position: { x: left + width / 2 - 160, y: 0 },
+      width: 320,
+      height: 160,
+      data: {
+        team,
+        run: () => run(team.path),
+        pending,
+        starting: pending && runningPath === team.path,
+      },
+    });
+    nodes.push(
+      ...graph.nodes.map((node) => ({
+        ...node,
+        id: nodeId(node.id),
+        position: { x: left + node.position.x, y: node.position.y + 200 },
+      })),
+    );
+    edges.push(
+      ...graph.edges.map((edge) => ({
+        ...edge,
+        id: nodeId(edge.id),
+        source: nodeId(edge.source),
+        target: nodeId(edge.target),
+      })),
+    );
+    left += width + 120;
+  }
   return (
-    <section className="org-canvas" aria-label="Team organization chart">
-      <ReactFlow<AgentNode>
-        defaultNodes={graph.nodes}
-        defaultEdges={graph.edges}
+    <section className="org-canvas" aria-label="All teams organization chart">
+      <ReactFlow<AgentNode | TeamHeadingNode>
+        nodes={nodes}
+        edges={edges}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, node) => select(node.id)}
         nodesFocusable={false}
         nodesDraggable={false}
         nodesConnectable={false}
@@ -164,9 +234,9 @@ function TeamCanvas({ team, select }: { team: AgentTeam; select: (id: string) =>
         deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
-        minZoom={0.2}
+        minZoom={0.02}
         maxZoom={1.8}
-        colorMode="dark"
+        colorMode="light"
         proOptions={{ hideAttribution: true }}
       >
         <Controls showInteractive={false} orientation="horizontal" />
@@ -229,15 +299,14 @@ function FactoryTeam({
     queryFn: () => getFactoryTeams({ data: { projectId } }),
     refetchInterval: 10000,
   });
-  const [teamPath, setTeamPath] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ teamPath: string; agentId: string } | null>(null);
   const [creating, setCreating] = useState(false);
-  const team = query.data?.teams.find((item) => item.path === teamPath) ?? query.data?.teams[0];
-  const selected = team?.agents.find((member) => member.id === selectedId);
+  const selectedTeam = query.data?.teams.find((item) => item.path === selection?.teamPath);
+  const selected = selectedTeam?.agents.find((member) => member.id === selection?.agentId);
   const agents = workspace.agents.filter((agent) => agent.projectId === projectId);
   const run = useMutation({
-    mutationFn: (member?: string) =>
-      runFactoryTeam({ data: { projectId, path: team?.path ?? '', member } }),
+    mutationFn: ({ path, member }: { path: string; member?: string }) =>
+      runFactoryTeam({ data: { projectId, path, member } }),
     onSuccess: (receipt) => {
       void client.invalidateQueries({ queryKey: ['agents'] });
       void client.invalidateQueries({ queryKey: ['factory-teams', projectId] });
@@ -266,17 +335,7 @@ function FactoryTeam({
           layout="fill"
           contentClassName="team-page"
           project={workspace.projects.find((item) => item.id === projectId)}
-          title={
-            <>
-              Teams
-              {team && (
-                <>
-                  <ChevronRight size={13} />
-                  <span>{team.definition.name}</span>
-                </>
-              )}{' '}
-            </>
-          }
+          title="Teams"
           actions={
             <div className="definition-actions">
               <button
@@ -287,16 +346,6 @@ function FactoryTeam({
                 <Plus size={14} />
                 Create team
               </button>
-              {team && (
-                <button
-                  className="button primary"
-                  disabled={run.isPending}
-                  onClick={() => run.mutate(undefined)}
-                >
-                  <Play size={14} />
-                  {run.isPending ? 'Starting…' : 'Run lead'}
-                </button>
-              )}
             </div>
           }
         >
@@ -311,7 +360,7 @@ function FactoryTeam({
               {run.error.message}
             </p>
           )}
-          {query.isSuccess && !team && (
+          {query.isSuccess && !query.data.teams.length && (
             <div className="empty-state">
               <Network size={30} />
               <h2>No teams defined for this factory</h2>
@@ -322,27 +371,8 @@ function FactoryTeam({
               </p>
             </div>
           )}
-          {team && (
+          {!!query.data?.teams.length && (
             <>
-              {(query.data?.teams.length ?? 0) > 1 && (
-                <label htmlFor="projects-select-1" className="team-picker">
-                  Team{' '}
-                  <Select
-                    id="projects-select-1"
-                    value={team.path}
-                    onValueChange={(value) => {
-                      setTeamPath(value);
-                      setSelectedId(null);
-                    }}
-                  >
-                    {query.data?.teams.map((item) => (
-                      <SelectItem key={item.path} value={item.path}>
-                        {item.definition.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </label>
-              )}
               <SectionTabs
                 label="Team sections"
                 value={tab}
@@ -370,56 +400,84 @@ function FactoryTeam({
               />
               <div className="team-tab-panel">
                 {tab === 'organization' ? (
-                  <TeamCanvas key={JSON.stringify(team)} team={team} select={setSelectedId} />
+                  <TeamCanvas
+                    key={JSON.stringify(query.data?.teams)}
+                    teams={query.data?.teams ?? []}
+                    select={(teamPath, agentId) => setSelection({ teamPath, agentId })}
+                    run={(path) => run.mutate({ path })}
+                    pending={run.isPending}
+                    runningPath={run.variables?.path}
+                  />
                 ) : (
-                  <section className="team-definition" aria-label="Team definition">
-                    <header>
-                      <h1>{team.definition.name}</h1>
-                      <p>{team.definition.description}</p>
-                    </header>
-                    <div className="team-definition-file">
-                      <FileCode2 size={15} />
-                      <span>{team.path}</span>
-                      <Link
-                        to="/app/projects/$project/$view"
-                        params={{ project, view: 'definition' }}
-                      >
-                        Edit factory files
-                      </Link>
-                    </div>
-                    <pre className="team-definition-source">
-                      <code>{team.source}</code>
-                    </pre>
-                    {team.definition.instructions && (
-                      <>
+                  query.data?.teams.map((team) => (
+                    <section
+                      className="team-section"
+                      key={team.path}
+                      aria-label={team.definition.name}
+                    >
+                      <header className="team-section-header">
+                        <div>
+                          <h2>{team.definition.name}</h2>
+                          <p>{team.definition.description}</p>
+                        </div>
+                        <button
+                          className="button primary"
+                          disabled={run.isPending}
+                          aria-label={`Run ${team.definition.name} lead`}
+                          onClick={() => run.mutate({ path: team.path })}
+                        >
+                          <Play size={14} />
+                          {run.isPending && run.variables.path === team.path
+                            ? 'Starting…'
+                            : 'Run lead'}
+                        </button>
+                      </header>
+                      <section className="team-definition" aria-label="Team definition">
                         <div className="team-definition-file">
                           <FileCode2 size={15} />
-                          <span>{team.path.replace(/team\.yaml$/, 'instructions.md')}</span>
+                          <span>{team.path}</span>
+                          <Link
+                            to="/app/projects/$project/$view"
+                            params={{ project, view: 'definition' }}
+                          >
+                            Edit factory files
+                          </Link>
                         </div>
                         <pre className="team-definition-source">
-                          <code>{team.instructions || 'No shared instructions.'}</code>
+                          <code>{team.source}</code>
                         </pre>
-                      </>
-                    )}
-                  </section>
+                        {team.definition.instructions && (
+                          <>
+                            <div className="team-definition-file">
+                              <FileCode2 size={15} />
+                              <span>{team.path.replace(/team\.yaml$/, 'instructions.md')}</span>
+                            </div>
+                            <pre className="team-definition-source">
+                              <code>{team.instructions || 'No shared instructions.'}</code>
+                            </pre>
+                          </>
+                        )}
+                      </section>
+                    </section>
+                  ))
                 )}
               </div>
-              {selected && (
-                <Modal titleId="team-agent-title" onClose={() => setSelectedId(null)}>
+              {selected && selectedTeam && (
+                <Modal titleId="team-agent-title" onClose={() => setSelection(null)}>
                   <div className="modal-heading">
                     <button
                       className="icon-button"
                       aria-label="Close agent definition"
-                      onClick={() => setSelectedId(null)}
+                      onClick={() => setSelection(null)}
                     >
                       <X size={18} />
                     </button>
                   </div>
-                  <AgentInspector selected={selected} team={team} project={project} />
+                  <AgentInspector selected={selected} team={selectedTeam} project={project} />
                   <button
                     className="button primary"
                     disabled={run.isPending}
-                    onClick={() => run.mutate(selected.id)}
+                    onClick={() => run.mutate({ path: selectedTeam.path, member: selected.id })}
                   >
                     <Play size={14} />
                     Run agent
@@ -433,9 +491,8 @@ function FactoryTeam({
               projectId={projectId}
               agents={agents}
               close={() => setCreating(false)}
-              created={(path) => {
+              created={() => {
                 setCreating(false);
-                setTeamPath(path);
                 void client.invalidateQueries({ queryKey: ['factory-teams', projectId] });
                 void client.invalidateQueries({ queryKey: ['factory-definition', projectId] });
               }}

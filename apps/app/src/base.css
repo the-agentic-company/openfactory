@@ -1,34 +1,53 @@
 @import 'tailwindcss';
 
 :root {
-  --workspace-background: #0c0d11;
+  --color-canvas: #faf9f7;
+  --color-surface: #ffffff;
+  --color-inset: #f4f2ef;
+  --color-hover: #eeebe7;
+  --color-border: #dedad4;
+  --color-border-strong: #b8b0a7;
+  --color-text: #292622;
+  --color-muted: #6f6860;
+  --color-accent-text: #963e32;
+  --color-accent-soft: #f8e7e3;
+  --color-success: #267347;
+  --color-success-soft: #e9f4ec;
+  --color-danger: #b53737;
+  --color-danger-soft: #fbeceb;
+  --color-warning: #8c6016;
+  --color-warning-soft: #fbf2db;
+  --color-purple: #7951a6;
+  --color-purple-soft: #f1eaf8;
+
+  --workspace-background: var(--color-canvas);
   --workspace-sidebar-width: 232px;
   --workspace-panel-inset: 8px;
-  --workspace-sidebar-background: #101116;
-  --workspace-sidebar-border: #23242d;
+  --workspace-sidebar-background: var(--color-surface);
+  --workspace-sidebar-border: var(--color-border);
   --workspace-sidebar-gutter: 16px;
   --workspace-sidebar-top: 28px;
-  --navigation-active-background: #322720;
-  --navigation-hover-background: #2c2520;
+  --navigation-active-background: var(--color-accent-soft);
+  --navigation-hover-background: var(--color-inset);
   --workspace-width: 1640px;
   --workspace-gutter: 32px;
   --workspace-top: 32px;
   --workspace-gap: 24px;
-  --workspace-line: #30303a;
+  --workspace-line: var(--color-border);
   --workspace-header-height: 44px;
-  --accent: #e27022;
-  --accent-hover: #f18a40;
-  --accent-text: #f5a66e;
-  --accent-ink: #1c1008;
+  --accent: #b94b3b;
+  --accent-hover: #a34033;
+  --accent-text: var(--color-accent-text);
+  --accent-ink: #fff8f5;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  color: #e9e4e1;
+  color: var(--color-text);
   background: var(--workspace-background);
   font-synthesis: none;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
+  color-scheme: light;
 }
 * {
   box-sizing: border-box;
@@ -50,7 +69,7 @@ a:not(.button, .nav-link):is([href^='https://'], [href^='http://']) {
   overflow-wrap: anywhere;
 }
 a:not(.button, .nav-link):is([href^='https://'], [href^='http://']):hover {
-  color: #ffd0ad;
+  color: var(--color-accent-text);
 }
 button,
 input,

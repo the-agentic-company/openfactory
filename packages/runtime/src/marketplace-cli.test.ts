@@ -20,7 +20,7 @@ afterEach(async () => {
 function command(args: string[]) {
   return factoryMarketplaceCommand(args, {
     cwd: join(directory, 'workspace'),
-    rpc: runtime.rpc.bind(runtime),
+    rpc: (method, input) => runtime.operations[method](input),
   });
 }
 it('imports a GitHub URL into the current directory without requiring registration or a destination flag', async () => {
@@ -38,7 +38,7 @@ it('imports a GitHub URL into the current directory without requiring registrati
   ).toBe(true);
 });
 it('reuses the current directory’s existing factory, including a custom project ID', async () => {
-  await runtime.rpc('projects.upsert', {
+  await runtime.operations['projects.upsert']({
     id: 'custom-id',
     title: 'Existing factory',
     workspaceRoot: join(directory, 'workspace'),
@@ -46,7 +46,7 @@ it('reuses the current directory’s existing factory, including a custom projec
   const factory = readDefinition(join(directory, 'workspace'))?.files['factory.yaml'];
   await command(['add', 'openfactory/code-review', '--agent', 'reviewer']);
   expect(readDefinition(join(directory, 'workspace'))?.files['factory.yaml']).toBe(factory);
-  expect(await runtime.rpc('workspace.snapshot', {})).toMatchObject({
+  expect(await runtime.operations['workspace.snapshot']({})).toMatchObject({
     snapshot: { projects: [{ id: 'custom-id' }] },
   });
 });

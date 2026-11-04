@@ -1,3 +1,4 @@
+import { runtimeInputs } from './rpc-contracts';
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -9,10 +10,7 @@ import {
   deliverySchema,
   threadHistorySchema,
   resolveTeam,
-  teamSetupSchema,
   teamGuidance,
-  marketplaceKindSchema,
-  marketplaceSelectionSchema,
 } from '@openfactory/core';
 import { z } from 'zod';
 import {
@@ -21,9 +19,7 @@ import {
   ownedAgentSchema,
   projectSchema,
   runSchema,
-  sendSchema,
   sessionSchema,
-  upsertSchema,
   type OwnedAgent,
   type Session,
 } from './contracts';
@@ -32,16 +28,10 @@ import { nextScheduledAt } from './schedule';
 import { launchProvider } from './providers';
 import { factorySettings } from './factory-settings';
 import { migrateDefinitions } from './migrate-definitions';
-import {
-  readDefinition,
-  saveDefinition,
-  definitionFilesSchema,
-  type DefinitionFiles,
-} from './definition-store';
+import { readDefinition, saveDefinition, type DefinitionFiles } from './definition-store';
 import { applyFactory, prepareFactory, storedTeamSchema, agentFileEdit } from './factory-files';
 import { marketplaceLeaderboard, previewMarketplace, mergeMarketplaceImport } from './marketplace';
 
-const idInput = z.object({ id: z.string().min(1) });
 const receiptSchema = z.object({ runId: z.string(), threadId: z.string(), digest: z.string() });
 const secretSchema = z.object({ token: z.string(), signatureSecret: z.string().nullable() });
 const digest = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -620,401 +610,369 @@ export class AgentRuntime {
       attempts: [],
     };
   }
-  async rpc(method: string, input: unknown): Promise<unknown> {
-    switch (method) {
-      case 'marketplace.leaderboard': {
-        const { kind, query } = z
-          .object({
-            kind: marketplaceKindSchema.default('factory'),
-            query: z.string().trim().max(120).default(''),
-          })
-          .parse(input);
-        return marketplaceLeaderboard(kind, query);
+  readonly operations = {
+    'marketplace.leaderboard': async (input: unknown) => {
+      const { kind, query } = runtimeInputs['marketplace.leaderboard'].parse(input);
+      return marketplaceLeaderboard(kind, query);
+    },
+    'marketplace.show': async (input: unknown) => {
+      const { source } = runtimeInputs['marketplace.show'].parse(input);
+      return previewMarketplace(source);
+    },
+    'marketplace.add': async (input: unknown) => {
+      const data = runtimeInputs['marketplace.add'].parse(input);
+      const current = this.refreshDefinition(data.projectId);
+      if (current.revision !== data.revision) {
+        throw new Error('The target factory changed. Reload it before importing.');
       }
-      case 'marketplace.show': {
-        const { source } = marketplaceSelectionSchema.parse(input);
-        return previewMarketplace(source);
+      const preview = await previewMarketplace(data.source);
+      if (preview.revision !== data.previewRevision) {
+        throw new Error('The source changed. Review its contents again before importing.');
       }
-      case 'marketplace.add': {
-        const data = marketplaceSelectionSchema
-          .extend({
-            projectId: z.string().min(1),
-            revision: z.string(),
-            previewRevision: z.string(),
-          })
-          .parse(input);
-        const current = this.refreshDefinition(data.projectId);
-        if (current.revision !== data.revision) {
-          throw new Error('The target factory changed. Reload it before importing.');
+      const saved = await this.saveFactory(
+        data.projectId,
+        data.revision,
+        mergeMarketplaceImport(current.files, preview, data.kind, data.name),
+      );
+      return {
+        source: preview.source,
+        kind: data.kind,
+        name: data.name,
+        location: saved.location,
+        revision: saved.revision,
+        imported: Object.keys(saved.files).length - Object.keys(current.files).length,
+      };
+    },
+    'factory.settings': async (input: unknown) => {
+      return factorySettings(this.store, input, this.saveFactory.bind(this));
+    },
+    'definitions.get': async (input: unknown) => {
+      const { projectId } = runtimeInputs['definitions.get'].parse(input);
+      return this.refreshDefinition(projectId);
+    },
+    'definitions.save': async (input: unknown) => {
+      const data = runtimeInputs['definitions.save'].parse(input);
+      return this.saveFactory(data.projectId, data.revision, data);
+    },
+    'definitions.migrate': async (input: unknown) => {
+      return migrateDefinitions(this.store, input);
+    },
+    'runtime.status': async (_input: unknown) => {
+      return {
+        owner: 'openfactory',
+        directory: this.directory,
+        agents: this.store.all('agents', ownedAgentSchema).length,
+        active: this.active.size,
+      };
+    },
+    'teams.list': async (input: unknown) => {
+      const { projectId } = runtimeInputs['teams.list'].parse(input);
+      this.refreshDefinition(projectId);
+      return { teams: this.projectTeams(projectId) };
+    },
+    'teams.replace': async (input: unknown) => {
+      const data = runtimeInputs['teams.replace'].parse(input);
+      if (!this.store.get('projects', data.projectId, projectSchema)) {
+        throw new Error('This factory no longer exists.');
+      }
+      const agents = this.store
+        .all('agents', ownedAgentSchema)
+        .filter((agent) => agent.projectId === data.projectId);
+      const paths = new Set<string>();
+      for (const setup of data.teams) {
+        if (paths.has(setup.path)) {
+          throw new Error(`Duplicate team path: ${setup.path}`);
         }
-        const preview = await previewMarketplace(data.source);
-        if (preview.revision !== data.previewRevision) {
-          throw new Error('The source changed. Review its contents again before importing.');
+        paths.add(setup.path);
+        resolveTeam(setup, agents);
+      }
+      const current = this.refreshDefinition(data.projectId);
+      const files = Object.fromEntries(
+        Object.entries(current.files).filter(([path]) => !path.startsWith('teams/')),
+      );
+      for (const team of data.teams) {
+        files[team.path] = team.source;
+        if (team.instructions || team.source.includes('instructions:')) {
+          files[team.path.replace(/team\.yaml$/, 'instructions.md')] = team.instructions;
         }
-        const saved = await this.saveFactory(
-          data.projectId,
-          data.revision,
-          mergeMarketplaceImport(current.files, preview, data.kind, data.name),
-        );
-        return {
-          source: preview.source,
-          kind: data.kind,
-          name: data.name,
-          location: saved.location,
-          revision: saved.revision,
-          imported: Object.keys(saved.files).length - Object.keys(current.files).length,
-        };
       }
-      case 'factory.settings':
-        return factorySettings(this.store, input, this.saveFactory.bind(this));
-      case 'definitions.get': {
-        const { projectId } = z.object({ projectId: z.string() }).parse(input);
-        return this.refreshDefinition(projectId);
+      await this.saveFactory(data.projectId, current.revision, { files });
+      return { teams: this.projectTeams(data.projectId) };
+    },
+    'teams.run': async (input: unknown) => {
+      const data = runtimeInputs['teams.run'].parse(input);
+      this.refreshDefinition(data.projectId);
+      const team = this.projectTeams(data.projectId).find((item) => item.path === data.path);
+      if (!team) {
+        throw new Error('This team no longer exists.');
       }
-      case 'definitions.save': {
-        const data = definitionFilesSchema
-          .extend({ projectId: z.string(), revision: z.string().nullable() })
-          .parse(input);
-        return this.saveFactory(data.projectId, data.revision, data);
+      const member = team.agents.find((item) => item.id === (data.member ?? team.definition.lead));
+      if (!member) {
+        throw new Error('Choose a member of this team.');
       }
-      case 'definitions.migrate': {
-        return migrateDefinitions(this.store, input);
-      }
-      case 'runtime.status':
-        return {
-          owner: 'openfactory',
-          directory: this.directory,
-          agents: this.store.all('agents', ownedAgentSchema).length,
-          active: this.active.size,
-        };
-      case 'teams.list': {
-        const { projectId } = z.object({ projectId: z.string() }).parse(input);
-        this.refreshDefinition(projectId);
-        return { teams: this.projectTeams(projectId) };
-      }
-      case 'teams.replace': {
-        const data = z
-          .object({ projectId: z.string(), teams: z.array(teamSetupSchema).max(100) })
-          .parse(input);
-        if (!this.store.get('projects', data.projectId, projectSchema)) {
-          throw new Error('This factory no longer exists.');
+      const agent = this.getAgent(member.agent.id);
+      const text = data.text ? `${agent.prompt}\n\nAssignment:\n${data.text}` : agent.prompt;
+      const receipt = this.store.transaction(() =>
+        this.enqueue(agent, text, `team:${data.requestId}`, 'web'),
+      );
+      this.tick();
+      return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
+    },
+    'agents.list': async (_input: unknown) => {
+      const ids = new Set<string>();
+      for (const project of this.store.all('projects', projectSchema)) {
+        for (const id of Object.values(this.refreshDefinition(project.id).bindings)) {
+          ids.add(id);
         }
-        const agents = this.store
+      }
+      return {
+        tasks: this.store
           .all('agents', ownedAgentSchema)
-          .filter((agent) => agent.projectId === data.projectId);
-        const paths = new Set<string>();
-        for (const setup of data.teams) {
-          if (paths.has(setup.path)) {
-            throw new Error(`Duplicate team path: ${setup.path}`);
-          }
-          paths.add(setup.path);
-          resolveTeam(setup, agents);
-        }
-        const current = this.refreshDefinition(data.projectId);
-        const files = Object.fromEntries(
-          Object.entries(current.files).filter(([path]) => !path.startsWith('teams/')),
-        );
-        for (const team of data.teams) {
-          files[team.path] = team.source;
-          if (team.instructions || team.source.includes('instructions:')) {
-            files[team.path.replace(/team\.yaml$/, 'instructions.md')] = team.instructions;
-          }
-        }
-        await this.saveFactory(data.projectId, current.revision, { files });
-        return { teams: this.projectTeams(data.projectId) };
-      }
-      case 'teams.run': {
-        const data = z
-          .object({
+          .filter((agent) => ids.has(agent.id))
+          .map((agent) => this.publicAgent(agent)),
+      };
+    },
+    'workspace.snapshot': async (_input: unknown) => {
+      const sessions = this.store.all('sessions', sessionSchema).map((session) => session.thread);
+      const archives = this.store.all(
+        'archives',
+        threadHistorySchema.extend({
+          thread: threadHistorySchema.shape.thread.extend({
             projectId: z.string(),
-            path: z.string(),
-            member: z.string().optional(),
-            text: z.string().trim().min(1).max(16000).optional(),
-            requestId: z.string().min(1),
-          })
-          .parse(input);
-        this.refreshDefinition(data.projectId);
-        const team = this.projectTeams(data.projectId).find((item) => item.path === data.path);
-        if (!team) {
-          throw new Error('This team no longer exists.');
-        }
-        const member = team.agents.find(
-          (item) => item.id === (data.member ?? team.definition.lead),
-        );
-        if (!member) {
-          throw new Error('Choose a member of this team.');
-        }
-        const agent = this.getAgent(member.agent.id);
-        const text = data.text ? `${agent.prompt}\n\nAssignment:\n${data.text}` : agent.prompt;
-        const receipt = this.store.transaction(() =>
-          this.enqueue(agent, text, `team:${data.requestId}`, 'web'),
-        );
-        this.tick();
-        return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
-      }
-      case 'agents.list': {
-        const ids = new Set<string>();
-        for (const project of this.store.all('projects', projectSchema)) {
-          for (const id of Object.values(this.refreshDefinition(project.id).bindings)) {
-            ids.add(id);
-          }
-        }
-        return {
-          tasks: this.store
-            .all('agents', ownedAgentSchema)
-            .filter((agent) => ids.has(agent.id))
-            .map((agent) => this.publicAgent(agent)),
-        };
-      }
-      case 'workspace.snapshot': {
-        const sessions = this.store.all('sessions', sessionSchema).map((session) => session.thread);
-        const archives = this.store.all(
-          'archives',
-          threadHistorySchema.extend({
-            thread: threadHistorySchema.shape.thread.extend({
-              projectId: z.string(),
-              createdAt: z.string(),
-            }),
+            createdAt: z.string(),
           }),
-        );
-        return {
-          snapshot: {
-            projects: this.store.all('projects', projectSchema),
-            threads: [
-              ...sessions,
-              ...archives.map((p) => ({
-                ...p.thread,
-                agentIds: [
-                  ...new Set(
-                    p.messages.flatMap((m) => (m.scheduledTaskId ? [m.scheduledTaskId] : [])),
-                  ),
-                ],
-              })),
-            ],
-          },
-        };
+        }),
+      );
+      return {
+        snapshot: {
+          projects: this.store.all('projects', projectSchema),
+          threads: [
+            ...sessions,
+            ...archives.map((p) => ({
+              ...p.thread,
+              agentIds: [
+                ...new Set(
+                  p.messages.flatMap((m) => (m.scheduledTaskId ? [m.scheduledTaskId] : [])),
+                ),
+              ],
+            })),
+          ],
+        },
+      };
+    },
+    'projects.delete': async (input: unknown) => {
+      const { id } = runtimeInputs['projects.delete'].parse(input);
+      const agents = this.store
+        .all('agents', ownedAgentSchema)
+        .filter((agent) => agent.projectId === id);
+      const agentIds = new Set(agents.map((agent) => agent.id));
+      if (
+        agents.some((agent) => this.workingAgents.has(agent.id)) ||
+        this.store
+          .all('runs', runSchema)
+          .some((run) => agentIds.has(run.agentId) && run.status === 'running')
+      ) {
+        throw new Error('Stop active runs before deleting this factory.');
       }
-      case 'projects.delete': {
-        const { id } = idInput.parse(input);
-        const agents = this.store
-          .all('agents', ownedAgentSchema)
-          .filter((agent) => agent.projectId === id);
-        const agentIds = new Set(agents.map((agent) => agent.id));
-        if (
-          agents.some((agent) => this.workingAgents.has(agent.id)) ||
-          this.store
-            .all('runs', runSchema)
-            .some((run) => agentIds.has(run.agentId) && run.status === 'running')
-        ) {
-          throw new Error('Stop active runs before deleting this factory.');
-        }
-        this.store.deleteProject(id);
-        this.definitions.delete(id);
-        return { deleted: true };
+      this.store.deleteProject(id);
+      this.definitions.delete(id);
+      return { deleted: true };
+    },
+    'projects.upsert': async (input: unknown) => {
+      const parsed = runtimeInputs['projects.upsert'].parse(input);
+      if (!isAbsolute(parsed.workspaceRoot)) {
+        throw new Error('Use an absolute working directory.');
       }
-      case 'projects.upsert': {
-        const parsed = projectSchema.parse(input);
-        if (!isAbsolute(parsed.workspaceRoot)) {
-          throw new Error('Use an absolute working directory.');
-        }
-        const project = { ...parsed, workspaceRoot: realpathSync(parsed.workspaceRoot) };
-        const duplicate = this.store
-          .all('projects', projectSchema)
-          .find(
-            (item) =>
-              item.id !== project.id && realpathSync(item.workspaceRoot) === project.workspaceRoot,
-          );
-        if (duplicate) {
-          throw new Error('This repository already has a factory.');
-        }
-        const existing = this.store.get('projects', project.id, projectSchema);
-        if (existing && realpathSync(existing.workspaceRoot) !== project.workspaceRoot) {
-          throw new Error('Remove the factory before registering another repository path.');
-        }
-        const definition = readDefinition(project.workspaceRoot);
-        if (definition) {
-          const prepared = prepareFactory(this.store, project, definition);
-          applyFactory(this.store, prepared);
-          this.definitions.set(project.id, definition);
-          return prepared.project;
-        }
-        if (existing) {
-          throw new Error(
-            'The repository definition is missing. Migrate existing factories first.',
-          );
-        }
-        const generated = createFactoryFiles(project.title, []);
-        const prepared = prepareFactory(this.store, project, generated);
-        const saved = await saveDefinition(project.workspaceRoot, null, generated, () =>
-          applyFactory(this.store, prepared),
+      const project = { ...parsed, workspaceRoot: realpathSync(parsed.workspaceRoot) };
+      const duplicate = this.store
+        .all('projects', projectSchema)
+        .find(
+          (item) =>
+            item.id !== project.id && realpathSync(item.workspaceRoot) === project.workspaceRoot,
         );
-        this.definitions.set(project.id, saved);
+      if (duplicate) {
+        throw new Error('This repository already has a factory.');
+      }
+      const existing = this.store.get('projects', project.id, projectSchema);
+      if (existing && realpathSync(existing.workspaceRoot) !== project.workspaceRoot) {
+        throw new Error('Remove the factory before registering another repository path.');
+      }
+      const definition = readDefinition(project.workspaceRoot);
+      if (definition) {
+        const prepared = prepareFactory(this.store, project, definition);
+        applyFactory(this.store, prepared);
+        this.definitions.set(project.id, definition);
         return prepared.project;
       }
-      case 'agents.upsert': {
-        const data = upsertSchema.parse(input);
-        if (!this.store.get('projects', data.projectId, projectSchema)) {
-          throw new Error('This factory no longer exists.');
-        }
-        const current = this.refreshDefinition(data.projectId);
-        const existing = data.id ? this.configuredAgent(data.id) : null;
-        if (existing && data.expectedSource && agentDefinition(existing) !== data.expectedSource) {
-          throw new Error('This definition changed since you opened it. Reload the definition.');
-        }
+      if (existing) {
+        throw new Error('The repository definition is missing. Migrate existing factories first.');
+      }
+      const generated = createFactoryFiles(project.title, []);
+      const prepared = prepareFactory(this.store, project, generated);
+      const saved = await saveDefinition(project.workspaceRoot, null, generated, () =>
+        applyFactory(this.store, prepared),
+      );
+      this.definitions.set(project.id, saved);
+      return prepared.project;
+    },
+    'agents.upsert': async (input: unknown) => {
+      const data = runtimeInputs['agents.upsert'].parse(input);
+      if (!this.store.get('projects', data.projectId, projectSchema)) {
+        throw new Error('This factory no longer exists.');
+      }
+      const current = this.refreshDefinition(data.projectId);
+      const existing = data.id ? this.configuredAgent(data.id) : null;
+      if (existing && data.expectedSource && agentDefinition(existing) !== data.expectedSource) {
+        throw new Error('This definition changed since you opened it. Reload the definition.');
+      }
+      if (
+        existing &&
+        existing.projectId !== data.projectId &&
+        this.projectTeams(existing.projectId).some((team) =>
+          team.agents.some((member) => member.agent.id === existing.id),
+        )
+      ) {
+        throw new Error('Remove this agent from its teams before moving it to another factory.');
+      }
+      const id = existing?.id ?? randomUUID();
+      const changedSchedule = JSON.stringify(existing?.schedule) !== JSON.stringify(data.schedule);
+      const agent = ownedAgentSchema.parse({
+        ...existing,
+        ...data,
+        id,
+        threadId: existing?.threadId ?? null,
+        nextRunAt: data.enabled
+          ? !changedSchedule && existing?.enabled
+            ? existing.nextRunAt
+            : nextScheduledAt(data.schedule, new Date())
+          : null,
+        lastRunAt: existing?.lastRunAt ?? null,
+        lastRunStatus: existing?.lastRunStatus ?? 'never',
+        lastRunError: existing?.lastRunError ?? null,
+        runCount: existing?.runCount ?? 0,
+      });
+      if (existing && existing.projectId !== data.projectId) {
+        throw new Error(
+          'Agents belong to their repository. Create a new agent in the destination factory.',
+        );
+      }
+      const definition = existing
+        ? agentFileEdit(current.files, current.bindings, agent)
+        : {
+            files: {
+              ...current.files,
+              [`agents/${agentDirectory(agent)}/agent.md`]: agentDefinition(agent),
+            },
+          };
+      await this.saveFactory(data.projectId, current.revision, definition);
+      return { task: this.publicAgent(this.getAgent(id)) };
+    },
+    'agents.setEnabled': async (input: unknown) => {
+      const data = runtimeInputs['agents.setEnabled'].parse(input);
+      const agent = this.configuredAgent(data.id);
+      const updated = {
+        ...agent,
+        enabled: data.enabled,
+        nextRunAt: data.enabled
+          ? (data.nextRunAt ?? nextScheduledAt(agent.schedule, new Date()))
+          : null,
+      };
+      const current = this.refreshDefinition(agent.projectId);
+      await this.saveFactory(
+        agent.projectId,
+        current.revision,
+        agentFileEdit(current.files, current.bindings, updated),
+      );
+      // nextRunAt is operational state and can be explicitly advanced by the scheduler.
+      this.store.put('agents', agent.id, updated);
+      return { task: this.publicAgent(updated) };
+    },
+    'agents.run': async (input: unknown) => {
+      const data = runtimeInputs['agents.run'].parse(input);
+      const agent = this.configuredAgent(data.id);
+      const receipt = this.store.transaction(() =>
+        this.enqueue(agent, agent.prompt, `manual:${data.requestId}`, 'web'),
+      );
+      this.tick();
+      return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
+    },
+    'agents.deliveries': async (input: unknown) => {
+      const { id } = runtimeInputs['agents.deliveries'].parse(input);
+      this.getAgent(id);
+      const schema = deliverySchema.extend({ agentId: z.string() });
+      return {
+        deliveries: this.store
+          .all('deliveries', schema)
+          .filter((d) => d.agentId === id)
+          .slice(-50)
+          .reverse(),
+      };
+    },
+    'agents.webhookSecret': async (input: unknown) => {
+      const data = runtimeInputs['agents.webhookSecret'].parse(input);
+      this.getAgent(data.id);
+      const secret = this.store.get('secrets', data.id, secretSchema);
+      if (!secret) {
+        throw new Error('Webhook credentials are unavailable.');
+      }
+      this.store.put('secrets', data.id, { ...secret, signatureSecret: data.secret });
+      return { configured: true };
+    },
+    'sessions.read': async (input: unknown) => {
+      const { threadId } = runtimeInputs['sessions.read'].parse(input);
+      return { projection: this.projection(threadId) };
+    },
+    'sessions.projection': async (input: unknown) => {
+      const { threadId } = runtimeInputs['sessions.projection'].parse(input);
+      return this.projection(threadId);
+    },
+    'sessions.send': async (input: unknown) => {
+      const data = runtimeInputs['sessions.send'].parse(input);
+      const session = this.getSession(data.threadId);
+      if (data.agentId && data.agentId !== session.thread.agentId) {
+        throw new Error('This conversation belongs to another agent.');
+      }
+      const agent = this.configuredAgent(session.thread.agentId);
+      const receipt = this.store.transaction(() =>
+        this.enqueue(agent, data.text, `message:${data.messageId}`, 'web', data.threadId),
+      );
+      this.tick();
+      return { accepted: true, ...receipt };
+    },
+    'sessions.stop': async (input: unknown) => {
+      const data = runtimeInputs['sessions.stop'].parse(input);
+      const session = this.getSession(data.threadId);
+      if (data.agentId && session.thread.agentId !== data.agentId) {
+        throw new Error('This conversation belongs to another agent.');
+      }
+      const active = this.active.get(data.threadId);
+      active?.stop();
+      for (const run of this.store.all('runs', runSchema)) {
         if (
-          existing &&
-          existing.projectId !== data.projectId &&
-          this.projectTeams(existing.projectId).some((team) =>
-            team.agents.some((member) => member.agent.id === existing.id),
-          )
+          run.threadId === data.threadId &&
+          (run.capacityRetry?.status === 'pending' ||
+            (!run.capacityRetry && run.status === 'failed' && capacityFailure(run.error)))
         ) {
-          throw new Error('Remove this agent from its teams before moving it to another factory.');
+          this.store.put('runs', run.id, { ...run, capacityRetry: { status: 'cancelled' } });
         }
-        const id = existing?.id ?? randomUUID();
-        const changedSchedule =
-          JSON.stringify(existing?.schedule) !== JSON.stringify(data.schedule);
-        const agent = ownedAgentSchema.parse({
-          ...existing,
-          ...data,
-          id,
-          threadId: existing?.threadId ?? null,
-          nextRunAt: data.enabled
-            ? !changedSchedule && existing?.enabled
-              ? existing.nextRunAt
-              : nextScheduledAt(data.schedule, new Date())
-            : null,
-          lastRunAt: existing?.lastRunAt ?? null,
-          lastRunStatus: existing?.lastRunStatus ?? 'never',
-          lastRunError: existing?.lastRunError ?? null,
-          runCount: existing?.runCount ?? 0,
-        });
-        if (existing && existing.projectId !== data.projectId) {
-          throw new Error(
-            'Agents belong to their repository. Create a new agent in the destination factory.',
-          );
+        if (run.threadId === data.threadId && run.status === 'queued') {
+          this.store.put('runs', run.id, {
+            ...run,
+            status: 'interrupted',
+            completedAt: now(),
+            error: 'Queue stopped from OpenFactory.',
+          });
         }
-        const definition = existing
-          ? agentFileEdit(current.files, current.bindings, agent)
-          : {
-              files: {
-                ...current.files,
-                [`agents/${agentDirectory(agent)}/agent.md`]: agentDefinition(agent),
-              },
-            };
-        await this.saveFactory(data.projectId, current.revision, definition);
-        return { task: this.publicAgent(this.getAgent(id)) };
       }
-      case 'agents.setEnabled': {
-        const data = idInput
-          .extend({ enabled: z.boolean(), nextRunAt: z.iso.datetime().nullable().optional() })
-          .parse(input);
-        const agent = this.configuredAgent(data.id);
-        const updated = {
-          ...agent,
-          enabled: data.enabled,
-          nextRunAt: data.enabled
-            ? (data.nextRunAt ?? nextScheduledAt(agent.schedule, new Date()))
-            : null,
-        };
-        const current = this.refreshDefinition(agent.projectId);
-        await this.saveFactory(
-          agent.projectId,
-          current.revision,
-          agentFileEdit(current.files, current.bindings, updated),
-        );
-        // nextRunAt is operational state and can be explicitly advanced by the scheduler.
-        this.store.put('agents', agent.id, updated);
-        return { task: this.publicAgent(updated) };
-      }
-      case 'agents.run': {
-        const data = idInput.extend({ requestId: z.string().min(1) }).parse(input);
-        const agent = this.configuredAgent(data.id);
-        const receipt = this.store.transaction(() =>
-          this.enqueue(agent, agent.prompt, `manual:${data.requestId}`, 'web'),
-        );
-        this.tick();
-        return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
-      }
-      case 'agents.deliveries': {
-        const { id } = idInput.parse(input);
-        this.getAgent(id);
-        const schema = deliverySchema.extend({ agentId: z.string() });
-        return {
-          deliveries: this.store
-            .all('deliveries', schema)
-            .filter((d) => d.agentId === id)
-            .slice(-50)
-            .reverse(),
-        };
-      }
-      case 'agents.webhookSecret': {
-        const data = idInput.extend({ secret: z.string().min(16) }).parse(input);
-        this.getAgent(data.id);
-        const secret = this.store.get('secrets', data.id, secretSchema);
-        if (!secret) {
-          throw new Error('Webhook credentials are unavailable.');
-        }
-        this.store.put('secrets', data.id, { ...secret, signatureSecret: data.secret });
-        return { configured: true };
-      }
-      case 'sessions.read': {
-        const { threadId } = z.object({ threadId: z.string() }).parse(input);
-        return { projection: this.projection(threadId) };
-      }
-      case 'sessions.projection': {
-        const { threadId } = z.object({ threadId: z.string() }).parse(input);
-        return this.projection(threadId);
-      }
-      case 'sessions.send': {
-        const data = sendSchema.parse(input);
-        const session = this.getSession(data.threadId);
-        if (data.agentId && data.agentId !== session.thread.agentId) {
-          throw new Error('This conversation belongs to another agent.');
-        }
-        const agent = this.configuredAgent(session.thread.agentId);
-        const receipt = this.store.transaction(() =>
-          this.enqueue(agent, data.text, `message:${data.messageId}`, 'web', data.threadId),
-        );
-        this.tick();
-        return { accepted: true, ...receipt };
-      }
-      case 'sessions.stop': {
-        const data = z
-          .object({ threadId: z.string(), agentId: z.string().optional() })
-          .parse(input);
-        const session = this.getSession(data.threadId);
-        if (data.agentId && session.thread.agentId !== data.agentId) {
-          throw new Error('This conversation belongs to another agent.');
-        }
-        const active = this.active.get(data.threadId);
-        active?.stop();
-        for (const run of this.store.all('runs', runSchema)) {
-          if (
-            run.threadId === data.threadId &&
-            (run.capacityRetry?.status === 'pending' ||
-              (!run.capacityRetry && run.status === 'failed' && capacityFailure(run.error)))
-          ) {
-            this.store.put('runs', run.id, { ...run, capacityRetry: { status: 'cancelled' } });
-          }
-          if (run.threadId === data.threadId && run.status === 'queued') {
-            this.store.put('runs', run.id, {
-              ...run,
-              status: 'interrupted',
-              completedAt: now(),
-              error: 'Queue stopped from OpenFactory.',
-            });
-          }
-        }
-        return { stopped: Boolean(active) };
-      }
-      case 'migration.import':
-        return this.import(input);
-      case 'webhooks.receive':
-        return this.webhook(input);
-      default:
-        throw new Error(`Unsupported OpenFactory runtime method: ${method}`);
-    }
-  }
+      return { stopped: Boolean(active) };
+    },
+    'migration.import': async (input: unknown) => {
+      return this.import(input);
+    },
+    'webhooks.receive': async (input: unknown) => {
+      return this.webhook(input);
+    },
+  };
   private async import(input: unknown) {
     const data = importSchema.parse(input);
     this.store.transaction(() => {

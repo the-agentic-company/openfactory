@@ -41,7 +41,6 @@ async function loadRun(threadId: string, runId: string, byReference = false) {
   const { projection } = z.object({ projection: projectionSchema }).parse(
     await runtimeRpc('sessions.read', {
       threadId,
-      acceptBoundedSnapshot: false,
     }),
   );
   const matches = projection.runs.filter((item) =>

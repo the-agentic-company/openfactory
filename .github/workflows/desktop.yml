@@ -114,6 +114,8 @@ jobs:
             apps/desktop/dist/OpenFactory-*.AppImage
             apps/desktop/dist/OpenFactory-*.zip
             apps/desktop/dist/OpenFactory-*.exe
+            apps/desktop/dist/latest*.yml
+            apps/desktop/dist/*.blockmap
             apps/desktop/dist/OpenFactory-*-build-manifest.json
 
   cli:

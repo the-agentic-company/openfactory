@@ -43,7 +43,6 @@ export async function loadAgentProjections(id: string) {
       const snapshot = z.object({ projection: z.unknown() }).parse(
         await runtimeRpc('sessions.read', {
           threadId: thread.id,
-          acceptBoundedSnapshot: false,
         }),
       );
       return snapshot.projection;

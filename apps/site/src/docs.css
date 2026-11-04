@@ -8,22 +8,22 @@
 .openfactory-docs {
   --fd-layout-width: 100%;
   --color-fd-background: var(--site-background);
-  --color-fd-foreground: #e9e4e1;
-  --color-fd-muted: #191a21;
-  --color-fd-muted-foreground: #a1a2b2;
-  --color-fd-popover: #101116;
+  --color-fd-foreground: #242329;
+  --color-fd-muted: #f3f3f5;
+  --color-fd-muted-foreground: #62626f;
+  --color-fd-popover: #fafafa;
   --color-fd-popover-foreground: var(--color-fd-foreground);
-  --color-fd-card: #101116;
+  --color-fd-card: #fafafa;
   --color-fd-card-foreground: var(--color-fd-foreground);
-  --color-fd-border: #23242d;
+  --color-fd-border: #dedee3;
   --color-fd-primary: var(--accent-text);
   --color-fd-primary-foreground: var(--accent-ink);
-  --color-fd-secondary: #191a21;
+  --color-fd-secondary: #f3f3f5;
   --color-fd-secondary-foreground: var(--color-fd-foreground);
-  --color-fd-accent: #24252e;
+  --color-fd-accent: #ededf0;
   --color-fd-accent-foreground: var(--color-fd-foreground);
   --color-fd-ring: var(--accent);
-  color-scheme: dark;
+  color-scheme: light;
   min-height: 100dvh;
   overflow-x: clip;
   color: var(--color-fd-foreground);
@@ -65,9 +65,9 @@
 }
 
 .openfactory-docs #nd-sidebar {
-  --color-fd-muted: #191a21;
-  --color-fd-secondary: #191a21;
-  --color-fd-muted-foreground: #a1a2b2;
+  --color-fd-muted: #f3f3f5;
+  --color-fd-secondary: #f3f3f5;
+  --color-fd-muted-foreground: #62626f;
   background: var(--site-sidebar-background);
 }
 
@@ -167,5 +167,5 @@
 
 .openfactory-docs ::selection {
   color: var(--color-fd-foreground);
-  background: #713c20;
+  background: #f5dfce;
 }

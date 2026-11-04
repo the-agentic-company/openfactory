@@ -26,10 +26,10 @@
   flex-wrap: wrap;
 }
 .pr-page .ui-select-trigger {
-  border: 1px solid #33343e;
-  background: #17181e;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 6px;
-  color: #d1cdd0;
+  color: var(--color-text);
   padding: 8px 28px 8px 10px;
   min-height: 36px;
   font-size: 12px;
@@ -43,7 +43,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 12px;
 }
 .pr-list-heading button {
@@ -56,7 +56,7 @@
 }
 .pr-table-scroll {
   overflow-x: auto;
-  scrollbar-color: #454650 #15161b;
+  scrollbar-color: var(--color-border) var(--color-border);
 }
 .pr-table {
   width: 100%;
@@ -65,7 +65,7 @@
   font-size: 12px;
 }
 .pr-table th {
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-weight: 500;
   white-space: nowrap;
   padding: 13px 16px;
@@ -84,10 +84,10 @@
   white-space: nowrap;
 }
 .pr-table td:last-child {
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .pr-table tbody tr:hover {
-  background: #15161c;
+  background: var(--color-surface);
 }
 .pr-page .pr-table a[href]:any-link {
   color: inherit;
@@ -107,7 +107,7 @@
   line-height: 1.6;
 }
 .pr-title > span {
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-weight: 400;
   margin-right: 3px;
 }
@@ -115,7 +115,7 @@
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #a1a2b2;
+  color: var(--color-muted);
   margin-top: 6px;
   font-size: 11px;
 }
@@ -127,32 +127,32 @@
   font-weight: 500;
 }
 .pr-outcome.clean {
-  color: #7dc89a;
+  color: var(--color-success);
 }
 .pr-outcome.issues {
-  color: #dfba69;
+  color: var(--color-accent-text);
 }
 .pr-outcome.skipped {
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .pr-footer {
   display: flex;
   gap: 6px;
   align-items: center;
-  color: #a1a2b2;
+  color: var(--color-muted);
   font-size: 11px;
   margin-top: 16px;
 }
 .pr-empty {
   padding: 50px 20px;
   text-align: center;
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .pr-empty > svg {
   margin: 0 auto 14px;
 }
 .pr-empty h2 {
-  color: #e9e4e1;
+  color: var(--color-text);
   font-size: 16px;
 }
 .pr-empty p {
@@ -196,20 +196,20 @@
 }
 
 .pr-outcome.merged {
-  color: #c5a9df;
+  color: var(--color-purple);
 }
 .pr-outcome.closed,
 .pr-deletions {
-  color: #e69b9b;
+  color: var(--color-danger);
 }
 .pr-additions {
-  color: #7dc89a;
+  color: var(--color-success);
 }
 .pr-external {
   display: inline;
   vertical-align: middle;
   margin-left: 3px;
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .pr-page .pr-table .pr-meta a[href]:any-link {
   color: inherit;

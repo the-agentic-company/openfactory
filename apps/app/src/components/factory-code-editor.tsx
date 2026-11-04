@@ -17,7 +17,7 @@ export default function FactoryCodeEditor({
     <CodeMirror
       aria-label={`Source code for ${path}`}
       value={source}
-      theme="dark"
+      theme="light"
       height="100%"
       extensions={[
         path.endsWith('.yaml')

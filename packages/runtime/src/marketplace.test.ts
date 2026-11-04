@@ -20,7 +20,7 @@ it('imports a complete factory through RPC without replacing local files and kee
   await mkdir(workspace);
   const runtime = new AgentRuntime(join(directory, 'runtime'));
   try {
-    await runtime.rpc('projects.upsert', {
+    await runtime.operations['projects.upsert']({
       id: 'target',
       title: 'Existing project',
       workspaceRoot: workspace,
@@ -38,7 +38,7 @@ it('imports a complete factory through RPC without replacing local files and kee
       revision: previous.revision,
       previewRevision: preview.revision,
     };
-    await runtime.rpc('marketplace.add', input);
+    await runtime.operations['marketplace.add'](input);
     const saved = readDefinition(workspace);
     expect(saved?.files['factory.yaml']).toEqual(previous.files['factory.yaml']);
     const agents = Object.entries(saved?.files ?? {})
@@ -55,9 +55,11 @@ it('imports a complete factory through RPC without replacing local files and kee
     expect(Object.values(team.members).every((member) => Boolean(saved?.files[member.agent]))).toBe(
       true,
     );
-    await expect(runtime.rpc('marketplace.add', input)).rejects.toThrow('target factory changed');
+    await expect(runtime.operations['marketplace.add'](input)).rejects.toThrow(
+      'target factory changed',
+    );
     await expect(
-      runtime.rpc('marketplace.add', {
+      runtime.operations['marketplace.add']({
         ...input,
         revision: saved?.revision,
         previewRevision: 'stale',

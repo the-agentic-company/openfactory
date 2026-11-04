@@ -5,9 +5,12 @@ export default defineConfig({
   build: {
     target: 'node26',
     lib: {
-      entry: resolve(import.meta.dirname, 'src/cli.ts'),
+      entry: {
+        runtime: resolve(import.meta.dirname, 'src/cli.ts'),
+        client: resolve(import.meta.dirname, 'src/client.ts'),
+      },
       formats: ['es'],
-      fileName: () => 'runtime.mjs',
+      fileName: (_format, name) => `${name}.mjs`,
     },
     rolldownOptions: { external: [/^node:/] },
   },

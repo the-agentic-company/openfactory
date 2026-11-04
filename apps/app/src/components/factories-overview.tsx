@@ -2,7 +2,7 @@ import { projectName } from '../project-path';
 import { WorkspacePage } from './workspace-page';
 import type { Agent } from '@openfactory/core';
 import { Link } from '@tanstack/react-router';
-import { ArrowUpRight, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { AppearanceGlyph } from './appearance-glyph';
 import type { FactoryProject } from './factory-navigation-item';
 
@@ -91,11 +91,7 @@ export function FactoriesOverview({
                           }
                           size={20}
                         />
-                        <span>
-                          <strong>{project.title}</strong>
-                          <small>{project.workspaceRoot}</small>
-                        </span>
-                        <ArrowUpRight size={16} />
+                        <strong>{project.title}</strong>
                       </Link>
                     </th>
                     <td>

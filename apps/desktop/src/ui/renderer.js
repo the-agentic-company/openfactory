@@ -271,8 +271,8 @@ function showDialog(title, intro, fields, submit, onSubmit) {
 function showAddComputer(link = '') {
   showDialog(
     'Add a computer',
-    'On the other computer, open OpenFactory and choose “Pair a device”. Paste its link here, or enter its private address and code.',
-    `<label>Pairing link<input name="link" placeholder="openfactory://pair…" value="${escape(link)}" autocomplete="off" /></label><label>Computer address<input name="address" placeholder="https://computer.tailnet.ts.net:8445" required /></label><label>Pairing code<input name="code" placeholder="1234 5678" autocomplete="off" required /></label>`,
+    'On the other computer, open Settings → Pair a device. Enter the address and code shown there.',
+    `<label>Computer address<input name="address" placeholder="https://computer.tailnet.ts.net:8445" required /></label><label>Pairing code<input name="code" placeholder="1234 5678" autocomplete="off" required /></label>`,
     'Pair computer',
     async (values) => {
       selected = await api.invoke('pair', {
@@ -287,45 +287,37 @@ function showAddComputer(link = '') {
       notify('Computer paired. You can reconnect without another code.');
     },
   );
-  const linkInput = content.querySelector('[name="link"]');
-  const parse = () => {
-    if (!linkInput.value.trim()) {
-      return;
-    }
+  if (link) {
     try {
-      const url = new URL(linkInput.value.trim());
+      const url = new URL(link);
       if (url.protocol !== 'openfactory:' || url.hostname !== 'pair') {
         throw new Error('Invalid link');
       }
       content.querySelector('[name="address"]').value = url.searchParams.get('address') ?? '';
       content.querySelector('[name="code"]').value = decodeURIComponent(url.hash.slice(1));
     } catch {
-      notify('Use a pairing link created by OpenFactory.');
+      notify('Enter the address and code shown on the other computer.');
     }
-  };
-  linkInput.addEventListener('input', parse);
-  if (link) {
-    parse();
   }
 }
 
 async function share() {
   const result = await api.invoke('pairing', { computerId: 'local' });
   const localOnly = result.origin.startsWith('http:');
-  content.innerHTML = `<h2 id="dialog-title">Pair a device</h2><p class="intro">Open this link on your other computer, or enter this address and code in OpenFactory. Only pair devices you trust to run agents here.</p>
+  content.innerHTML = `<h2 id="dialog-title">Pair a device</h2><p class="intro">On your other computer, open Settings → Add computer and enter this address and code. Only pair devices you trust to run agents here.</p>
     ${localOnly ? `<div class="notice"><p>This address works only on this computer. Enable Tailscale access for remote pairing.</p><div class="actions">${button('network', 'Enable Tailscale access')}</div></div>` : ''}
-    <div class="pairing"><img src="${escape(result.qr)}" alt="QR code containing the OpenFactory pairing link" /><div class="pair-code">${result.code.slice(0, 4)} ${result.code.slice(4)}</div><div class="address">${escape(result.origin)}</div><p class="muted" id="expiry"></p></div>
-    <div class="dialog-actions">${button('close', 'Done')}${button('copy-link', 'Copy pairing link', true)}</div>`;
-  content.querySelector('[data-action="copy-link"]').addEventListener('click', async () => {
-    await api.invoke('copy', result.link);
-    notify('Pairing link copied. It can be used once.');
+    <div class="pairing"><div class="pair-code">${result.code.slice(0, 4)} ${result.code.slice(4)}</div><div class="address">${escape(result.origin)}</div><p class="muted" id="expiry"></p></div>
+    <div class="dialog-actions">${button('close', 'Done')}${button('copy-address', 'Copy address', true)}</div>`;
+  content.querySelector('[data-action="copy-address"]').addEventListener('click', async () => {
+    await api.invoke('copy', result.origin);
+    notify('Computer address copied.');
   });
   const expiry = content.querySelector('#expiry');
   const timer = setInterval(() => {
     const seconds = Math.max(0, Math.ceil((result.expiresAt - Date.now()) / 1000));
     expiry.textContent = seconds
       ? `One use · expires in ${Math.ceil(seconds / 60)} min`
-      : 'Code expired. Close and create another pairing link.';
+      : 'Code expired. Close and create another code.';
   }, 1000);
   expiry.textContent = 'One use · expires in 5 min';
   dialog.addEventListener(

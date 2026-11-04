@@ -1,10 +1,10 @@
 .analytics-dashboard {
-  --analytics-border: #30303a;
-  --analytics-muted: #a1a2b2;
-  --analytics-panel: #101116;
+  --analytics-border: var(--color-border);
+  --analytics-muted: var(--color-muted);
+  --analytics-panel: var(--color-surface);
   --analytics-orange: var(--accent);
-  --analytics-green: #a5d2b4;
-  --analytics-blue: #c5a9df;
+  --analytics-green: var(--color-success);
+  --analytics-blue: var(--color-purple);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -24,7 +24,7 @@
 }
 .analytics-period .ui-select-trigger {
   padding: 8px 10px;
-  color: #e9e4e1;
+  color: var(--color-text);
   font-size: 12px;
 }
 .analytics-dashboard-period {
@@ -107,7 +107,7 @@
   font: inherit;
   font-weight: 500;
   margin: 0;
-  color: #e9e4e1;
+  color: var(--color-text);
 }
 .analytics-panel-heading > span {
   color: var(--analytics-muted);
@@ -122,7 +122,7 @@
   height: auto;
 }
 .analytics-chart svg line {
-  stroke: #30303a;
+  stroke: var(--color-border);
   stroke-dasharray: 3 4;
 }
 .analytics-chart svg text {
@@ -134,12 +134,12 @@
   background: var(--analytics-orange);
 }
 .analytics-chart .series-1 {
-  fill: #a1a2b2;
-  background: #a1a2b2;
+  fill: var(--color-muted);
+  background: var(--color-muted);
 }
 .analytics-chart .series-2 {
-  fill: #eeb2ae;
-  background: #eeb2ae;
+  fill: var(--color-danger);
+  background: var(--color-danger);
 }
 .analytics-chart.tokens .series-0 {
   fill: var(--accent);
@@ -192,7 +192,7 @@
   justify-content: center;
   flex-direction: column;
   gap: 12px;
-  color: #e9e4e1;
+  color: var(--color-text);
   padding: 24px;
   text-align: center;
 }
@@ -233,7 +233,7 @@
 }
 .analytics-track {
   height: 5px;
-  background: #292933;
+  background: var(--color-hover);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -271,7 +271,7 @@
   color: var(--analytics-muted);
 }
 .analytics-latest .run-table tr:hover {
-  background: #19181f;
+  background: var(--color-surface);
 }
 .analytics-footnote {
   font-size: 10px;
@@ -340,7 +340,7 @@
   border-color: var(--analytics-border);
 }
 .analytics-latest .compact-run-row:hover {
-  background: #1b181b;
+  background: var(--color-surface);
 }
 @media (max-width: 760px) {
   .analytics-chart svg text {

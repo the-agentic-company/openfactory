@@ -88,7 +88,6 @@ describe('factory runs', () => {
       expect(result.runs.map((run) => [run.id, run.agentId])).toEqual([['run-0', 'factory-agent']]);
       expect(runtimeRpc).toHaveBeenCalledWith('sessions.read', {
         threadId: 'shared',
-        acceptBoundedSnapshot: false,
       });
     },
   );

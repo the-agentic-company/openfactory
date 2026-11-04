@@ -30,7 +30,7 @@ function Documentation() {
   const page = Route.useLoaderData();
   const tree = deserializePageTree(page.pageTree);
   return (
-    <div className="openfactory-docs dark">
+    <div className="openfactory-docs">
       <RootProvider search={{ enabled: false }} theme={{ enabled: false }}>
         <DocsLayout
           tree={tree}

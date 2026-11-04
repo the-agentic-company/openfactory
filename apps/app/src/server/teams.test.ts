@@ -27,11 +27,15 @@ beforeEach(async () => {
   directory = await mkdtemp(join(tmpdir(), 'openfactory-team-server-'));
   vi.stubEnv('OPENFACTORY_SETTINGS_DIR', join(directory, 'settings'));
   runtime = new AgentRuntime(join(directory, 'runtime'));
-  await runtime.rpc('projects.upsert', { id: 'mibba', title: 'Mibba', workspaceRoot: directory });
+  await runtime.operations['projects.upsert']({
+    id: 'mibba',
+    title: 'Mibba',
+    workspaceRoot: directory,
+  });
   const ids: string[] = [];
   for (const title of ['Operator', 'Digest']) {
     const task = z.object({ task: ownedAgentSchema }).parse(
-      await runtime.rpc('agents.upsert', {
+      await runtime.operations['agents.upsert']({
         title,
         prompt: `${title} instructions`,
         projectId: 'mibba',
@@ -46,7 +50,7 @@ beforeEach(async () => {
     ids.push(task.id);
   }
   [lead, reporter] = z.tuple([z.string(), z.string()]).parse(ids);
-  vi.mocked(runtimeRpc).mockImplementation((method, input) => runtime.rpc(method, input));
+  vi.mocked(runtimeRpc).mockImplementation((method, input) => runtime.operations[method](input));
   vi.mocked(getAgents).mockImplementation(async () => ({
     agents: [runtime.getAgent(lead), runtime.getAgent(reporter)],
     projects: [

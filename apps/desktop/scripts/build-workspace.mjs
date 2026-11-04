@@ -34,4 +34,4 @@ await run(['--filter', '@openfactory/app', 'build'], { OPENFACTORY_APP_OUTPUT_DI
 rmSync(join(root, 'web'), { recursive: true, force: true });
 cpSync(webOutput, join(root, 'web'), { recursive: true, dereference: true });
 mkdirSync(join(root, 'runtime'), { recursive: true });
-cpSync(join(runtimeOutput, 'runtime.mjs'), join(root, 'runtime/runtime.mjs'));
+cpSync(runtimeOutput, join(root, 'runtime'), { recursive: true });

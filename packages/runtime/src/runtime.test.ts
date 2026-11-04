@@ -10,6 +10,7 @@ import { AgentRuntime } from './runtime';
 import { messageSchema, ownedAgentSchema, runSchema, sessionSchema } from './contracts';
 import { nextScheduledAt } from './schedule';
 import { parseProviderEvent, providerCommand } from './providers';
+import { visualizationInstructions } from './visualization-instructions';
 
 let directory: string;
 let runtime: AgentRuntime;
@@ -17,7 +18,7 @@ const savedSchema = z.object({ task: ownedAgentSchema });
 const receiptSchema = z.object({ runId: z.string(), threadId: z.string() });
 async function create(overrides: Record<string, unknown> = {}) {
   return savedSchema.parse(
-    await runtime.rpc('agents.upsert', {
+    await runtime.operations['agents.upsert']({
       title: 'Test agent',
       prompt: 'Hello',
       projectId: 'project',
@@ -73,7 +74,7 @@ if (claude) {
   vi.stubEnv('OPENFACTORY_CODEX_BIN', binary);
   vi.stubEnv('OPENFACTORY_CLAUDE_BIN', binary);
   runtime = new AgentRuntime(directory);
-  await runtime.rpc('projects.upsert', {
+  await runtime.operations['projects.upsert']({
     id: 'project',
     title: 'Factory',
     workspaceRoot: directory,
@@ -89,7 +90,7 @@ describe('owned runtime', () => {
   it('starts a paused manual agent directly, persists output and usage, and resumes a native session', async () => {
     const agent = await create();
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'run-once' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'run-once' }),
     );
     expect((await finished(receipt.runId)).status).toBe('completed');
     expect((await finished(receipt.runId)).usage).toMatchObject({ input: 7, cached: 3, output: 2 });
@@ -99,7 +100,7 @@ describe('owned runtime', () => {
     await runtime.close();
     runtime = new AgentRuntime(directory);
     const reply = receiptSchema.parse(
-      await runtime.rpc('sessions.send', {
+      await runtime.operations['sessions.send']({
         threadId: receipt.threadId,
         text: 'Follow up',
         messageId: 'follow-up',
@@ -111,7 +112,7 @@ describe('owned runtime', () => {
     });
     const projection = z
       .object({ messages: z.array(z.object({ text: z.string() })) })
-      .parse(await runtime.rpc('sessions.projection', { threadId: receipt.threadId }));
+      .parse(await runtime.operations['sessions.projection']({ threadId: receipt.threadId }));
     expect(projection.messages.map((message) => message.text)).toEqual([
       'Hello',
       'Hello',
@@ -129,15 +130,17 @@ describe('owned runtime', () => {
   it('deduplicates manual requests and rejects changed content for a follow-up key', async () => {
     const agent = await create();
     const first = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'same' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'same' }),
     );
     expect(
-      receiptSchema.parse(await runtime.rpc('agents.run', { id: agent.id, requestId: 'same' })),
+      receiptSchema.parse(
+        await runtime.operations['agents.run']({ id: agent.id, requestId: 'same' }),
+      ),
     ).toEqual(first);
     await finished(first.runId);
     const send = { threadId: first.threadId, text: 'First', messageId: 'same-message' };
-    await runtime.rpc('sessions.send', send);
-    await expect(runtime.rpc('sessions.send', { ...send, text: 'Changed' })).rejects.toThrow(
+    await runtime.operations['sessions.send'](send);
+    await expect(runtime.operations['sessions.send']({ ...send, text: 'Changed' })).rejects.toThrow(
       'different content',
     );
   });
@@ -187,12 +190,15 @@ describe('owned runtime', () => {
       },
       enabled: true,
     });
-    await runtime.rpc('agents.webhookSecret', { id: agent.id, secret: 'fixture-signing-secret' });
+    await runtime.operations['agents.webhookSecret']({
+      id: agent.id,
+      secret: 'fixture-signing-secret',
+    });
     const listed = z
       .object({
         tasks: z.array(z.object({ id: z.string(), webhook: z.object({ url: z.string() }) })),
       })
-      .parse(await runtime.rpc('agents.list', {}));
+      .parse(await runtime.operations['agents.list']({}));
     const token = listed.tasks[0]!.webhook.url.split('/').at(-1)!;
     const body = JSON.stringify({ event: 'push' });
     const request = {
@@ -202,19 +208,21 @@ describe('owned runtime', () => {
       headers: { 'x-signature': 'bad' },
       requestId: 'delivery',
     };
-    expect(await runtime.rpc('webhooks.receive', request)).toMatchObject({ status: 401 });
+    expect(await runtime.operations['webhooks.receive'](request)).toMatchObject({ status: 401 });
     request.headers['x-signature'] =
       'sha256=' + createHmac('sha256', 'fixture-signing-secret').update(body).digest('hex');
-    const response = await runtime.rpc('webhooks.receive', request);
+    const response = await runtime.operations['webhooks.receive'](request);
     expect(response).toMatchObject({ status: 202 });
     const receipt = receiptSchema.parse(response);
     await finished(receipt.runId);
-    expect(receiptSchema.parse(await runtime.rpc('webhooks.receive', request))).toEqual(receipt);
-    expect(runtime.store.all('runs', runSchema)).toHaveLength(1);
-    await runtime.rpc('agents.setEnabled', { id: agent.id, enabled: false });
-    expect(await runtime.rpc('webhooks.receive', { ...request, requestId: 'later' })).toMatchObject(
-      { status: 409 },
+    expect(receiptSchema.parse(await runtime.operations['webhooks.receive'](request))).toEqual(
+      receipt,
     );
+    expect(runtime.store.all('runs', runSchema)).toHaveLength(1);
+    await runtime.operations['agents.setEnabled']({ id: agent.id, enabled: false });
+    expect(
+      await runtime.operations['webhooks.receive']({ ...request, requestId: 'later' }),
+    ).toMatchObject({ status: 409 });
   });
 
   it('imports T3-shaped options and history without re-enabling an existing agent on retry', async () => {
@@ -248,20 +256,22 @@ describe('owned runtime', () => {
         },
       ],
     };
-    await runtime.rpc('migration.import', snapshot);
+    await runtime.operations['migration.import'](snapshot);
     expect(runtime.getAgent('imported')).toMatchObject({
       enabled: false,
       modelSelection: { options: { reasoningEffort: 'medium' } },
     });
-    await runtime.rpc('agents.setEnabled', {
+    await runtime.operations['agents.setEnabled']({
       id: 'imported',
       enabled: true,
       nextRunAt: imported.nextRunAt,
     });
     expect(runtime.getAgent('imported').nextRunAt).toBe(imported.nextRunAt);
-    await runtime.rpc('migration.import', snapshot);
+    await runtime.operations['migration.import'](snapshot);
     expect(runtime.getAgent('imported').enabled).toBe(true);
-    expect(await runtime.rpc('sessions.projection', { threadId: 'old-thread' })).toMatchObject({
+    expect(
+      await runtime.operations['sessions.projection']({ threadId: 'old-thread' }),
+    ).toMatchObject({
       messages: [{ text: 'Retained history' }],
     });
   });
@@ -287,14 +297,14 @@ describe('owned runtime', () => {
     const agent = await create({ workspaceStrategy: { type: 'worktree', baseRef: 'HEAD' } });
     vi.stubEnv('OPENFACTORY_CODEX_BIN', join(directory, 'missing-cli'));
     const first = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'worktree' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'worktree' }),
     );
     expect((await finished(first.runId)).status).toBe('failed');
     const session = runtime.store.get('sessions', first.threadId, sessionSchema);
     expect(session?.cwd).toBe(join(directory, 'worktrees', first.threadId));
     vi.stubEnv('OPENFACTORY_CODEX_BIN', join(directory, 'provider'));
     const followup = receiptSchema.parse(
-      await runtime.rpc('sessions.send', {
+      await runtime.operations['sessions.send']({
         threadId: first.threadId,
         text: 'Try again',
         messageId: 'retry-provider',
@@ -307,7 +317,7 @@ describe('owned runtime', () => {
   it('records actual provider failures rather than successful dispatch', async () => {
     const agent = await create({ prompt: 'FAIL' });
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'failure' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'failure' }),
     );
     expect(await finished(receipt.runId)).toMatchObject({
       status: 'failed',
@@ -321,7 +331,7 @@ describe('owned runtime', () => {
   it('continues capacity failures once after five minutes, across a restart', async () => {
     const agent = await create({ prompt: 'CAPACITY', enabled: true });
     const first = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'capacity' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'capacity' }),
     );
     const failed = await finished(first.runId);
     expect(failed).toMatchObject({
@@ -348,7 +358,7 @@ describe('owned runtime', () => {
     expect(await finished(retry.id)).toMatchObject({ status: 'completed' });
     expect(runtime.store.all('messages', messageSchema).at(-1)?.text).toBe('continue resumed');
     const conversations = projectAgentConversations(
-      await runtime.rpc('sessions.projection', { threadId: first.threadId }),
+      await runtime.operations['sessions.projection']({ threadId: first.threadId }),
       agent.id,
     );
     expect(conversations).toHaveLength(1);
@@ -372,16 +382,16 @@ describe('owned runtime', () => {
     async (reason) => {
       const agent = await create({ prompt: 'CAPACITY', enabled: true });
       const first = receiptSchema.parse(
-        await runtime.rpc('agents.run', { id: agent.id, requestId: 'capacity' }),
+        await runtime.operations['agents.run']({ id: agent.id, requestId: 'capacity' }),
       );
       const failed = await finished(first.runId);
       if (reason === 'disabled') {
-        await runtime.rpc('agents.setEnabled', { id: agent.id, enabled: false });
+        await runtime.operations['agents.setEnabled']({ id: agent.id, enabled: false });
       } else if (reason === 'stopped') {
-        await runtime.rpc('sessions.stop', { threadId: first.threadId });
+        await runtime.operations['sessions.stop']({ threadId: first.threadId });
       } else {
         const reply = receiptSchema.parse(
-          await runtime.rpc('sessions.send', {
+          await runtime.operations['sessions.send']({
             threadId: first.threadId,
             text: 'Manual recovery',
             messageId: 'manual-recovery',
@@ -401,7 +411,7 @@ describe('owned runtime', () => {
   it('runs Claude directly and records its native session and output', async () => {
     const agent = await create({ modelSelection: { instanceId: 'claude-code', model: 'fixture' } });
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'claude' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'claude' }),
     );
     expect((await finished(receipt.runId)).status).toBe('completed');
     expect(runtime.store.get('sessions', receipt.threadId, sessionSchema)?.nativeSessionId).toBe(
@@ -413,10 +423,10 @@ describe('owned runtime', () => {
     const agent = await create({ prompt: 'HOLD' });
     const other = await create({ title: 'Other' });
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'hold' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'hold' }),
     );
     await expect(
-      runtime.rpc('sessions.send', {
+      runtime.operations['sessions.send']({
         threadId: receipt.threadId,
         agentId: other.id,
         text: 'Intrude',
@@ -424,13 +434,13 @@ describe('owned runtime', () => {
       }),
     ).rejects.toThrow('another agent');
     const queued = receiptSchema.parse(
-      await runtime.rpc('sessions.send', {
+      await runtime.operations['sessions.send']({
         threadId: receipt.threadId,
         text: 'Queued',
         messageId: 'queued',
       }),
     );
-    await runtime.rpc('sessions.stop', { threadId: receipt.threadId, agentId: agent.id });
+    await runtime.operations['sessions.stop']({ threadId: receipt.threadId, agentId: agent.id });
     expect((await finished(receipt.runId)).status).toBe('interrupted');
     expect((await finished(queued.runId)).status).toBe('interrupted');
   });
@@ -475,12 +485,21 @@ describe('schedules and provider protocol', () => {
       '--config',
       'approval_policy="never"',
       '--config',
+      `developer_instructions=${JSON.stringify(visualizationInstructions)}`,
+      '--config',
       'sandbox_mode="danger-full-access"',
       '--config',
       'model_reasoning_effort="medium"',
       'native-id',
       '-',
     ]);
+    expect(
+      providerCommand({ ...session, modelSelection: { instanceId: 'claude-code', model: 'model' } })
+        .args,
+    ).toContain(visualizationInstructions);
+    expect(providerCommand({ ...session, nativeSessionId: null }).args).toContain(
+      `developer_instructions=${JSON.stringify(visualizationInstructions)}`,
+    );
   });
   it('recognizes a Claude result failure even with successful process exit', () => {
     expect(
@@ -513,13 +532,13 @@ describe('live teams', () => {
     setup.source = setup.source
       .replace('agents/operator/agent.md', operatorPath)
       .replace('agents/digest/agent.md', digestPath);
-    await runtime.rpc('teams.replace', { projectId: 'project', teams: [setup] });
+    await runtime.operations['teams.replace']({ projectId: 'project', teams: [setup] });
     return { operator, digest, setup };
   }
   it('lists actual agents, adds shared instructions to runs, and retains teams across restarts', async () => {
     const { digest } = await setupTeam();
     const receipt = receiptSchema.parse(
-      await runtime.rpc('teams.run', {
+      await runtime.operations['teams.run']({
         projectId: 'project',
         path: 'teams/reliability/team.yaml',
         member: 'digest',
@@ -530,7 +549,7 @@ describe('live teams', () => {
     expect((await finished(receipt.runId)).status).toBe('completed');
     const projection = z
       .object({ messages: z.array(z.object({ text: z.string(), role: z.string() })) })
-      .parse(await runtime.rpc('sessions.projection', { threadId: receipt.threadId }));
+      .parse(await runtime.operations['sessions.projection']({ threadId: receipt.threadId }));
     const answer = projection.messages.find((message) => message.role === 'assistant')?.text;
     expect(answer).toContain('Keep one writer. Preserve approval holds.');
     expect(answer).toContain('Summarize actual evidence.');
@@ -544,7 +563,7 @@ describe('live teams', () => {
           z.object({ agents: z.array(z.object({ id: z.string(), agent: ownedAgentSchema })) }),
         ),
       })
-      .parse(await runtime.rpc('teams.list', { projectId: 'project' }));
+      .parse(await runtime.operations['teams.list']({ projectId: 'project' }));
     expect(teams.teams[0]?.agents.find((member) => member.id === 'digest')?.agent).toMatchObject({
       id: digest.id,
       runCount: 1,
@@ -552,7 +571,7 @@ describe('live teams', () => {
     });
     expect(
       receiptSchema.parse(
-        await runtime.rpc('teams.run', {
+        await runtime.operations['teams.run']({
           projectId: 'project',
           path: 'teams/reliability/team.yaml',
           member: 'digest',
@@ -562,7 +581,7 @@ describe('live teams', () => {
       ),
     ).toEqual(receipt);
     await expect(
-      runtime.rpc('teams.run', {
+      runtime.operations['teams.run']({
         projectId: 'project',
         path: 'teams/reliability/team.yaml',
         member: 'unknown',
@@ -573,11 +592,11 @@ describe('live teams', () => {
   it('adds team guidance once and sends follow-ups verbatim in the existing session', async () => {
     const { operator } = await setupTeam();
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: operator.id, requestId: 'ordinary' }),
+      await runtime.operations['agents.run']({ id: operator.id, requestId: 'ordinary' }),
     );
     expect((await finished(receipt.runId)).status).toBe('completed');
     const reply = receiptSchema.parse(
-      await runtime.rpc('sessions.send', {
+      await runtime.operations['sessions.send']({
         threadId: receipt.threadId,
         text: 'Question: <status> & “next steps”?\nSecond line.',
         messageId: 'team-follow-up',
@@ -586,7 +605,7 @@ describe('live teams', () => {
     expect((await finished(reply.runId)).status).toBe('completed');
     const projection = z
       .object({ messages: z.array(z.object({ text: z.string(), role: z.string() })) })
-      .parse(await runtime.rpc('sessions.projection', { threadId: receipt.threadId }));
+      .parse(await runtime.operations['sessions.projection']({ threadId: receipt.threadId }));
     const prompts = projection.messages.filter((message) => message.role === 'user');
     expect(prompts[0]?.text).toContain('Keep one writer.');
     expect(prompts[1]?.text).toBe('Question: <status> & “next steps”?\nSecond line.');
@@ -599,31 +618,34 @@ describe('live teams', () => {
   it('rejects missing or cross-project agents before replacing any teams', async () => {
     const { operator, setup } = await setupTeam();
     await mkdir(join(directory, 'other'));
-    await runtime.rpc('projects.upsert', {
+    await runtime.operations['projects.upsert']({
       id: 'other',
       title: 'Other',
       workspaceRoot: join(directory, 'other'),
     });
     await expect(
-      runtime.rpc('teams.replace', { projectId: 'other', teams: [setup] }),
+      runtime.operations['teams.replace']({ projectId: 'other', teams: [setup] }),
     ).rejects.toThrow('unavailable agent');
     await expect(
-      runtime.rpc('teams.replace', { projectId: 'project', teams: [{ ...setup, bindings: {} }] }),
+      runtime.operations['teams.replace']({
+        projectId: 'project',
+        teams: [{ ...setup, bindings: {} }],
+      }),
     ).rejects.toThrow('unavailable agent');
     await expect(
-      runtime.rpc('teams.replace', { projectId: 'project', teams: [setup, setup] }),
+      runtime.operations['teams.replace']({ projectId: 'project', teams: [setup, setup] }),
     ).rejects.toThrow('Duplicate team path');
     await expect(create({ ...operator, projectId: 'other' })).rejects.toThrow('Remove this agent');
     expect(
       z
         .object({ teams: z.array(z.unknown()) })
-        .parse(await runtime.rpc('teams.list', { projectId: 'project' })).teams,
+        .parse(await runtime.operations['teams.list']({ projectId: 'project' })).teams,
     ).toHaveLength(1);
-    await runtime.rpc('teams.replace', { projectId: 'project', teams: [] });
+    await runtime.operations['teams.replace']({ projectId: 'project', teams: [] });
     expect(
       z
         .object({ teams: z.array(z.unknown()) })
-        .parse(await runtime.rpc('teams.list', { projectId: 'project' })).teams,
+        .parse(await runtime.operations['teams.list']({ projectId: 'project' })).teams,
     ).toHaveLength(0);
   });
 });
@@ -632,11 +654,11 @@ describe('factory deletion', () => {
   it('removes factory data, preserves other factories and files, and remains deleted after restart', async () => {
     const agent = await create();
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'delete-me' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'delete-me' }),
     );
     await finished(receipt.runId);
     await mkdir(join(directory, 'other'));
-    await runtime.rpc('projects.upsert', {
+    await runtime.operations['projects.upsert']({
       id: 'other',
       title: 'Other',
       workspaceRoot: join(directory, 'other'),
@@ -646,11 +668,15 @@ describe('factory deletion', () => {
     runtime.store.put('archives', 'archive', { thread: { projectId: 'project' } });
     runtime.store.put('deliveries', 'delivery', { agentId: agent.id });
     await writeFile(join(directory, 'project-file.txt'), 'Keep me');
-    expect(await runtime.rpc('projects.delete', { id: 'project' })).toEqual({ deleted: true });
+    expect(await runtime.operations['projects.delete']({ id: 'project' })).toEqual({
+      deleted: true,
+    });
     await runtime.close();
     runtime = new AgentRuntime(directory);
-    expect(await runtime.rpc('agents.list', {})).toMatchObject({ tasks: [{ id: other.id }] });
-    expect(await runtime.rpc('workspace.snapshot', {})).toMatchObject({
+    expect(await runtime.operations['agents.list']({})).toMatchObject({
+      tasks: [{ id: other.id }],
+    });
+    expect(await runtime.operations['workspace.snapshot']({})).toMatchObject({
       snapshot: { projects: [{ id: 'other' }], threads: [] },
     });
     for (const table of [
@@ -665,18 +691,26 @@ describe('factory deletion', () => {
     }
     expect(runtime.store.get('secrets', agent.id, z.unknown())).toBeNull();
     expect(await readFile(join(directory, 'project-file.txt'), 'utf8')).toBe('Keep me');
-    expect(await runtime.rpc('projects.delete', { id: 'project' })).toEqual({ deleted: true });
+    expect(await runtime.operations['projects.delete']({ id: 'project' })).toEqual({
+      deleted: true,
+    });
   });
 
   it('refuses to delete a factory with an active run', async () => {
     const agent = await create({ prompt: 'HOLD' });
     const receipt = receiptSchema.parse(
-      await runtime.rpc('agents.run', { id: agent.id, requestId: 'active' }),
+      await runtime.operations['agents.run']({ id: agent.id, requestId: 'active' }),
     );
-    await expect(runtime.rpc('projects.delete', { id: 'project' })).rejects.toThrow(
+    await vi.waitFor(() => {
+      expect(runtime.store.get('sessions', receipt.threadId, sessionSchema)?.nativeSessionId).toBe(
+        'codex-session',
+      );
+    });
+    await expect(runtime.operations['projects.delete']({ id: 'project' })).rejects.toThrow(
       'Stop active runs',
     );
     expect(runtime.getAgent(agent.id).id).toBe(agent.id);
-    await runtime.rpc('sessions.stop', { threadId: receipt.threadId });
+    await runtime.operations['sessions.stop']({ threadId: receipt.threadId });
+    await finished(receipt.runId);
   });
 });

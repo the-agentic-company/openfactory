@@ -1,4 +1,5 @@
 import { siteUrl } from '../site-url';
+import { DesktopUpdate } from './desktop-update';
 import { projectName } from '../project-path';
 import type { Agent, WorkspaceView } from '@openfactory/core';
 import { Link } from '@tanstack/react-router';
@@ -14,13 +15,14 @@ import {
   Settings,
   Store,
 } from 'lucide-react';
-import { domAnimation, LazyMotion, useReducedMotion } from 'motion/react';
+import { domMax, LazyMotion, useReducedMotion } from 'motion/react';
 import * as m from 'motion/react-m';
 import { useId, useState } from 'react';
 import { FactoryNavigationItem, type FactoryProject } from './factory-navigation-item';
 import { AppearanceGlyph } from './appearance-glyph';
 import { useSidebarState } from './sidebar-state';
 import { SidebarToggle } from './sidebar-toggle';
+import { useSidebarMotion } from './sidebar-motion';
 
 const navigation = [
   { view: 'dashboard', label: 'Dashboard', icon: ChartNoAxesCombined },
@@ -45,6 +47,8 @@ export function WorkspaceSidebar({
   onAgentsClick?: () => void;
 }) {
   const { collapsed } = useSidebarState();
+  useSidebarMotion(collapsed);
+  const reduceMotion = useReducedMotion();
   const projects: FactoryProject[] = suppliedProjects ?? [
     ...new Map(
       agents.map((agent) => [
@@ -58,7 +62,7 @@ export function WorkspaceSidebar({
     ).values(),
   ];
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={domMax} strict>
       <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
         <div className="sidebar-heading">
           <Link to="/app" className="brand" aria-label="OpenFactory" title="OpenFactory">
@@ -67,7 +71,6 @@ export function WorkspaceSidebar({
             </span>
             <span className="sidebar-label">OpenFactory</span>
           </Link>
-          <SidebarToggle />
         </div>
         <nav className="global-navigation" aria-label="Workspace pages">
           <Link
@@ -108,33 +111,52 @@ export function WorkspaceSidebar({
           {projects.map((project) => {
             const active = activeProject === project.workspaceRoot;
             const count = agents.filter((agent) => agent.projectId === project.id).length;
-            if (collapsed) {
-              return (
-                <Link
-                  key={project.id}
-                  to="/app/projects/$project/$view"
-                  params={{ project: projectName(project.workspaceRoot), view: 'agents' }}
-                  className={`nav-link factory-rail-link ${active ? 'active' : ''}`}
-                  aria-label={`${project.title} agents`}
-                  title={project.title}
-                  onClick={onAgentsClick}
-                >
-                  <AppearanceGlyph
-                    appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
-                    size={17}
-                  />
-                </Link>
-              );
-            }
             return (
-              <FactorySidebarGroup
+              <m.div
                 key={project.id}
-                project={project}
-                active={active}
-                activeView={activeView}
-                count={count}
-                onAgentsClick={onAgentsClick}
-              />
+                className="sidebar-factory"
+                layout={reduceMotion ? false : 'position'}
+                transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+              >
+                <m.div
+                  initial={false}
+                  animate={{ opacity: collapsed ? 1 : 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.32, 0.72, 0, 1] }}
+                  className="sidebar-factory-content sidebar-factory-rail"
+                  inert={!collapsed}
+                  aria-hidden={!collapsed}
+                >
+                  <Link
+                    to="/app/projects/$project/$view"
+                    params={{ project: projectName(project.workspaceRoot), view: 'agents' }}
+                    className={`nav-link factory-rail-link ${active ? 'active' : ''}`}
+                    aria-label={`${project.title} agents`}
+                    title={project.title}
+                    onClick={onAgentsClick}
+                  >
+                    <AppearanceGlyph
+                      appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
+                      size={17}
+                    />
+                  </Link>
+                </m.div>
+                <m.div
+                  initial={false}
+                  animate={{ opacity: collapsed ? 0 : 1 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.32, 0.72, 0, 1] }}
+                  className="sidebar-factory-content sidebar-factory-expanded"
+                  inert={collapsed}
+                  aria-hidden={collapsed}
+                >
+                  <FactorySidebarGroup
+                    project={project}
+                    active={active}
+                    activeView={activeView}
+                    count={count}
+                    onAgentsClick={onAgentsClick}
+                  />
+                </m.div>
+              </m.div>
             );
           })}
           {projects.length === 0 && (
@@ -142,6 +164,8 @@ export function WorkspaceSidebar({
           )}
         </div>
         <nav className="settings-navigation" aria-label="Application settings">
+          <DesktopUpdate />
+          <SidebarToggle />
           <Link
             to="/app/settings"
             className={`nav-link ${activeView === 'settings' ? 'active' : ''}`}

@@ -80,6 +80,9 @@ const result = spawnSync(
     'never',
     ...(signedRelease ? ['--config=build/mac-release.cjs'] : []),
     `--config.directories.app=${snapshot}`,
+    ...(process.env.OPENFACTORY_UPDATE_URL
+      ? [`--config.publish.url=${process.env.OPENFACTORY_UPDATE_URL}`]
+      : []),
   ],
   { cwd: root, stdio: 'inherit' },
 );

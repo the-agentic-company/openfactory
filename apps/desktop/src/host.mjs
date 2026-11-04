@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import { z } from 'zod';
 import { openHostStore } from './host-store.mjs';
-import { runtimeRequest } from './runtime-client.mjs';
+import { proxyRuntimeRpc } from './runtime-client.mjs';
 import { ensureWorkspaceRuntime } from './workspace-services.mjs';
 
 export const defaultDataDir = () =>
@@ -382,14 +382,8 @@ export async function startHost(options = {}) {
         if (!owner && !peer) {
           throw fault(401, 'Access was revoked or is no longer valid. Pair this computer again.');
         }
-        if (path === '/v1/rpc' && method === 'POST') {
-          const input = z
-            .object({ method: z.string(), payload: z.unknown() })
-            .parse(await body(request, 100_000_000));
-          if (input.method === 'migration.import' || input.method === 'definitions.migrate') {
-            throw fault(403, 'Import runtime data on the host computer.');
-          }
-          return send({ value: await runtimeRequest(input.method, input.payload) });
+        if ((path === '/v1/rpc' || path === '/v1/rpc/') && method === 'POST') {
+          return await proxyRuntimeRpc(request, response);
         }
         if (path === '/v1/sync' && method === 'GET') {
           const { after, limit } = z

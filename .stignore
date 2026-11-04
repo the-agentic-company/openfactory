@@ -1,0 +1,23 @@
+// Local metadata, secrets, dependencies, and generated files
+.git
+.jj
+.stversions
+node_modules
+.pnpm-store
+dist
+dist-ssr
+build
+.output
+.vercel
+.tanstack
+.vite
+.cache
+.next
+coverage
+.env
+.env.*
+*.tsbuildinfo
+.DS_Store
+/factory.lock
+/.claude/worktrees
+/apps/site/.source

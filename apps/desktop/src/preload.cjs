@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('openfactory', {
         error.message.replace(/^Error invoking remote method 'openfactory': (?:Error: )?/, ''),
       );
     }),
+  onUpdate: (callback) => {
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on('desktop-update', listener);
+    return () => ipcRenderer.removeListener('desktop-update', listener);
+  },
   onSync: (callback) => {
     const listener = (_event, update) => callback(update);
     ipcRenderer.on('sync-change', listener);

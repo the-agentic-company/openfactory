@@ -25,6 +25,7 @@
     "setup:sandbox": "node scripts/install-linux-sandbox.mjs"
   },
   "dependencies": {
+    "electron-updater": "6.8.11",
     "qrcode": "1.5.4",
     "zod": "4.6.7"
   },
@@ -37,7 +38,10 @@
     "rxjs": "^7.8.2"
   },
   "build": {
-    "publish": null,
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/the-agentic-company/openfactory-releases/releases/latest/download"
+    },
     "appId": "dev.openfactory.desktop.prototype",
     "productName": "OpenFactory",
     "executableName": "openfactory-prototype",
@@ -77,6 +81,7 @@
       "icon": "../app/public/favicon.png"
     },
     "win": {
+      "icon": "build/icon.ico",
       "executableName": "OpenFactory",
       "target": [
         {

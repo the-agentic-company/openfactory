@@ -5,10 +5,13 @@ import { nitro } from 'nitro/vite';
 import { defineConfig } from 'vite-plus';
 import { appBoundary } from '../../scripts/app-boundary';
 
+const port = Number(process.env.PORT ?? 8018);
+
 export default defineConfig({
+  cacheDir: `node_modules/.vite/dev-${port}`,
   server: {
     host: '0.0.0.0',
-    port: 8018,
+    port,
     strictPort: true,
     watch: { awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 } },
     allowedHosts: ['dell-server.taild717d7.ts.net'],

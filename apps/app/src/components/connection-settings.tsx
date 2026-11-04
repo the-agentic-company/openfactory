@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
-import { Copy, Laptop, Link2, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
+import { Copy, Laptop, KeyRound, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { z } from 'zod';
+import { checkConnection, connectionHealthSchema } from '../connection-health';
 import { Modal } from './modal';
 import { WorkspacePage } from './workspace-page';
 import * as connections from '../server/connections';
@@ -13,6 +14,7 @@ declare global {
     openfactory?: {
       invoke: (operation: string, payload?: unknown) => Promise<unknown>;
       platform?: string;
+      onUpdate?: (callback: (state: unknown) => void) => () => void;
       onPairingLink?: (callback: (link: string) => void) => void;
     };
   }
@@ -158,7 +160,25 @@ export function ConnectionSettings() {
   const settings = query.data;
   return (
     <WorkspacePage contentClassName="connection-settings" title="Settings">
-      <p className="muted-copy">Computers and access</p>
+      <section className="settings-section" aria-labelledby="appearance-heading">
+        <div className="settings-section-heading">
+          <div>
+            <h2 id="appearance-heading">Appearance</h2>
+            <p id="appearance-description">
+              Light mode is active. Dark mode is temporarily unavailable.
+            </p>
+          </div>
+          <fieldset className="settings-appearance" aria-describedby="appearance-description">
+            <legend>Color theme</legend>
+            <label>
+              <input type="radio" name="appearance" value="light" checked readOnly /> Light
+            </label>
+            <label>
+              <input type="radio" name="appearance" value="dark" disabled /> Dark
+            </label>
+          </fieldset>
+        </div>
+      </section>
       {(action.error || query.error) && (
         <p className="error-banner" role="alert">
           {action.error?.message ?? query.error?.message}
@@ -184,6 +204,7 @@ export function ConnectionSettings() {
               <span>
                 {computer.local ? (settings.local?.host.name ?? 'Local host') : computer.origin}
               </span>
+              <ComputerHealth computer={computer} />
             </div>
             {settings.activeId === computer.id ? (
               <span className="settings-selected">
@@ -222,7 +243,7 @@ export function ConnectionSettings() {
             disabled={action.isPending || !settings?.local}
             onClick={() => action.mutate({ operation: 'pairing' })}
           >
-            <Link2 size={15} /> Create pairing link
+            <KeyRound size={15} /> Create pairing code
           </button>
         </div>
         <p className="settings-help">
@@ -303,8 +324,93 @@ export function ConnectionSettings() {
   );
 }
 
+const checkTimeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
+
+function ComputerHealth({
+  computer,
+}: {
+  computer: z.infer<typeof settingsSchema>['computers'][number];
+}) {
+  const health = useQuery({
+    queryKey: ['computer-health', computer.id, computer.origin],
+    queryFn: async () => {
+      const api = native();
+      const health = api
+        ? await checkConnection(
+            () => api.invoke('state', { computerId: computer.id }),
+            computer.local,
+          )
+        : connectionHealthSchema.parse(
+            await connections.checkComputer({ data: { id: computer.id } }),
+          );
+      return { ...health, checkedAtLabel: checkTimeFormatter.format(health.checkedAt) };
+    },
+    refetchInterval: 10000,
+    retry: false,
+  });
+  const result = health.data;
+  const labels = {
+    reachable: 'Connected and reachable',
+    timeout: 'Connection timed out',
+    unreachable: 'Unreachable',
+    'access-denied': 'Access denied',
+    error: 'Connection check failed',
+  };
+  return (
+    <div className="settings-computer-health">
+      <div className="settings-health-summary">
+        <output
+          className={`settings-health-status settings-health-status--${health.error ? 'unknown' : (result?.kind ?? 'unknown')}`}
+        >
+          {health.isFetching
+            ? 'Checking connection…'
+            : health.error
+              ? 'Status unavailable'
+              : result
+                ? labels[result.kind]
+                : 'Status unavailable'}
+        </output>
+        <button
+          className="settings-health-retry"
+          disabled={health.isFetching}
+          onClick={() => {
+            void health.refetch();
+          }}
+          aria-label={`Check connection to ${computer.name}`}
+        >
+          Check again
+        </button>
+      </div>
+      {result && (
+        <span className="settings-health-timestamp">
+          Last checked {result.checkedAtLabel}
+          {result.kind === 'reachable' ? ` · ${result.latencyMs} ms response` : ''}
+          {' · Refreshes every 10 seconds'}
+        </span>
+      )}
+      {result && result.kind !== 'reachable' && (
+        <div className="settings-health-problem">
+          <p>
+            {result.kind === 'timeout' && 'No response within 8 seconds. '}
+            {result.recommendation}
+          </p>
+          <details>
+            <summary>Connection details</summary>
+            <pre>{result.detail}</pre>
+          </details>
+        </div>
+      )}
+      {health.error && (
+        <p className="settings-health-problem" role="alert">
+          Could not refresh connection status. {health.error.message} Check again when the app is
+          responding.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AddComputer({ onClose, onPaired }: { onClose: () => void; onPaired: () => void }) {
-  const [link, setLink] = useState('');
   const [address, setAddress] = useState('');
   const [code, setCode] = useState('');
   const mutation = useMutation({
@@ -319,7 +425,6 @@ function AddComputer({ onClose, onPaired }: { onClose: () => void; onPaired: () 
     onSuccess: onPaired,
   });
   function parseLink(value: string) {
-    setLink(value);
     try {
       const url = new URL(value);
       if (url.protocol === 'openfactory:' && url.hostname === 'pair') {
@@ -350,19 +455,10 @@ function AddComputer({ onClose, onPaired }: { onClose: () => void; onPaired: () 
       </div>
       <h2 id="pair-computer-title">Add a computer</h2>
       <p>
-        On the other computer, open Settings and create a pairing link. Paste it here, or enter its
-        address and fresh code.
+        On the other computer, open Settings → Pair a device. Enter the address and code shown
+        there.
       </p>
       <form onSubmit={submit}>
-        <label>
-          Pairing link
-          <input
-            value={link}
-            onChange={(event) => parseLink(event.target.value)}
-            placeholder="openfactory://pair…"
-            autoComplete="off"
-          />
-        </label>
         <label>
           Computer address
           <input
@@ -410,9 +506,9 @@ function PairingCode({
   const expired = now >= pairing.expiresAt;
   async function copy() {
     if (native()) {
-      await native()?.invoke('copy', pairing.link);
+      await native()?.invoke('copy', pairing.origin);
     } else {
-      await navigator.clipboard.writeText(pairing.link);
+      await navigator.clipboard.writeText(pairing.origin);
     }
     setCopied(true);
   }
@@ -424,7 +520,10 @@ function PairingCode({
         </button>
       </div>
       <h2 id="pair-device-title">Pair a device</h2>
-      <p>Enter this code on your other computer. It works once.</p>
+      <p>
+        On your other computer, open Settings → Add computer and enter this address and code. The
+        code works once.
+      </p>
       {pairing.origin.startsWith('http:') && (
         <p className="error-banner">
           Enable Tailscale access in Settings before pairing a remote device.
@@ -436,7 +535,7 @@ function PairingCode({
       <p className="settings-address">{pairing.origin}</p>
       <output className="settings-help">
         {expired
-          ? 'This code expired. Close this dialog and create a new pairing link.'
+          ? 'This code expired. Close this dialog and create a new code.'
           : `Expires in ${Math.ceil((pairing.expiresAt - now) / 60000)} minutes`}
       </output>
       <button
@@ -446,7 +545,7 @@ function PairingCode({
         }}
         disabled={expired}
       >
-        <Copy size={15} /> {copied ? 'Copied' : 'Copy pairing link'}
+        <Copy size={15} /> {copied ? 'Address copied' : 'Copy address'}
       </button>
     </Modal>
   );

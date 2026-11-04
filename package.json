@@ -4,7 +4,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "vp run @openfactory/app#dev",
+    "dev": "vp run --filter @openfactory/desktop --filter @openfactory/site --parallel --no-cache --log labeled dev",
+    "dev:app": "vp run @openfactory/app#dev",
+    "dev:desktop": "pnpm --filter @openfactory/desktop dev",
     "build": "vp run -r build",
     "build:site": "vp run @openfactory/site#build",
     "verify:site": "node scripts/verify-public-site.mjs",
@@ -16,14 +18,16 @@
     "ready": "vp check && pnpm test && vp run -r build",
     "runtime:build": "vp run @openfactory/runtime#build",
     "runtime:start": "node packages/runtime/dist/runtime.mjs serve",
-    "runtime:migrate": "node apps/app/scripts/migrate-t3.mjs",
+    "runtime:migrate": "pnpm runtime:build && node apps/app/scripts/migrate-t3.mjs",
     "openfactory": "node packages/runtime/dist/runtime.mjs",
     "dev:site": "vp run @openfactory/site#dev",
     "build:app": "vp run @openfactory/app#build",
-    "verify:app": "node scripts/verify-app.mjs"
+    "verify:app": "node scripts/verify-app.mjs",
+    "verify:visualizations": "node scripts/verify-visualizations.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
+    "playwright": "^1.64.1",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
   },

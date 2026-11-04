@@ -13,6 +13,8 @@ import {
   nativeState,
 } from './native-runtime.server';
 
+import { checkConnection } from '../connection-health';
+
 const execute = promisify(execFile);
 export const enableNetwork = createServerFn({ method: 'POST' }).handler(async () => {
   const connection = await localNativeConnection();
@@ -93,6 +95,21 @@ export const getConnections = createServerFn({ method: 'GET' }).handler(async ()
     local,
   };
 });
+export const checkComputer = createServerFn({ method: 'GET' })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) =>
+    checkConnection(async () => {
+      const preferences = await connectionPreferences();
+      const target =
+        data.id === 'local'
+          ? await localNativeConnection()
+          : preferences.computers.find((computer) => computer.id === data.id);
+      if (!target) {
+        throw new Error('Computer not found. Refresh Settings.');
+      }
+      await nativeState(target, 8000);
+    }, data.id === 'local'),
+  );
 export const selectComputer = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {

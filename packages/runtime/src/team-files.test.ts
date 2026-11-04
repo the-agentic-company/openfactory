@@ -15,7 +15,11 @@ beforeEach(async () => {
   directory = await mkdtemp(join(tmpdir(), 'openfactory-team-files-'));
   vi.stubEnv('OPENFACTORY_SETTINGS_DIR', join(directory, 'settings'));
   runtime = new AgentRuntime(join(directory, 'runtime'));
-  await runtime.rpc('projects.upsert', { id: 'mibba', title: 'Mibba', workspaceRoot: directory });
+  await runtime.operations['projects.upsert']({
+    id: 'mibba',
+    title: 'Mibba',
+    workspaceRoot: directory,
+  });
 });
 afterEach(async () => {
   await runtime.close();
@@ -24,7 +28,7 @@ afterEach(async () => {
 });
 it('applies a real team folder, preserves the agent schedule, and safely reapplies the same files', async () => {
   const agent = z.object({ task: ownedAgentSchema }).parse(
-    await runtime.rpc('agents.upsert', {
+    await runtime.operations['agents.upsert']({
       title: 'Operator',
       prompt: 'Investigate.',
       projectId: 'mibba',
@@ -54,7 +58,8 @@ it('applies a real team folder, preserves the agent schedule, and safely reappli
     }),
   );
   await writeFile(join(directory, 'reliability/instructions.md'), 'Preserve approval holds.');
-  const rpc = runtime.rpc.bind(runtime);
+  const rpc: typeof import('./client').runtimeRpc = (method, input) =>
+    runtime.operations[method](input);
   const saved = await applyTeamFile('mibba', teamFile, rpc);
   expect(await applyTeamFile('mibba', teamFile, rpc)).toEqual(saved);
   expect(await readFile(join(saved.location, 'teams/reliability/instructions.md'), 'utf8')).toBe(

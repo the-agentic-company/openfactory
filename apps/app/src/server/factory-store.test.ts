@@ -24,10 +24,14 @@ beforeEach(async () => {
   runtime = new AgentRuntime(join(directory, 'runtime'));
   for (const id of ['one', 'two']) {
     await mkdir(join(directory, id));
-    await runtime.rpc('projects.upsert', { id, title: id, workspaceRoot: join(directory, id) });
+    await runtime.operations['projects.upsert']({
+      id,
+      title: id,
+      workspaceRoot: join(directory, id),
+    });
   }
   agentId = z.object({ task: ownedAgentSchema }).parse(
-    await runtime.rpc('agents.upsert', {
+    await runtime.operations['agents.upsert']({
       projectId: 'one',
       title: 'Reviewer',
       prompt: 'Review.',
@@ -39,7 +43,9 @@ beforeEach(async () => {
       workspaceStrategy: { type: 'root' },
     }),
   ).task.id;
-  vi.mocked(runtimeRpc).mockImplementation((method, payload) => runtime.rpc(method, payload));
+  vi.mocked(runtimeRpc).mockImplementation((method, payload) =>
+    runtime.operations[method](payload),
+  );
 });
 afterEach(async () => {
   await runtime.close();

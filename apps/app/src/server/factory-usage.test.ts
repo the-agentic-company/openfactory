@@ -172,7 +172,9 @@ describe('factory token usage', () => {
       ]);
       expect(result.sources).toEqual([{ status: 'ok' }]);
       expect(
-        vi.mocked(runtimeRpc).mock.calls.every(([method]) => method !== 'server.getUsageSummary'),
+        vi
+          .mocked(runtimeRpc)
+          .mock.calls.every(([method]) => String(method) !== 'server.getUsageSummary'),
       ).toBe(true);
     },
   );

@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import type { Session } from './contracts';
 import { usageSchema } from './contracts';
+import { visualizationInstructions } from './visualization-instructions';
 
 type ProviderEvent =
   | { type: 'session'; id: string }
@@ -141,6 +142,8 @@ export function providerCommand(session: Session) {
       model,
       '--config',
       'approval_policy="never"',
+      '--config',
+      `developer_instructions=${JSON.stringify(visualizationInstructions)}`,
     );
     const sandbox =
       session.interactionMode !== 'plan' && session.runtimeMode === 'full-access'
@@ -164,6 +167,7 @@ export function providerCommand(session: Session) {
     return { binary: process.env.OPENFACTORY_CODEX_BIN ?? 'codex', args };
   }
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--model', model];
+  args.push('--append-system-prompt', visualizationInstructions);
   if (session.nativeSessionId) {
     args.push('--resume', session.nativeSessionId);
   }

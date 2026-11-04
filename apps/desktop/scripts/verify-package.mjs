@@ -70,14 +70,9 @@ try {
     existsSync(join(resources, 'app/runtime/runtime.mjs')),
     'The owned runtime must be bundled.',
   );
-  const rpc = await (
-    await fetch(`${origin}/v1/rpc`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ method: 'runtime.status', payload: {} }),
-    })
-  ).json();
-  assert.equal(rpc.value.owner, 'openfactory');
+  const { runtimeRpc } = await import('../runtime/client.mjs');
+  const rpc = await runtimeRpc('runtime.status', {}, { origin, token });
+  assert.equal(rpc.owner, 'openfactory');
   await fetch(`${origin}/v1/shutdown`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },

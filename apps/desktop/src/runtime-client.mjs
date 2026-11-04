@@ -1,58 +1,56 @@
 import { request } from 'node:http';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
+import { join } from 'node:path';
 
 export const runtimeDirectory = () =>
   process.env.OPENFACTORY_RUNTIME_DIR ?? join(homedir(), '.config/openfactory/runtime');
 
-export function runtimeSocketPath(directory = runtimeDirectory(), platform = process.platform) {
-  return platform === 'win32'
-    ? `\\\\.\\pipe\\openfactory-${createHash('sha256').update(resolve(directory)).digest('hex')}`
-    : join(directory, 'runtime.sock');
+const runtimeClient = () => import('../runtime/client.mjs');
+
+export async function runtimeRequest(method, payload) {
+  const { runtimeRpc } = await runtimeClient();
+  return runtimeRpc(method, payload);
 }
 
-export function runtimeRequest(method, payload) {
-  const content = JSON.stringify({ method, payload });
-  return new Promise((resolve, reject) => {
-    const req = request(
-      {
-        socketPath: runtimeSocketPath(),
-        path: '/rpc',
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'content-length': Buffer.byteLength(content),
-        },
-      },
-      (response) => {
-        let source = '';
-        response.setEncoding('utf8');
-        response.on('data', (chunk) => {
-          source += chunk;
-        });
-        response.on('end', () => {
-          try {
-            const result = JSON.parse(source);
-            if (response.statusCode !== 200 || result.error) {
-              reject(new Error(result.error ?? 'The runtime rejected this request.'));
-            } else {
-              resolve(result.value);
-            }
-          } catch (error) {
-            reject(error);
-          }
-        });
-      },
-    );
-    req.setTimeout(method.startsWith('marketplace.') ? 60000 : 30000, () =>
-      req.destroy(new Error('The OpenFactory runtime did not respond.')),
-    );
-    req.on('error', () =>
-      reject(
-        new Error('The OpenFactory runtime is stopped. Restart OpenFactory on this computer.'),
-      ),
-    );
-    req.end(content);
+// Forward Effect RPC bytes to the restricted local endpoint without interpreting frames.
+export async function proxyRuntimeRpc(incoming, outgoing) {
+  const { runtimeSocketPath } = await runtimeClient();
+  const upstream = request({
+    socketPath: runtimeSocketPath(),
+    path: '/remote-rpc',
+    method: 'POST',
+    headers: { 'content-type': incoming.headers['content-type'] ?? 'application/json' },
   });
+  upstream.on('response', (response) => {
+    outgoing.writeHead(response.statusCode ?? 502, {
+      'content-type': response.headers['content-type'] ?? 'application/json',
+    });
+    response.on('error', () => outgoing.destroy());
+    response.pipe(outgoing);
+  });
+  upstream.on('error', () => {
+    if (outgoing.headersSent) {
+      outgoing.destroy();
+    } else {
+      outgoing.writeHead(502).end();
+    }
+  });
+  upstream.setTimeout(60000, () => upstream.destroy(new Error('Runtime request timed out.')));
+  incoming.on('aborted', () => upstream.destroy());
+  incoming.on('error', () => upstream.destroy());
+  outgoing.on('close', () => upstream.destroy());
+  let bytes = 0;
+  incoming.on('data', (chunk) => {
+    bytes += chunk.length;
+    if (bytes > 100_000_000) {
+      upstream.destroy();
+      incoming.unpipe(upstream);
+      if (!outgoing.headersSent) {
+        outgoing.writeHead(413).end();
+      } else {
+        outgoing.destroy();
+      }
+    }
+  });
+  incoming.pipe(upstream);
 }

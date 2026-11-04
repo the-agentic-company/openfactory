@@ -17,6 +17,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import QRCode from 'qrcode';
+import electronUpdater from 'electron-updater';
+import { createDesktopUpdates } from './updates.mjs';
 import { z } from 'zod';
 import { defaultDataDir, validateOrigin } from './host.mjs';
 import { stateSchema } from './contracts.mjs';
@@ -27,8 +29,8 @@ import { startWorkspaceServices } from './workspace-services.mjs';
 import { configureWorkspaceNavigation } from './workspace-navigation.mjs';
 
 const exec = promisify(execFile);
+nativeTheme.themeSource = 'light';
 if (process.platform === 'darwin') {
-  nativeTheme.themeSource = 'dark';
   process.env.PATH = [
     join(homedir(), '.local/bin'),
     '/opt/homebrew/bin',
@@ -37,6 +39,10 @@ if (process.platform === 'darwin') {
   ].join(':');
 }
 const root = dirname(fileURLToPath(import.meta.url));
+const developmentIcon =
+  !app.isPackaged && process.env.OPENFACTORY_DESKTOP_DEV === '1'
+    ? join(root, 'ui/development-icon.png')
+    : null;
 const dataDir = defaultDataDir();
 const registryPath = join(dataDir, 'computers.json');
 const syncConnections = new Map();
@@ -44,6 +50,7 @@ const own = { id: 'local', name: 'This computer', local: true };
 let local;
 let window;
 let workspace;
+let updates;
 let activeComputerId = 'local';
 let pendingPairing = process.argv.find((arg) => arg.startsWith('openfactory://pair')) ?? null;
 let computers = [];
@@ -77,6 +84,9 @@ if (!app.requestSingleInstanceLock()) {
   });
   void app.whenReady().then(async () => {
     try {
+      if (developmentIcon && process.platform === 'darwin') {
+        app.dock.setIcon(developmentIcon);
+      }
       mkdirSync(dataDir, { recursive: true, mode: 0o700 });
       try {
         computers = z
@@ -126,15 +136,37 @@ if (!app.requestSingleInstanceLock()) {
         root,
         dataDir,
         target: selectedTarget,
+        cookies: session.defaultSession.cookies,
         development: !app.isPackaged && process.env.OPENFACTORY_DESKTOP_DEV === '1',
       });
       if (app.isPackaged && !process.env.OPENFACTORY_DESKTOP_HOME) {
         app.setAsDefaultProtocolClient('openfactory');
       }
+      const linuxPackage =
+        process.platform === 'linux' &&
+        (Boolean(process.env.APPIMAGE) ||
+          (() => {
+            try {
+              return (
+                readFileSync(join(process.resourcesPath, 'package-type'), 'utf8').trim() === 'deb'
+              );
+            } catch {
+              return false;
+            }
+          })());
+      updates = createDesktopUpdates({
+        updater: electronUpdater.autoUpdater,
+        version: app.getVersion(),
+        enabled: app.isPackaged && (process.platform !== 'linux' || linuxPackage),
+        feedUrl: process.env.OPENFACTORY_UPDATE_URL,
+        ...(process.platform === 'darwin' ? { openInstaller: (path) => shell.openPath(path) } : {}),
+      });
+      updates.subscribe((state) => window?.webContents.send('desktop-update', state));
       if (process.argv.includes('--background')) {
         app.quit();
       } else {
         createWindow();
+        void updates.check();
       }
       app.on('activate', () => {
         if (!window) {
@@ -148,8 +180,15 @@ if (!app.requestSingleInstanceLock()) {
   });
 }
 
+if (!app.isPackaged && process.env.OPENFACTORY_DESKTOP_DEV === '1') {
+  process.once('disconnect', () => app.quit());
+}
+
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => workspace?.close());
+app.on('before-quit', () => {
+  updates?.dispose();
+  workspace?.close();
+});
 
 function createWindow() {
   if (!workspace) {
@@ -161,14 +200,14 @@ function createWindow() {
     minWidth: 760,
     minHeight: 580,
     title: 'OpenFactory',
-    backgroundColor: '#0c0d11',
+    backgroundColor: '#faf9f7',
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hiddenInset',
           trafficLightPosition: { x: 16, y: 16 },
         }
       : {}),
-    icon: join(root, 'ui/logo.png'),
+    icon: developmentIcon ?? join(root, 'ui/app-icon.png'),
     webPreferences: {
       preload: join(root, 'preload.cjs'),
       nodeIntegration: false,
@@ -246,14 +285,17 @@ async function request(target, path, method = 'GET', payload) {
       },
       ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
     });
-  } catch {
-    throw new Error(
-      'Computer unavailable. Check that it is awake, OpenFactory is running, and Tailscale is connected.',
-    );
+  } catch (error) {
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      throw new Error('Connection timed out after 8 seconds.');
+    }
+    throw new Error(`Computer unreachable: ${error.cause?.code ?? error.message}`);
   }
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.error ?? 'OpenFactory rejected this request.');
+    throw new Error(
+      `HTTP ${response.status}: ${result.error ?? 'OpenFactory rejected this request.'}`,
+    );
   }
   if (
     (path === '/v1/state' && result.host?.id !== target.hostId) ||
@@ -351,6 +393,18 @@ async function ensureHost() {
 }
 
 async function operate(operation, raw = {}) {
+  if (operation === 'updates:state') {
+    return updates.getState();
+  }
+  if (operation === 'updates:check') {
+    return updates.check();
+  }
+  if (operation === 'updates:download') {
+    return updates.download();
+  }
+  if (operation === 'updates:install') {
+    return updates.install();
+  }
   if (operation === 'select-computer') {
     const { id } = z.object({ id: z.string() }).parse(raw);
     const target = connection(id);

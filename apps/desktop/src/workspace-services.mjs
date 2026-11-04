@@ -3,6 +3,7 @@ import { createServer } from 'node:net';
 import { openSync, closeSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { runtimeDirectory, runtimeRequest } from './runtime-client.mjs';
+import { connectDevelopmentWorkspace } from './development-workspace.mjs';
 
 export async function ensureWorkspaceRuntime({ root, dataDir }) {
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
@@ -40,25 +41,35 @@ export async function ensureWorkspaceRuntime({ root, dataDir }) {
   }
 }
 
-export async function startWorkspaceServices({ root, dataDir, target, development = false }) {
+export async function startWorkspaceServices({
+  root,
+  dataDir,
+  target,
+  development = false,
+  cookies,
+}) {
+  if (development) {
+    return connectDevelopmentWorkspace({
+      origin: process.env.VITE_DEV_SERVER_URL,
+      sessionId: process.env.OPENFACTORY_DESKTOP_SESSION,
+      cookies,
+      target,
+    });
+  }
   await ensureWorkspaceRuntime({ root, dataDir });
   const port = await new Promise((accept, reject) => {
     const listener = createServer();
     listener.once('error', reject);
-    listener.listen(
-      development ? Number(process.env.OPENFACTORY_DESKTOP_DEV_PORT ?? 48181) : 0,
-      '127.0.0.1',
-      () => {
-        const address = listener.address();
-        if (!address || typeof address === 'string') {
-          listener.close();
-          reject(new Error('Could not allocate a workspace port.'));
-          return;
-        }
-        const selectedPort = address.port;
-        listener.close(() => accept(selectedPort));
-      },
-    );
+    listener.listen(0, '127.0.0.1', () => {
+      const address = listener.address();
+      if (!address || typeof address === 'string') {
+        listener.close();
+        reject(new Error('Could not allocate a workspace port.'));
+        return;
+      }
+      const selectedPort = address.port;
+      listener.close(() => accept(selectedPort));
+    });
   });
   const log = openSync(join(dataDir, 'workspace.log'), 'a', 0o600);
   const child = fork(join(root, 'workspace-server.mjs'), [], {
@@ -68,7 +79,7 @@ export async function startWorkspaceServices({ root, dataDir, target, developmen
     env: {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
-      OPENFACTORY_DESKTOP_DEV: development ? '1' : '0',
+      OPENFACTORY_DESKTOP_DEV: '0',
       HOST: '127.0.0.1',
       PORT: String(port),
       OPENFACTORY_RUNTIME_ORIGIN: target.origin,
@@ -78,7 +89,7 @@ export async function startWorkspaceServices({ root, dataDir, target, developmen
   closeSync(log);
   const origin = `http://127.0.0.1:${port}`;
   let ready = false;
-  for (let attempt = 0; attempt < (development ? 400 : 80); attempt++) {
+  for (let attempt = 0; attempt < 80; attempt++) {
     if (child.exitCode !== null) {
       break;
     }

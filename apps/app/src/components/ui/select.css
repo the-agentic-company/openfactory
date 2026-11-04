@@ -9,8 +9,8 @@ form .ui-select-trigger {
   padding: 8px 12px;
   border: 1px solid var(--workspace-line);
   border-radius: 6px;
-  background: #16151b;
-  color: #e9e4e1;
+  background: var(--color-surface);
+  color: var(--color-text);
   font-size: 13px;
   text-align: left;
 }
@@ -21,11 +21,11 @@ form .ui-select-trigger {
 }
 .ui-select-trigger > svg {
   flex-shrink: 0;
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .ui-select-trigger:hover:not(:disabled),
 .ui-select-trigger[data-state='open'] {
-  border-color: #706252;
+  border-color: var(--color-border-strong);
 }
 .ui-select-trigger:focus-visible {
   outline: 2px solid var(--accent);
@@ -39,8 +39,8 @@ form .ui-select-trigger {
   overflow: hidden;
   border: 1px solid var(--workspace-line);
   border-radius: 7px;
-  background: #18181e;
-  color: #e9e4e1;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: 0 8px 24px #0006;
   font-size: 13px;
 }
@@ -78,5 +78,5 @@ form .ui-select-trigger {
   display: flex;
   justify-content: center;
   padding: 4px;
-  color: #a1a2b2;
+  color: var(--color-muted);
 }

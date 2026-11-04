@@ -11,17 +11,17 @@
   gap: 7px;
   border: 1px solid transparent;
   background: transparent;
-  color: #aaa1b6;
+  color: var(--color-muted);
   font-size: 11px;
   padding: 8px 12px;
   border-radius: 5px;
   white-space: nowrap;
 }
 .section-tabs button:hover {
-  color: #e9e4e1;
+  color: var(--color-text);
 }
 .section-tabs button[aria-pressed='true'] {
-  background: #3c2f26;
-  border-color: #6c5343;
-  color: #f4e4da;
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-accent-text);
 }

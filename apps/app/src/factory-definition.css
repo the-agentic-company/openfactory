@@ -1,6 +1,6 @@
 .factory-definition-workspace {
-  --code-border: #292b33;
-  --code-muted: #a1a2b2;
+  --code-border: var(--color-border);
+  --code-muted: var(--color-muted);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -21,7 +21,7 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  scrollbar-color: #454751 transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 .definition-file-search {
   display: flex;
@@ -43,7 +43,7 @@
   outline: none;
 }
 .definition-file-search input::placeholder {
-  color: #a1a2b2;
+  color: var(--color-muted);
 }
 .definition-file-search:focus-within {
   outline: 2px solid var(--accent);
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 9px 12px;
-  color: #c7c6d1;
+  color: var(--color-text);
   font-size: 12px;
 }
 .definition-tree-root strong {
@@ -79,7 +79,7 @@
   border: 0;
   border-radius: 4px;
   padding: 6px 9px;
-  color: #b9bac8;
+  color: var(--color-muted);
   background: transparent;
   cursor: pointer;
   font: inherit;
@@ -105,19 +105,19 @@
 }
 .definition-tree-list svg {
   flex-shrink: 0;
-  color: #969aa8;
+  color: var(--color-muted);
 }
 .definition-tree-list button:hover,
 .definition-tree-list summary:hover {
-  background: #1b1d25;
-  color: #f0edf7;
+  background: var(--color-inset);
+  color: var(--color-purple);
 }
 .definition-tree-list button.selected {
-  background: #30251c;
-  color: #ffb67d;
+  background: var(--color-inset);
+  color: var(--color-accent-text);
 }
 .definition-tree-list button.selected svg {
-  color: #f4a56b;
+  color: var(--color-accent-text);
 }
 .definition-tree-list i,
 .definition-dirty-dot {
@@ -125,7 +125,7 @@
   width: 6px;
   height: 6px;
   flex-shrink: 0;
-  background: #f4a56b;
+  background: var(--color-accent-text);
   border-radius: 50%;
 }
 .definition-editor-pane {
@@ -134,7 +134,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #0d0e12;
+  background: var(--color-canvas);
 }
 .definition-file-tab {
   flex-shrink: 0;
@@ -143,12 +143,12 @@
   gap: 9px;
   min-height: 43px;
   padding: 10px 16px;
-  color: #c7c8d3;
+  color: var(--color-text);
   font-size: 12px;
 }
 .definition-file-tab > svg {
   flex-shrink: 0;
-  color: #c49adf;
+  color: var(--color-purple);
 }
 .definition-file-tab code {
   overflow: hidden;
@@ -172,7 +172,7 @@
   height: 100%;
 }
 .factory-code-editor .cm-editor {
-  background: #0d0e12;
+  background: var(--color-canvas);
   font-size: 13px;
   height: 100%;
 }
@@ -180,28 +180,28 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   line-height: 1.8;
   overflow: auto;
-  scrollbar-color: #454751 transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 .factory-code-editor .cm-content {
   padding: 16px 0;
-  caret-color: #ffb67d;
+  caret-color: var(--color-accent-text);
 }
 .factory-code-editor .cm-gutters {
-  color: #8c91a0;
-  background: #0d0e12;
-  border-right: 1px solid #1b1d24;
+  color: var(--color-muted);
+  background: var(--color-canvas);
+  border-right: 1px solid var(--color-border);
   padding: 0 5px;
 }
 .factory-code-editor .cm-focused {
-  outline: 1px solid #b76c38;
+  outline: 1px solid var(--color-border-strong);
   outline-offset: -1px;
 }
 .factory-code-editor .cm-activeLine,
 .factory-code-editor .cm-activeLineGutter {
-  background: #171922;
+  background: var(--color-surface);
 }
 .factory-code-editor .cm-selectionBackground {
-  background: #4c3828;
+  background: var(--color-accent-soft);
 }
 .definition-editor-fallback {
   height: 100%;
@@ -222,7 +222,7 @@
 .definition-save-notice {
   display: block;
   padding: 14px 0 0;
-  color: #a9d1aa;
+  color: var(--color-success);
   font-size: 13px;
 }
 .definition-choose-factory {
@@ -239,7 +239,7 @@
   font-size: 20px;
 }
 .definition-choose-factory > svg {
-  color: #b19781;
+  color: var(--color-accent-text);
 }
 .definition-choose-factory > div {
   display: flex;
@@ -283,24 +283,24 @@
   }
   .definition-mobile-navigation > a {
     font-size: 12px;
-    color: #d8b69c;
+    color: var(--color-accent-text);
   }
   .definition-mobile-navigation label,
   .definition-mobile-file-picker {
     display: grid;
     gap: 7px;
     font-size: 12px;
-    color: #b9bac8;
+    color: var(--color-muted);
   }
   .definition-mobile-navigation .ui-select-trigger,
   .definition-mobile-file-picker .ui-select-trigger {
     width: 100%;
     min-width: 0;
     padding: 9px;
-    border: 1px solid #343640;
+    border: 1px solid var(--color-border);
     border-radius: 5px;
-    background: #14151b;
-    color: #ece9e7;
+    background: var(--color-surface);
+    color: var(--color-text);
   }
   .definition-mobile-file-picker {
     padding: 12px;

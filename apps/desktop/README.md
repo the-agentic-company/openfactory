@@ -25,8 +25,8 @@ on both as well. No T3 Connect or OpenFactory cloud account is involved.
    This creates a private Tailscale Serve HTTPS route on port **8445** to the local host.
    An existing unrelated mapping on that port is refused rather than replaced.
    Tailscale may require an initial HTTPS approval in its own setup flow.
-2. In **Settings**, choose **Pair a device**. Copy the link, or use the displayed address and eight-digit code.
-3. On the other computer, open **Settings → Add computer** and paste the link, or enter the address and code.
+2. In **Settings**, choose **Pair a device**. Use the displayed address and eight-digit code.
+3. On the other computer, open **Settings → Add computer** and enter the address and code.
 4. In **Settings**, choose **Use computer** for the saved computer. Its folders, agents, and runs are separate from yours.
 
 A code expires after five minutes, works once, and is disabled after five wrong attempts.
@@ -55,16 +55,29 @@ pnpm --filter @openfactory/desktop build
 pnpm --filter @openfactory/desktop test:package
 ```
 
-`pnpm --filter @openfactory/desktop dev` opens Electron against the shared Vite development
-server at `http://127.0.0.1:48181`. React and CSS edits hot-reload inside the app. Saved computers,
-credentials, and the selected computer use the same native storage as the installed app.
-The background execution host stays running when the interface reloads or closes.
-Restart the development app after changes to Electron's main process or preload.
-`OPENFACTORY_DESKTOP_DEV_PORT` overrides the development port and refuses an occupied port.
+`pnpm dev` from the repository root starts the desktop workspace and public website
+together with Vite+ labeled parallel tasks. Use `pnpm dev:desktop` for the desktop
+workspace alone. Both commands start one app Vite server at
+`http://127.0.0.1:8018`, wait for it to be ready, then open Electron against it.
+Open the same address in a browser to develop both interfaces together. Stop a running
+`pnpm dev:app` before starting either command: an occupied port is refused, so two servers
+cannot overwrite the same dependency cache. `pnpm --filter @openfactory/desktop dev`
+is the equivalent command from this package.
 
-`pnpm --filter @openfactory/desktop test:development` starts an isolated UI listener against
-the existing local host. It verifies a real CSS HMR update, then restores the stylesheet and
-checks that the same saved credential still reaches the same host. A running local host is required.
+React and CSS edits hot-reload in both interfaces. Browser and desktop keep separate computer
+selections. The desktop uses an HTTP-only session cookie; its host credential stays in a
+private temporary file read by the server. Closing Electron or stopping the launcher stops
+the web server, while the background execution host keeps running. Restart the development
+command after changes to Electron's main process or preload.
+`OPENFACTORY_DESKTOP_DEV_PORT` overrides the development port. Different ports use separate
+Vite dependency caches, so independent development sessions do not overwrite each other.
+Saved computers and credentials still use the existing native storage.
+
+`pnpm --filter @openfactory/desktop test:development` starts an isolated development server
+and fixture hosts. It verifies browser/desktop connection isolation, switching the desktop's
+computer, the factory route's complete static import graph, and a real CSS HMR update.
+It restores the stylesheet and removes its temporary data and cache afterward. It does not
+require a running host or call a model.
 
 `build:workspace` builds the owned runtime and the web application into isolated staging
 folders, then bundles them in the app. Electron loads that web application over loopback.
@@ -168,11 +181,34 @@ No T3 runtime code is imported. Networking follows
 [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve), and the desktop boundary follows
 [Electron's security recommendations](https://www.electronjs.org/docs/latest/tutorial/security).
 
-This version uses manual host addition. It does not bundle Tailscale or Codex, install updates,
+This version uses manual host addition. It does not bundle Tailscale or Codex,
 or build signed Windows installers. Linux x64 launch is verified. Mac verification
 compares the mounted DMGs with the ZIP bundles and checks their contents; a Mac launch test is still required. A second physical
 computer is still needed to confirm end-to-end tailnet pairing on your devices; local two-host
 verification does not prove your tailnet ACLs or network configuration.
+
+## Desktop updates
+
+The desktop sidebar checks for updates at startup and every hour. Choose **Download new version**
+to download a newer release, then **Restart to update** to install it. Closing the app does not
+install a downloaded update. Download failures keep the retry action available.
+
+Linux AppImage, Debian, and Windows installations use `electron-updater`. Development builds
+and unpacked Linux folders do not offer updates. Keep an AppImage in a writable directory with
+a stable filename, such as `OpenFactory.AppImage`, so its launcher keeps working after updates.
+Debian updates can require operating-system administrator authentication.
+
+The Mac updater downloads and verifies the update ZIP, then offers
+**Open update installer**. Quit OpenFactory and replace the app in Applications. Native Mac
+restart-and-install is not enabled by this signing configuration.
+
+The feed defaults to the public `the-agentic-company/openfactory-releases` repository.
+`OPENFACTORY_UPDATE_URL` overrides the generic feed URL for a private Tailscale feed or local
+verification. The release workflow publishes `latest*.yml`, companion blockmaps, and installers
+together. The updater verifies each download against the SHA-512 digest in the feed.
+
+This follows T3 Code's [Electron updater adapter](https://github.com/pingdotgg/t3code/blob/b823dcf5c/apps/desktop/src/electron/ElectronUpdater.ts)
+and [explicit download/install flow](https://github.com/pingdotgg/t3code/blob/b823dcf5c/apps/desktop/src/updates/DesktopUpdates.ts).
 
 ## Release formats and terminal installation
 

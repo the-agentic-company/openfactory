@@ -10,7 +10,9 @@ import { z } from 'zod';
 import { projectSchema } from './contracts';
 import { savedDefinitionSchema } from './definition-store';
 
-type Rpc = (method: string, input: unknown) => Promise<unknown>;
+import type { runtimeRpc } from './client';
+
+type Rpc = typeof runtimeRpc;
 
 export async function applyTeamFile(projectId: string, teamFile: string, rpc: Rpc) {
   const project = z
