@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 export function selectDevelopmentConnection(connection, channel = process) {
   return new Promise((resolve, reject) => {
     if (!channel.send || !channel.connected) {
-      reject(new Error('Start desktop development with pnpm dev:desktop.'));
+      reject(new Error('Start development with pnpm dev from the repository root.'));
       return;
     }
     const requestId = randomUUID();
@@ -39,7 +39,7 @@ export function selectDevelopmentConnection(connection, channel = process) {
 
 export async function connectDevelopmentWorkspace({ origin, sessionId, cookies, target }) {
   if (!origin || !sessionId) {
-    throw new Error('Start desktop development with pnpm dev:desktop.');
+    throw new Error('Start development with pnpm dev from the repository root.');
   }
   const url = new URL(origin);
   if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1') {

@@ -1,3 +1,4 @@
 Source: user-provided OpenFactory brick mascot, November 4, 2026.
 Resized to 1024x1024 without cropping for ICNS packaging.
-The same image supplies the workspace logo, browser favicons, and desktop icon.
+This white-backed image supplies only the desktop app icon.
+Workspace logos and browser favicons use the transparent src/ui/logo.png mascot.

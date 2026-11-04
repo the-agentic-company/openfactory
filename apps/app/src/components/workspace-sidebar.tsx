@@ -1,44 +1,25 @@
 import { siteUrl } from '../site-url';
 import { DesktopUpdate } from './desktop-update';
-import { projectName } from '../project-path';
 import type { Agent, WorkspaceView } from '@openfactory/core';
-import { Link } from '@tanstack/react-router';
-import {
-  BookOpen,
-  Bot,
-  ChartNoAxesCombined,
-  FileCode2,
-  GitPullRequest,
-  ListVideo,
-  Network,
-  ScanLine,
-  Settings,
-  Store,
-} from 'lucide-react';
-import { domMax, LazyMotion, useReducedMotion } from 'motion/react';
-import * as m from 'motion/react-m';
-import { useId, useState } from 'react';
-import { FactoryNavigationItem, type FactoryProject } from './factory-navigation-item';
-import { AppearanceGlyph } from './appearance-glyph';
-import { useSidebarState } from './sidebar-state';
-import { SidebarToggle } from './sidebar-toggle';
-import { useSidebarMotion } from './sidebar-motion';
+import { Link, useRouterState } from '@tanstack/react-router';
+import { BookOpen, ChartNoAxesCombined, Menu, Settings, Store, X } from 'lucide-react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import type { FactoryProject } from './factory-navigation-item';
+import { AllFactoriesNavigation, useComputerFactories } from './all-factories';
+import { SettingsModal } from './settings-modal';
 
-const navigation = [
-  { view: 'dashboard', label: 'Dashboard', icon: ChartNoAxesCombined },
-  { view: 'teams', label: 'Teams', icon: Network },
-  { view: 'agents', label: 'Agents', icon: Bot },
-  { view: 'runs', label: 'Runs', icon: ListVideo },
-  { view: 'pull-requests', label: 'Pull requests', icon: GitPullRequest },
-  { view: 'scorers', label: 'Scorers', icon: ScanLine },
-  { view: 'definition', label: 'Factory definition', icon: FileCode2 },
-] satisfies { view: WorkspaceView | 'teams'; label: string; icon: typeof ChartNoAxesCombined }[];
+const mobileQuery = '(max-width: 740px)';
+function subscribeMobile(listener: () => void) {
+  const query = window.matchMedia(mobileQuery);
+  query.addEventListener('change', listener);
+  return () => query.removeEventListener('change', listener);
+}
+const readMobile = () => window.matchMedia(mobileQuery).matches;
+const serverMobile = () => false;
+
 export function WorkspaceSidebar({
-  agents,
   activeProject = 'all',
   activeView = 'agents',
-  projects: suppliedProjects,
-  onAgentsClick,
 }: {
   agents: Agent[];
   activeProject?: string;
@@ -46,31 +27,65 @@ export function WorkspaceSidebar({
   projects?: FactoryProject[];
   onAgentsClick?: () => void;
 }) {
-  const { collapsed } = useSidebarState();
-  useSidebarMotion(collapsed);
-  const reduceMotion = useReducedMotion();
-  const projects: FactoryProject[] = suppliedProjects ?? [
-    ...new Map(
-      agents.map((agent) => [
-        agent.projectId,
-        {
-          id: agent.projectId,
-          title: agent.projectName,
-          workspaceRoot: agent.projectPath ?? agent.projectId,
-        },
-      ]),
-    ).values(),
-  ];
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const factories = useComputerFactories();
+  const mobile = useSyncExternalStore(subscribeMobile, readMobile, serverMobile);
+  const menuId = useId();
+  const menu = useRef<HTMLElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useRouterState({ select: (state) => state.location.href });
+  function closeMenu() {
+    if (menu.current?.matches(':popover-open')) {
+      menu.current.hidePopover();
+    }
+  }
+  useEffect(closeMenu, [location]);
+  useEffect(() => {
+    const element = menu.current;
+    function dismissOnNavigation(event: MouseEvent) {
+      if (event.target instanceof Element && event.target.closest('a[href]')) {
+        closeMenu();
+      }
+    }
+    element?.addEventListener('click', dismissOnNavigation);
+    return () => element?.removeEventListener('click', dismissOnNavigation);
+  }, []);
   return (
-    <LazyMotion features={domMax} strict>
-      <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
+    <>
+      <aside
+        ref={menu}
+        id={menuId}
+        popover={mobile ? 'auto' : undefined}
+        className="sidebar"
+        aria-label="Main menu"
+        onToggle={(event) => {
+          if (event.target === event.currentTarget) {
+            setMenuOpen(event.newState === 'open');
+          }
+        }}
+      >
         <div className="sidebar-heading">
-          <Link to="/app" className="brand" aria-label="OpenFactory" title="OpenFactory">
+          <Link
+            to="/app"
+            className="brand"
+            aria-label="OpenFactory"
+            title="OpenFactory"
+            onClick={closeMenu}
+          >
             <span className="brand-mark">
               <img src="/openfactory.png" width={28} height={28} alt="" />
             </span>
             <span className="sidebar-label">OpenFactory</span>
           </Link>
+          <button
+            type="button"
+            className="mobile-menu-close"
+            popoverTarget={menuId}
+            popoverTargetAction="hide"
+            aria-label="Close menu"
+          >
+            <X size={22} />
+          </button>
         </div>
         <nav className="global-navigation" aria-label="Workspace pages">
           <Link
@@ -80,183 +95,85 @@ export function WorkspaceSidebar({
             aria-current={activeView === 'overview' ? 'page' : undefined}
             aria-label="Overview"
             title="Overview"
+            onClick={closeMenu}
           >
             <ChartNoAxesCombined size={17} />
             <span className="sidebar-label">Overview</span>
           </Link>
-          <a
-            href={siteUrl('/marketplace')}
-            target="_blank"
-            rel="noreferrer"
-            className="nav-link"
-            aria-label="Marketplace"
-            title="Marketplace"
-          >
-            <Store size={17} /> <span className="sidebar-label">Marketplace</span>
-          </a>
-          <a
-            href={siteUrl('/docs')}
-            target="_blank"
-            rel="noreferrer"
-            className="nav-link"
-            aria-label="Documentation"
-            title="Documentation"
-          >
-            <BookOpen size={17} />
-            <span className="sidebar-label">Documentation</span>
-          </a>
         </nav>
         <div className="project-navigation">
           <div className="nav-label sidebar-label">Factories</div>
-          {projects.map((project) => {
-            const active = activeProject === project.workspaceRoot;
-            const count = agents.filter((agent) => agent.projectId === project.id).length;
-            return (
-              <m.div
-                key={project.id}
-                className="sidebar-factory"
-                layout={reduceMotion ? false : 'position'}
-                transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-              >
-                <m.div
-                  initial={false}
-                  animate={{ opacity: collapsed ? 1 : 0 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.32, 0.72, 0, 1] }}
-                  className="sidebar-factory-content sidebar-factory-rail"
-                  inert={!collapsed}
-                  aria-hidden={!collapsed}
-                >
-                  <Link
-                    to="/app/projects/$project/$view"
-                    params={{ project: projectName(project.workspaceRoot), view: 'agents' }}
-                    className={`nav-link factory-rail-link ${active ? 'active' : ''}`}
-                    aria-label={`${project.title} agents`}
-                    title={project.title}
-                    onClick={onAgentsClick}
-                  >
-                    <AppearanceGlyph
-                      appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
-                      size={17}
-                    />
-                  </Link>
-                </m.div>
-                <m.div
-                  initial={false}
-                  animate={{ opacity: collapsed ? 0 : 1 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.32, 0.72, 0, 1] }}
-                  className="sidebar-factory-content sidebar-factory-expanded"
-                  inert={collapsed}
-                  aria-hidden={collapsed}
-                >
-                  <FactorySidebarGroup
-                    project={project}
-                    active={active}
-                    activeView={activeView}
-                    count={count}
-                    onAgentsClick={onAgentsClick}
-                  />
-                </m.div>
-              </m.div>
-            );
-          })}
-          {projects.length === 0 && (
-            <p className="muted-copy sidebar-label">No factories available.</p>
-          )}
+          <AllFactoriesNavigation
+            data={factories}
+            activeProject={activeProject}
+            activeView={activeView}
+          />
         </div>
         <nav className="settings-navigation" aria-label="Application settings">
           <DesktopUpdate />
-          <SidebarToggle />
-          <Link
-            to="/app/settings"
-            className={`nav-link ${activeView === 'settings' ? 'active' : ''}`}
-            aria-current={activeView === 'settings' ? 'page' : undefined}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <Settings size={17} /> <span className="sidebar-label">Settings</span>
-          </Link>
+          <div className="sidebar-utilities">
+            <a
+              href={siteUrl('/marketplace')}
+              target="_blank"
+              rel="noreferrer"
+              className="icon-button"
+              aria-label="Marketplace"
+              title="Marketplace"
+              onClick={closeMenu}
+            >
+              <Store size={17} />
+            </a>
+            <a
+              href={siteUrl('/docs')}
+              target="_blank"
+              rel="noreferrer"
+              className="icon-button"
+              aria-label="Documentation"
+              title="Documentation"
+              onClick={closeMenu}
+            >
+              <BookOpen size={17} />
+            </a>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Settings"
+              title="Settings"
+              onClick={() => {
+                closeMenu();
+                setSettingsOpen(true);
+              }}
+            >
+              <Settings size={17} />
+            </button>
+          </div>
         </nav>
       </aside>
-    </LazyMotion>
-  );
-}
-
-function FactorySidebarGroup({
-  project,
-  active,
-  activeView,
-  count,
-  onAgentsClick,
-}: {
-  project: FactoryProject;
-  active: boolean;
-  activeView: WorkspaceView | 'teams' | 'overview' | 'settings';
-  count: number;
-  onAgentsClick?: () => void;
-}) {
-  const contentId = useId();
-  const reduceMotion = useReducedMotion();
-  const [disclosure, setDisclosure] = useState({ active, open: active });
-  if (disclosure.active !== active) {
-    setDisclosure({ active, open: active });
-  }
-  const { open } = disclosure;
-  const duration = reduceMotion ? 0 : open ? 0.22 : 0.16;
-
-  return (
-    <div className="factory-nav-group">
-      <FactoryNavigationItem project={project}>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <nav className="mobile-navigation" aria-label="Mobile navigation">
         <button
           type="button"
-          className="factory-nav-toggle"
-          aria-expanded={open}
-          aria-controls={contentId}
-          onClick={() => setDisclosure({ active, open: !open })}
+          popoverTarget={menuId}
+          aria-controls={menuId}
+          aria-expanded={menuOpen}
+          className={menuOpen ? 'active' : ''}
         >
-          <span className="factory-name" title={project.workspaceRoot}>
-            {project.title}
-          </span>
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          <span>Menu</span>
         </button>
-      </FactoryNavigationItem>
-      <m.div
-        id={contentId}
-        className="factory-nav-content"
-        inert={!open}
-        aria-hidden={!open}
-        initial={false}
-        animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
-        transition={{ duration, ease: 'easeOut' }}
-      >
-        <nav aria-label={`${project.title} pages`} className="factory-navigation">
-          {navigation.map(({ view, label, icon: Icon }) =>
-            view === 'teams' ? (
-              <Link
-                key={view}
-                to="/app/projects/$project/teams/{-$section}"
-                params={{ project: projectName(project.workspaceRoot), section: undefined }}
-                className={`nav-link ${active && activeView === 'teams' ? 'active' : ''}`}
-                aria-current={active && activeView === 'teams' ? 'page' : undefined}
-              >
-                <Network size={17} />
-                Teams
-              </Link>
-            ) : (
-              <Link
-                key={view}
-                className={`nav-link ${active && activeView === view ? 'active' : ''}`}
-                to="/app/projects/$project/$view"
-                params={{ project: projectName(project.workspaceRoot), view }}
-                onClick={view === 'agents' ? onAgentsClick : undefined}
-                aria-current={active && activeView === view ? 'page' : undefined}
-              >
-                <Icon size={17} />
-                {label}
-                {view === 'agents' && <span className="nav-count">{count}</span>}
-              </Link>
-            ),
-          )}
-        </nav>
-      </m.div>
-    </div>
+        <Link
+          to="/app"
+          activeOptions={{ exact: true }}
+          aria-current={activeView === 'overview' ? 'page' : undefined}
+        >
+          <ChartNoAxesCombined size={22} />
+          <span>Overview</span>
+        </Link>
+        <button type="button" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
+          <Settings size={22} />
+          <span>Settings</span>
+        </button>
+      </nav>
+    </>
   );
 }

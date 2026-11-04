@@ -7,20 +7,20 @@ import {
 } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { runtimeRpc } from './runtime-rpc';
+import { runtimeRpc, runtimeRead } from './runtime-rpc';
 import { readAppearances, readFactoryProfiles } from './factory-store';
 import { nativeConnection } from './native-runtime.server';
+import { workspaceUnavailableMessage } from '../connection-health';
 
 export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
-  const connection = await nativeConnection();
-  const native = Boolean(connection);
-  const cacheScope = connection?.origin ?? 'local';
+  let connection: Awaited<ReturnType<typeof nativeConnection>> = null;
   try {
+    connection = await nativeConnection();
     const [rawTasks, rawShell] = await Promise.all([
-      runtimeRpc('agents.list', {}),
-      runtimeRpc('workspace.snapshot', {}),
+      runtimeRead('agents.list', {}, connection),
+      runtimeRead('workspace.snapshot', {}, connection),
     ]);
-    const tasks = z.object({ tasks: z.array(agentSchema) }).parse(rawTasks);
+    const tasks = z.object({ tasks: z.array(agentSchema) }).parse(rawTasks.value);
     const shell = z
       .object({
         snapshot: z.object({
@@ -29,7 +29,7 @@ export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
           ),
         }),
       })
-      .parse(rawShell);
+      .parse(rawShell.value);
     const profiles = await readFactoryProfiles(
       shell.snapshot.projects.map((project) => project.id),
     );
@@ -52,20 +52,22 @@ export const getAgents = createServerFn({ method: 'GET' }).handler(async () => {
       projects,
       appearances: await readAppearances(agents.map((agent) => agent.id)),
       connected: true,
-      native,
-      cacheScope,
+      offline: rawTasks.offline || rawShell.offline,
+      native: Boolean(connection),
+      cacheScope: connection?.origin ?? 'local',
       error: null,
-      syncedAt: new Date().toISOString(),
+      syncedAt: rawShell.savedAt,
     };
-  } catch {
+  } catch (error) {
     return {
       agents: [],
       projects: [],
       appearances: await readAppearances([]),
       connected: false,
-      native,
-      cacheScope,
-      error: 'The runtime is unavailable. Check the selected computer in Settings.',
+      offline: false,
+      native: Boolean(connection),
+      cacheScope: connection?.origin ?? 'local',
+      error: workspaceUnavailableMessage(error, !connection),
       syncedAt: null,
     };
   }

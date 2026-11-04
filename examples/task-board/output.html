@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: var(--color-canvas);
+        --ink: var(--color-text);
+        --muted: var(--color-muted);
+        --line: var(--color-border);
+        --wash: var(--color-surface);
+        --green: #287348;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        max-width: 1100px;
+        margin: auto;
+        padding: 32px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.2;
+        letter-spacing: -0.04em;
+        margin: 6px 0;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 0;
+      }
+      p {
+        margin: 6px 0;
+        color: var(--muted);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+        border-radius: 7px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      button:hover {
+        background: var(--wash);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .primary {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+      .primary:hover {
+        filter: brightness(0.95);
+      }
+      .status {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 250px;
+        gap: 32px;
+        margin-top: 28px;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .progress {
+        height: 5px;
+        background: var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 12px 0 22px;
+      }
+      .progress span {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.2s;
+      }
+      #tasks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .task {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 17px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .check {
+        padding: 0;
+        width: 23px;
+        height: 23px;
+        border-radius: 50%;
+        font-size: 12px;
+      }
+      .check[aria-pressed='true'] {
+        background: var(--green);
+        border-color: var(--green);
+        color: var(--paper);
+      }
+      .title {
+        display: block;
+        font-weight: 550;
+        overflow-wrap: anywhere;
+      }
+      .done .title {
+        text-decoration: line-through;
+        color: var(--muted);
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .priority {
+        font-size: 11px;
+        padding: 3px 7px;
+        border-radius: 4px;
+        background: var(--wash);
+        color: var(--accent);
+      }
+      .priority.normal {
+        color: var(--muted);
+        background: transparent;
+      }
+      form {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      input {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        padding: 9px 11px;
+        border-radius: 7px;
+        min-width: 0;
+        flex: 1;
+      }
+      aside {
+        border-left: 1px solid var(--line);
+        padding-left: 24px;
+      }
+      .actions {
+        display: grid;
+        gap: 8px;
+        margin: 16px 0 24px;
+      }
+      .actions button {
+        text-align: left;
+      }
+      .actions small {
+        display: block;
+        opacity: 0.75;
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .activity {
+        list-style: none;
+        padding: 0;
+        margin: 14px 0;
+      }
+      .activity li {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .activity time {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      #notice {
+        min-height: 22px;
+        font-size: 12px;
+        margin-top: 18px;
+        color: var(--muted);
+      }
+      #notice.error {
+        color: var(--accent);
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        margin-top: 26px;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .compact .task {
+        padding: 8px 0;
+      }
+      .compact .meta {
+        display: none;
+      }
+      .loading {
+        color: var(--muted);
+        padding: 24px 0;
+      }
+      .empty {
+        padding: 24px 0;
+        color: var(--muted);
+      }
+      @media (max-width: 700px) {
+        main {
+          padding: 20px;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+          gap: 26px;
+        }
+        aside {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 22px 0 0;
+        }
+        header {
+          align-items: flex-start;
+        }
+        .status {
+          font-size: 11px;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .task {
+          grid-template-columns: 28px minmax(0, 1fr);
+        }
+        .priority {
+          grid-column: 2;
+          justify-self: start;
+        }
+        footer {
+          flex-direction: column;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Task board</h1>
+          <p>Your agent works here. The board stays with you.</p>
+        </div>
+        <div class="status"><span class="dot"></span><span id="sync">Connecting…</span></div>
+      </header>
+      <div class="layout">
+        <section aria-labelledby="checklist-title">
+          <div class="section-head">
+            <h2 id="checklist-title">Your tasks</h2>
+            <span id="count">Loading tasks…</span>
+          </div>
+          <div
+            class="progress"
+            role="progressbar"
+            aria-label="Launch completion"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <span id="progress"></span>
+          </div>
+          <ul id="tasks">
+            <li class="loading">Loading your shared board…</li>
+          </ul>
+          <form id="add">
+            <input
+              id="task-title"
+              aria-label="New task"
+              placeholder="What else needs to happen?"
+              maxlength="180"
+              required
+            /><button type="submit">Add task</button>
+          </form>
+          <p id="notice" role="status" aria-live="polite">Changes save automatically.</p>
+        </section>
+        <aside>
+          <h2>Work with your agent</h2>
+          <p>Ask for a change and watch it arrive here.</p>
+          <div class="actions">
+            <button
+              class="primary"
+              data-prompt="Review the task board, select the two most important unfinished tasks, set their priority to high, and add a short activity entry explaining your choice. Update SQLite only. Leave your persistent HTML file unchanged."
+            >
+              Prioritize tasks<small>Agent reviews and updates the data</small></button
+            ><button
+              data-prompt="Add one specific, useful task to the tasks table, with owner Agent and priority normal. Add an activity entry explaining why. Update SQLite only. Leave your persistent HTML file unchanged."
+            >
+              Suggest the next task<small>Agent adds a task to the shared board</small></button
+            ><button
+              data-prompt="Read your persistent HTML file and toggle the compact class on the body element by editing its opening tag. If the body has no class, add class=compact; if it has compact, remove it. Keep all existing controls and database code. Add an activity entry about the layout change. This request explicitly asks you to edit the persistent app HTML."
+            >
+              Change the layout<small>Agent edits this app's existing HTML</small>
+            </button>
+          </div>
+          <h2>Recent activity</h2>
+          <ul class="activity" id="activity">
+            <li>Waiting for the first update…</li>
+          </ul>
+        </aside>
+      </div>
+      <footer>
+        <span>One shared app. Your work carries over between runs.</span
+        ><span>Check a task to save instantly, or ask the agent to help.</span>
+      </footer>
+    </main>
+    <script>
+      let inFlight = false;
+      let requestId = null;
+      let pending = null;
+      let promptTimer = null;
+      let rows = [];
+      let busyPrompt = null;
+      let promptRequestId = null;
+      const $ = (id) => document.getElementById(id);
+      function notice(message, error = false) {
+        $('notice').textContent = message;
+        $('notice').className = error ? 'error' : '';
+      }
+      let serial = Promise.resolve();
+      function sql(statements) {
+        const next = serial.then(() => executeSql(statements));
+        serial = next.catch(() => {});
+        return next;
+      }
+      function executeSql(statements) {
+        inFlight = true;
+        requestId = crypto.randomUUID();
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            pending = null;
+            inFlight = false;
+            reject(new Error('The database did not respond. Try again.'));
+          }, 12000);
+          pending = { resolve, reject, timer };
+          parent.postMessage(
+            { type: 'openfactory:database-query', version: 1, requestId, statements },
+            '*',
+          );
+        });
+      }
+      window.addEventListener('message', (event) => {
+        if (event.source !== parent) return;
+        const data = event.data;
+        if (!data || data.version !== 1) return;
+        if (
+          data.type === 'openfactory:database-result' &&
+          pending &&
+          data.requestId === requestId
+        ) {
+          const p = pending;
+          pending = null;
+          inFlight = false;
+          clearTimeout(p.timer);
+          data.error ? p.reject(new Error(data.error)) : p.resolve(data.results);
+        }
+        if (
+          data.type === 'openfactory:agent-prompt-result' &&
+          busyPrompt &&
+          data.requestId === promptRequestId
+        ) {
+          clearTimeout(promptTimer);
+          busyPrompt.disabled = false;
+          busyPrompt = null;
+          notice(
+            data.status === 'sent'
+              ? 'Your agent is on it. Updates will appear here.'
+              : 'Could not send that request. Click the button again.',
+            data.status !== 'sent',
+          );
+        }
+      });
+      function objects(result) {
+        return result.rows.map((row) =>
+          Object.fromEntries(result.columns.map((name, i) => [name, row[i]])),
+        );
+      }
+      function element(tag, text, className) {
+        const el = document.createElement(tag);
+        if (text !== undefined) el.textContent = text;
+        if (className) el.className = className;
+        return el;
+      }
+      function render(tasks, activity) {
+        rows = tasks;
+        const list = $('tasks');
+        list.replaceChildren();
+        if (!tasks.length)
+          list.append(element('li', 'Your board is clear. Add your first task below.', 'empty'));
+        for (const task of tasks) {
+          const item = element('li', undefined, 'task' + (task.status === 'done' ? ' done' : ''));
+          const check = element('button', task.status === 'done' ? '✓' : '', 'check');
+          check.type = 'button';
+          check.setAttribute(
+            'aria-label',
+            (task.status === 'done' ? 'Reopen ' : 'Complete ') + task.title,
+          );
+          check.setAttribute('aria-pressed', String(task.status === 'done'));
+          check.onclick = () => toggle(task, check);
+          const text = element('div');
+          text.append(
+            element('span', task.title, 'title'),
+            element(
+              'div',
+              task.owner + ' · ' + (task.status === 'done' ? 'Completed' : 'To do'),
+              'meta',
+            ),
+          );
+          item.append(
+            check,
+            text,
+            element(
+              'span',
+              task.priority === 'high' ? 'High priority' : 'Normal',
+              'priority ' + (task.priority === 'high' ? '' : 'normal'),
+            ),
+          );
+          list.append(item);
+        }
+        const done = tasks.filter((t) => t.status === 'done').length;
+        const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+        $('count').textContent = done + ' of ' + tasks.length + ' complete';
+        $('progress').style.width = pct + '%';
+        document.querySelector('[role=progressbar]').setAttribute('aria-valuenow', String(pct));
+        $('activity').replaceChildren();
+        for (const entry of activity) {
+          const li = element('li', entry.message);
+          li.append(
+            element(
+              'time',
+              new Date(entry.created_at + 'Z').toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            ),
+          );
+          $('activity').append(li);
+        }
+        $('sync').textContent =
+          'Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      async function refresh() {
+        if (inFlight || document.hidden) return;
+        try {
+          const result = await sql([
+            {
+              sql: 'SELECT id,title,status,priority,owner FROM tasks ORDER BY status DESC, priority, id LIMIT 100',
+              args: [],
+            },
+            { sql: 'SELECT message,created_at FROM activity ORDER BY id DESC LIMIT 8', args: [] },
+          ]);
+          render(objects(result[0]), objects(result[1]));
+        } catch (error) {
+          $('sync').textContent = 'Connection needs attention';
+          notice(error.message, true);
+        }
+      }
+      async function toggle(task, button) {
+        button.disabled = true;
+        try {
+          await sql([
+            {
+              sql: 'UPDATE tasks SET status=? WHERE id=?',
+              args: [task.status === 'done' ? 'todo' : 'done', task.id],
+            },
+            {
+              sql: 'INSERT INTO activity(message) VALUES (?)',
+              args: [(task.status === 'done' ? 'Reopened: ' : 'Completed: ') + task.title],
+            },
+          ]);
+          notice('Task saved.');
+          await refresh();
+        } catch (error) {
+          notice(error.message, true);
+        } finally {
+          button.disabled = false;
+        }
+      }
+      $('add').onsubmit = async (event) => {
+        event.preventDefault();
+        const input = $('task-title');
+        const title = input.value.trim();
+        if (!title) return;
+        const button = event.submitter;
+        button.disabled = true;
+        try {
+          await sql([
+            {
+              sql: 'INSERT INTO tasks(title,status,priority,owner) VALUES (?, ?, ?, ?)',
+              args: [title, 'todo', 'normal', 'You'],
+            },
+            { sql: 'INSERT INTO activity(message) VALUES (?)', args: ['Added: ' + title] },
+          ]);
+          input.value = '';
+          notice('Task added to the shared board.');
+          await refresh();
+        } catch (error) {
+          notice(error.message, true);
+        } finally {
+          button.disabled = false;
+        }
+      };
+      document.querySelectorAll('[data-prompt]').forEach(
+        (button) =>
+          (button.onclick = () => {
+            if (busyPrompt) {
+              notice('Wait for the current request to be acknowledged.');
+              return;
+            }
+            busyPrompt = button;
+            promptRequestId = crypto.randomUUID();
+            button.disabled = true;
+            notice('Sending your request…');
+            parent.postMessage(
+              {
+                type: 'openfactory:agent-prompt',
+                version: 1,
+                requestId: promptRequestId,
+                prompt: button.dataset.prompt,
+              },
+              '*',
+            );
+            promptTimer = setTimeout(() => {
+              if (busyPrompt) {
+                busyPrompt.disabled = false;
+                busyPrompt = null;
+                notice('No acknowledgement received. Try again from the live agent app.', true);
+              }
+            }, 15000);
+          }),
+      );
+      refresh();
+      setInterval(refresh, 3000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refresh();
+      });
+    </script>
+  </body>
+</html>

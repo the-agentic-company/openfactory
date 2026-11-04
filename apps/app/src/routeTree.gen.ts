@@ -15,6 +15,7 @@ import { Route as AppSettingsRouteImport } from './routes/app_.settings'
 import { Route as AppMarketplaceChar123TypeChar125RouteImport } from './routes/app_.marketplace.{-$type}'
 import { Route as ApiWebhooksAgentIdTokenRouteImport } from './routes/api.webhooks.$agentId.$token'
 import { Route as AppProjectsProjectViewRouteImport } from './routes/app_.projects.$project.$view'
+import { Route as AppProjectsProjectSettingsRouteImport } from './routes/app_.projects.$project.settings'
 import { Route as AppProjectsProjectTeamsChar123SectionChar125RouteImport } from './routes/app_.projects.$project.teams.{-$section}'
 import { Route as AppProjectsProjectAgentsAgentChar123SectionChar125RouteImport } from './routes/app_.projects.$project.agents.$agent.{-$section}'
 import { Route as AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125RouteImport } from './routes/app_.projects.$project.threads.$thread.runs.$runId.{-$section}'
@@ -50,6 +51,12 @@ const AppProjectsProjectViewRoute = AppProjectsProjectViewRouteImport.update({
   path: '/app/projects/$project/$view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppProjectsProjectSettingsRoute =
+  AppProjectsProjectSettingsRouteImport.update({
+    id: '/app_/projects/$project/settings',
+    path: '/app/projects/$project/settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppProjectsProjectTeamsChar123SectionChar125Route =
   AppProjectsProjectTeamsChar123SectionChar125RouteImport.update({
     id: '/app_/projects/$project/teams/{-$section}',
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/app/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app/projects/$project/settings': typeof AppProjectsProjectSettingsRoute
   '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
   '/app/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
   '/app/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
   '/app/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app/projects/$project/settings': typeof AppProjectsProjectSettingsRoute
   '/app/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
   '/app/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
   '/app/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
@@ -101,6 +110,7 @@ export interface FileRoutesById {
   '/app_/marketplace/{-$type}': typeof AppMarketplaceChar123TypeChar125Route
   '/api/webhooks/$agentId/$token': typeof ApiWebhooksAgentIdTokenRoute
   '/app_/projects/$project/$view': typeof AppProjectsProjectViewRoute
+  '/app_/projects/$project/settings': typeof AppProjectsProjectSettingsRoute
   '/app_/projects/$project/teams/{-$section}': typeof AppProjectsProjectTeamsChar123SectionChar125Route
   '/app_/projects/$project/agents/$agent/{-$section}': typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
   '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}': typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/app/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app/projects/$project/$view'
+    | '/app/projects/$project/settings'
     | '/app/projects/$project/teams/{-$section}'
     | '/app/projects/$project/agents/$agent/{-$section}'
     | '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/app/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app/projects/$project/$view'
+    | '/app/projects/$project/settings'
     | '/app/projects/$project/teams/{-$section}'
     | '/app/projects/$project/agents/$agent/{-$section}'
     | '/app/projects/$project/threads/$thread/runs/$runId/{-$section}'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
     | '/app_/marketplace/{-$type}'
     | '/api/webhooks/$agentId/$token'
     | '/app_/projects/$project/$view'
+    | '/app_/projects/$project/settings'
     | '/app_/projects/$project/teams/{-$section}'
     | '/app_/projects/$project/agents/$agent/{-$section}'
     | '/app_/projects/$project/threads/$thread/runs/$runId/{-$section}'
@@ -148,6 +161,7 @@ export interface RootRouteChildren {
   AppMarketplaceChar123TypeChar125Route: typeof AppMarketplaceChar123TypeChar125Route
   ApiWebhooksAgentIdTokenRoute: typeof ApiWebhooksAgentIdTokenRoute
   AppProjectsProjectViewRoute: typeof AppProjectsProjectViewRoute
+  AppProjectsProjectSettingsRoute: typeof AppProjectsProjectSettingsRoute
   AppProjectsProjectTeamsChar123SectionChar125Route: typeof AppProjectsProjectTeamsChar123SectionChar125Route
   AppProjectsProjectAgentsAgentChar123SectionChar125Route: typeof AppProjectsProjectAgentsAgentChar123SectionChar125Route
   AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route: typeof AppProjectsProjectThreadsThreadRunsRunIdChar123SectionChar125Route
@@ -197,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsProjectViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app_/projects/$project/settings': {
+      id: '/app_/projects/$project/settings'
+      path: '/app/projects/$project/settings'
+      fullPath: '/app/projects/$project/settings'
+      preLoaderRoute: typeof AppProjectsProjectSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app_/projects/$project/teams/{-$section}': {
       id: '/app_/projects/$project/teams/{-$section}'
       path: '/app/projects/$project/teams/{-$section}'
@@ -228,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppMarketplaceChar123TypeChar125Route: AppMarketplaceChar123TypeChar125Route,
   ApiWebhooksAgentIdTokenRoute: ApiWebhooksAgentIdTokenRoute,
   AppProjectsProjectViewRoute: AppProjectsProjectViewRoute,
+  AppProjectsProjectSettingsRoute: AppProjectsProjectSettingsRoute,
   AppProjectsProjectTeamsChar123SectionChar125Route:
     AppProjectsProjectTeamsChar123SectionChar125Route,
   AppProjectsProjectAgentsAgentChar123SectionChar125Route:

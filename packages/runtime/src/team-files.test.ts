@@ -20,6 +20,11 @@ beforeEach(async () => {
     title: 'Mibba',
     workspaceRoot: directory,
   });
+  await runtime.operations['factory.machine']({
+    projectId: 'mibba',
+    enabled: true,
+    expectedRevision: 'initial',
+  });
 });
 afterEach(async () => {
   await runtime.close();

@@ -20,6 +20,46 @@ export async function makeRuntimeHandler(runtime: AgentRuntime) {
     );
   }
   const handlers = RuntimeRpcs.toLayer({
+    'database.tables': (input) =>
+      invoke(
+        () => runtime.operations['database.tables'](input),
+        runtimeProcedures['database.tables'].successSchema,
+      ),
+    'database.rows': (input) =>
+      invoke(
+        () => runtime.operations['database.rows'](input),
+        runtimeProcedures['database.rows'].successSchema,
+      ),
+    'usage.agent': (input) =>
+      invoke(
+        () => runtime.operations['usage.agent'](input),
+        runtimeProcedures['usage.agent'].successSchema,
+      ),
+    'apps.read': (input) =>
+      invoke(
+        () => runtime.operations['apps.read'](input),
+        runtimeProcedures['apps.read'].successSchema,
+      ),
+    'apps.query': (input) =>
+      invoke(
+        () => runtime.operations['apps.query'](input),
+        runtimeProcedures['apps.query'].successSchema,
+      ),
+    'apps.prompt': (input) =>
+      invoke(
+        () => runtime.operations['apps.prompt'](input),
+        runtimeProcedures['apps.prompt'].successSchema,
+      ),
+    'usage.factory': (input) =>
+      invoke(
+        () => runtime.operations['usage.factory'](input),
+        runtimeProcedures['usage.factory'].successSchema,
+      ),
+    'pullRequests.list': (input) =>
+      invoke(
+        () => runtime.operations['pullRequests.list'](input),
+        runtimeProcedures['pullRequests.list'].successSchema,
+      ),
     'marketplace.leaderboard': (input) =>
       invoke(
         () => runtime.operations['marketplace.leaderboard'](input),
@@ -75,6 +115,11 @@ export async function makeRuntimeHandler(runtime: AgentRuntime) {
         () => runtime.operations['teams.run'](input),
         runtimeProcedures['teams.run'].successSchema,
       ),
+    'history.agent': (input) =>
+      invoke(
+        () => runtime.operations['history.agent'](input),
+        runtimeProcedures['history.agent'].successSchema,
+      ),
     'agents.list': (input) =>
       invoke(
         () => runtime.operations['agents.list'](input),
@@ -84,6 +129,16 @@ export async function makeRuntimeHandler(runtime: AgentRuntime) {
       invoke(
         () => runtime.operations['workspace.snapshot'](input),
         runtimeProcedures['workspace.snapshot'].successSchema,
+      ),
+    'factory.runner': (input) =>
+      invoke(
+        () => runtime.operations['factory.machine'](input),
+        runtimeProcedures['factory.machine'].successSchema,
+      ),
+    'factory.machine': (input) =>
+      invoke(
+        () => runtime.operations['factory.machine'](input),
+        runtimeProcedures['factory.machine'].successSchema,
       ),
     'projects.delete': (input) =>
       invoke(

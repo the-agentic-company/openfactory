@@ -2,7 +2,6 @@
   --catalog-muted: #62616b;
 }
 .catalog-main {
-  max-width: 960px;
   margin: 0 auto;
   padding-bottom: 40px;
 }
@@ -254,9 +253,6 @@
   }
 }
 @media (max-width: 740px) {
-  .marketplace-site.landing {
-    padding: 0 20px;
-  }
   .catalog-types {
     gap: 26px;
     padding-top: 0;
@@ -399,9 +395,6 @@
   .catalog-install-command {
     min-height: 44px;
   }
-}
-.catalog-main:has(> .catalog-detail) {
-  max-width: 1120px;
 }
 .catalog-breadcrumbs {
   margin-top: 48px;

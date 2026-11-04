@@ -123,6 +123,31 @@ export function selectStack(input: unknown) {
 
 export const workspacePackages = [
   {
+    path: 'apps/desktop',
+    name: '@openfactory/desktop',
+    purpose: 'Electron shell and authenticated computer host',
+  },
+  {
+    path: 'apps/mobile',
+    name: '@openfactory/mobile',
+    purpose: 'Native iOS and Android interface with Expo',
+  },
+  {
+    path: 'packages/protocol',
+    name: '@openfactory/protocol',
+    purpose: 'Portable runtime contracts and RPC definitions',
+  },
+  {
+    path: 'packages/client',
+    name: '@openfactory/client',
+    purpose: 'Shared remote client and workspace workflows',
+  },
+  {
+    path: 'packages/runtime',
+    name: '@openfactory/runtime',
+    purpose: 'Agent execution, filesystem and host data',
+  },
+  {
     path: 'apps/app',
     name: '@openfactory/app',
     purpose: 'Workspace UI and local server functions',
@@ -184,3 +209,5 @@ export { runBucket, relativeRunTime, runLinks, type RunBucket } from './run-view
 export { pullRequestResultSchema, type PullRequestResult } from './pull-requests';
 export { pullRequestSnapshotSchema, type PullRequestSnapshot } from './pull-requests';
 export * from './marketplace';
+
+export { runDetailProjectionSchema, projectRunDetail } from './run-detail';

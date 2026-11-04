@@ -87,20 +87,40 @@ main.workspace-page--fill {
 }
 @media (max-width: 740px) {
   .workspace-page-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 44px 44px;
-    height: 100px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 44px;
+  }
+  .workspace-page-breadcrumb {
+    min-height: 32px;
+    font-size: 14px;
+  }
+  .workspace-page-header .workspace-page-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .workspace-project {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .workspace-page-header .workspace-header-actions {
+    margin-left: 0;
     min-width: 0;
     max-width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+  }
+  .workspace-header-actions:empty {
+    display: none;
   }
   main.workspace-page--fill {
     height: auto;
-    min-height: calc(100dvh - var(--desktop-titlebar-height, 0px));
+    min-height: calc(
+      100dvh - var(--mobile-navigation-height) - var(--desktop-titlebar-height, 0px)
+    );
     overflow: visible;
   }
   .workspace-page--fill > .workspace-page-content {

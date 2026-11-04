@@ -4,9 +4,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "vp run --filter @openfactory/desktop --filter @openfactory/site --parallel --no-cache --log labeled dev",
-    "dev:app": "vp run @openfactory/app#dev",
-    "dev:desktop": "pnpm --filter @openfactory/desktop dev",
+    "dev": "node scripts/dev.ts",
     "build": "vp run -r build",
     "build:site": "vp run @openfactory/site#build",
     "verify:site": "node scripts/verify-public-site.mjs",
@@ -20,10 +18,14 @@
     "runtime:start": "node packages/runtime/dist/runtime.mjs serve",
     "runtime:migrate": "pnpm runtime:build && node apps/app/scripts/migrate-t3.mjs",
     "openfactory": "node packages/runtime/dist/runtime.mjs",
-    "dev:site": "vp run @openfactory/site#dev",
     "build:app": "vp run @openfactory/app#build",
     "verify:app": "node scripts/verify-app.mjs",
-    "verify:visualizations": "node scripts/verify-visualizations.mjs"
+    "verify:visualizations": "node scripts/verify-visualizations.mjs",
+    "dev:mobile": "vp run @openfactory/mobile#dev",
+    "build:mobile": "vp run @openfactory/mobile#build",
+    "check:mobile": "vp run @openfactory/mobile#check",
+    "mcp:build": "vp run @openfactory/mcp#build",
+    "mcp:start": "vp run @openfactory/mcp#start"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

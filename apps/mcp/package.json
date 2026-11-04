@@ -1,0 +1,23 @@
+{
+  "name": "@openfactory/mcp",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vp build && node dist/mcp.mjs",
+    "start": "node dist/mcp.mjs",
+    "check": "tsc --noEmit",
+    "build": "vp build"
+  },
+  "dependencies": {
+    "@openfactory/core": "workspace:*",
+    "@openfactory/runtime": "workspace:*",
+    "mcp-use": "1.34.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vite-plus": "catalog:"
+  }
+}

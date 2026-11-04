@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { getAgents } from '../server/agents';
 import { WorkspaceSidebar } from '../components/workspace-sidebar';
-import { ConnectionSettings } from '../components/connection-settings';
+import { SettingsModal } from '../components/settings-modal';
 
 export const Route = createFileRoute('/app_/settings')({
   loader: () => getAgents(),
@@ -9,6 +9,7 @@ export const Route = createFileRoute('/app_/settings')({
 });
 function Settings() {
   const workspace = Route.useLoaderData();
+  const navigate = useNavigate();
   return (
     <div className="app-shell">
       <WorkspaceSidebar
@@ -17,7 +18,7 @@ function Settings() {
         activeView="settings"
       />
       <div className="main-shell">
-        <ConnectionSettings />
+        <SettingsModal onClose={() => void navigate({ to: '/app' })} />
       </div>
     </div>
   );

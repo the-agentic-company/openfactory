@@ -44,3 +44,8 @@ apps/site/.source/
 
 # Transient repository factory save journal
 factory.lock/
+
+# Expo generated projects and local state
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/

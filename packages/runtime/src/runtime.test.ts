@@ -5,7 +5,7 @@ import { createHmac } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { z } from 'zod';
-import { agentDirectory, projectAgentConversations } from '@openfactory/core';
+import { agentDirectory, projectAgentConversations, threadHistorySchema } from '@openfactory/core';
 import { AgentRuntime } from './runtime';
 import { messageSchema, ownedAgentSchema, runSchema, sessionSchema } from './contracts';
 import { nextScheduledAt } from './schedule';
@@ -78,6 +78,11 @@ if (claude) {
     id: 'project',
     title: 'Factory',
     workspaceRoot: directory,
+  });
+  await runtime.operations['factory.machine']({
+    projectId: 'project',
+    enabled: true,
+    expectedRevision: 'initial',
   });
 });
 afterEach(async () => {
@@ -713,4 +718,110 @@ describe('factory deletion', () => {
     await runtime.operations['sessions.stop']({ threadId: receipt.threadId });
     await finished(receipt.runId);
   });
+});
+
+describe('persistent agent apps', () => {
+  it('provisions every agent and keeps app files when the agent is renamed', async () => {
+    const agent = await create();
+    const paths = runtime.apps.ensure(agent);
+    await writeFile(paths.htmlPath, '<h1>Persistent app</h1>');
+    const renamed = await create({ id: agent.id, title: 'Renamed agent' });
+    expect(runtime.apps.ensure(renamed)).toEqual(paths);
+    expect(await runtime.operations['apps.read']({ id: agent.id })).toMatchObject({
+      html: '<h1>Persistent app</h1>',
+    });
+    const other = await create({ title: 'Other agent' });
+    expect(runtime.apps.ensure(other).databasePath).not.toBe(paths.databasePath);
+    await expect(runtime.operations['apps.read']({ id: 'missing' })).rejects.toThrow(
+      'no longer exists',
+    );
+  });
+  it('routes page prompts to their agent and deduplicates retried submissions', async () => {
+    const agent = await create();
+    const input = { id: agent.id, prompt: 'Update my board', requestId: 'page-request' };
+    const receipt = await runtime.operations['apps.prompt'](input);
+    expect(await runtime.operations['apps.prompt'](input)).toEqual(receipt);
+    expect((await finished(receipt.runId)).status).toBe('completed');
+    const projection = threadHistorySchema.parse(
+      await runtime.operations['sessions.projection']({ threadId: receipt.threadId }),
+    );
+    expect(runtime.store.get('sessions', receipt.threadId, sessionSchema)?.thread.agentId).toBe(
+      agent.id,
+    );
+    expect(
+      projection.messages.some((message) =>
+        message.text.includes('Request from your app:\nUpdate my board'),
+      ),
+    ).toBe(true);
+    const session = runtime.store.get('sessions', receipt.threadId, sessionSchema);
+    if (!session) {
+      throw new Error('Expected app session');
+    }
+    const paths = runtime.apps.ensure(agent);
+    const command = providerCommand(session, {
+      directory: paths.directory,
+      instructions: `HTML: ${paths.htmlPath}\nSQLite: ${paths.databasePath}`,
+    });
+    expect(command.args).toContain(paths.directory);
+    expect(
+      command.args.some((arg) => arg.includes(paths.htmlPath) && arg.includes(paths.databasePath)),
+    ).toBe(true);
+  });
+});
+
+it('persists the machine gate and rejects stale machine changes and new work on the old machine', async () => {
+  const agent = await create();
+  const disabled = await runtime.operations['factory.machine']({
+    projectId: 'project',
+    enabled: false,
+    expectedRevision:
+      (await runtime.operations['workspace.snapshot']({})).snapshot.projects[0]?.machineRevision ??
+      'initial',
+  });
+  await expect(
+    runtime.operations['agents.run']({ id: agent.id, requestId: 'wrong-machine' }),
+  ).rejects.toThrow('another machine');
+  await expect(
+    runtime.operations['factory.machine']({
+      projectId: 'project',
+      enabled: true,
+      expectedRevision: 'initial',
+    }),
+  ).rejects.toThrow('another client');
+  const snapshot = await runtime.operations['workspace.snapshot']({});
+  expect(snapshot.snapshot.projects[0]?.machineEnabled).toBe(false);
+  await runtime.operations['factory.machine']({
+    projectId: 'project',
+    enabled: true,
+    expectedRevision: disabled.revision,
+  });
+  const receipt = receiptSchema.parse(
+    await runtime.operations['agents.run']({ id: agent.id, requestId: 'right-machine' }),
+  );
+  await finished(receipt.runId);
+});
+it('refuses machine handoff while work is queued or active', async () => {
+  const agent = await create({ prompt: 'HOLD' });
+  await runtime.operations['agents.run']({ id: agent.id, requestId: 'busy-handoff' });
+  await expect(
+    runtime.operations['factory.machine']({
+      projectId: 'project',
+      enabled: false,
+      expectedRevision: 'initial',
+    }),
+  ).rejects.toThrow('active and queued');
+});
+it('registers additional factory folders with execution paused until selected as machine', async () => {
+  const workspaceRoot = join(directory, 'new-copy');
+  await mkdir(workspaceRoot);
+  const project = await runtime.operations['projects.upsert']({
+    id: 'new-copy',
+    title: 'Copy',
+    workspaceRoot,
+  });
+  expect(project.machineEnabled).toBe(false);
+  const snapshot = await runtime.operations['workspace.snapshot']({});
+  expect(snapshot.snapshot.projects.find((entry) => entry.id === 'new-copy')?.machineEnabled).toBe(
+    false,
+  );
 });

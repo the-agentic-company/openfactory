@@ -340,7 +340,7 @@ function Breakdown({
     </section>
   );
 }
-function BarChart({
+export function BarChart({
   series,
   labels,
   palette,

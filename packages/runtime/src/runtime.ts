@@ -1,3 +1,9 @@
+import { repositoryIdentity } from './repository-identity';
+import { loadAgentUsage } from './agent-usage';
+import { readFactoryRuns, readAgentProjections, type RuntimeCall } from '@openfactory/client';
+import { AgentApps, agentAppInstructions } from './agent-apps';
+import { loadFactoryUsage } from './usage';
+import { loadRepositoryPullRequests, repositoryForWorkspace } from './github-pull-requests';
 import { runtimeInputs } from './rpc-contracts';
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
@@ -9,6 +15,7 @@ import {
   createFactoryFiles,
   deliverySchema,
   threadHistorySchema,
+  projectAgentConversations,
   resolveTeam,
   teamGuidance,
 } from '@openfactory/core';
@@ -46,6 +53,7 @@ const safeEqual = (left: string, right: string) => {
 };
 export class AgentRuntime {
   readonly store: Store;
+  readonly apps: AgentApps;
   private active = new Map<string, { runId: string; stop: () => void }>();
   private working = new Set<string>();
   private workingAgents = new Set<string>();
@@ -53,6 +61,10 @@ export class AgentRuntime {
   private timer: ReturnType<typeof setInterval> | undefined;
   constructor(readonly directory: string) {
     this.store = new Store(directory);
+    this.apps = new AgentApps(directory);
+    for (const agent of this.store.all('agents', ownedAgentSchema)) {
+      this.apps.ensure(agent);
+    }
     mkdirSync(join(directory, 'events'), { recursive: true, mode: 0o700 });
     for (const run of this.store.all('runs', runSchema)) {
       if (run.status === 'running') {
@@ -90,6 +102,9 @@ export class AgentRuntime {
     if (this.definitions.get(projectId)?.revision !== definition.revision) {
       applyFactory(this.store, prepareFactory(this.store, project, definition));
       this.definitions.set(projectId, definition);
+      for (const id of Object.values(definition.bindings)) {
+        this.apps.ensure(this.getAgent(id));
+      }
     }
     return definition;
   }
@@ -104,6 +119,9 @@ export class AgentRuntime {
       applyFactory(this.store, prepared),
     );
     this.definitions.set(projectId, saved);
+    for (const id of Object.values(saved.bindings)) {
+      this.apps.ensure(this.getAgent(id));
+    }
     return saved;
   }
   private configuredAgent(id: string) {
@@ -225,6 +243,11 @@ export class AgentRuntime {
     source: 'schedule' | 'webhook' | 'web' | 'retry',
     threadId?: string,
   ) {
+    if (this.project(agent.projectId).machineEnabled === false) {
+      throw new Error(
+        'This factory runs on another machine. Select this machine in factory settings first.',
+      );
+    }
     const fingerprint = digest(JSON.stringify([agent.id, threadId ?? null, text]));
     const previous = this.store.get('receipts', key, receiptSchema);
     if (previous) {
@@ -302,6 +325,7 @@ export class AgentRuntime {
     for (const agent of this.store.all('agents', ownedAgentSchema)) {
       if (
         !validProjects.has(agent.projectId) ||
+        this.project(agent.projectId).machineEnabled === false ||
         !agent.enabled ||
         !agent.nextRunAt ||
         new Date(agent.nextRunAt) > at
@@ -337,6 +361,9 @@ export class AgentRuntime {
         continue;
       }
       const agent = this.getAgent(run.agentId);
+      if (this.project(agent.projectId).machineEnabled === false) {
+        continue;
+      }
       const superseded =
         agent.threadId !== run.threadId ||
         runs.some((other) => other.threadId === run.threadId && other.ordinal > run.ordinal);
@@ -396,7 +423,8 @@ export class AgentRuntime {
         continue;
       }
       if (
-        !validProjects.has(this.getAgent(run.agentId).projectId) ||
+        this.project(owner.projectId).machineEnabled === false ||
+        !validProjects.has(owner.projectId) ||
         run.status !== 'queued' ||
         this.working.has(run.threadId) ||
         this.workingAgents.has(run.agentId)
@@ -473,6 +501,7 @@ export class AgentRuntime {
       if (!message) {
         throw new Error('The saved prompt is missing.');
       }
+      const appPaths = this.apps.ensure(this.getAgent(session.thread.agentId));
       const worker = launchProvider(
         session,
         message.text,
@@ -531,6 +560,7 @@ export class AgentRuntime {
           appendFileSync(join(this.directory, 'events', `${runId}.jsonl`), `${line}\n`, {
             mode: 0o600,
           }),
+        { directory: appPaths.directory, instructions: agentAppInstructions(appPaths) },
       );
       this.active.set(session.thread.id, {
         runId,
@@ -610,7 +640,97 @@ export class AgentRuntime {
       attempts: [],
     };
   }
+  private readonly historyCall: RuntimeCall = async (method, input) => {
+    switch (method) {
+      case 'workspace.snapshot':
+        return this.operations['workspace.snapshot']({});
+      case 'agents.list':
+        return this.operations['agents.list']({});
+      case 'sessions.read':
+        return this.operations['sessions.read'](input);
+      default:
+        throw new Error('Unsupported history operation.');
+    }
+  };
   readonly operations = {
+    'database.tables': async (input: unknown) => {
+      const { id } = runtimeInputs['database.tables'].parse(input);
+      return this.apps.tables(this.configuredAgent(id));
+    },
+    'database.rows': async (input: unknown) => {
+      const data = runtimeInputs['database.rows'].parse(input);
+      return this.apps.rows(this.configuredAgent(data.id), data);
+    },
+    'usage.agent': async (input: unknown) =>
+      loadAgentUsage(runtimeInputs['usage.agent'].parse(input), (id) =>
+        readAgentProjections(id, this.historyCall),
+      ),
+    'apps.read': async (input: unknown) => {
+      const { id } = runtimeInputs['apps.read'].parse(input);
+      return this.apps.read(this.configuredAgent(id));
+    },
+    'apps.query': async (input: unknown) => {
+      const data = runtimeInputs['apps.query'].parse(input);
+      return this.apps.query(this.configuredAgent(data.id), data);
+    },
+    'apps.prompt': async (input: unknown) => {
+      const data = runtimeInputs['apps.prompt'].parse(input);
+      const agent = this.configuredAgent(data.id);
+      const receipt = this.store.transaction(() =>
+        this.enqueue(
+          agent,
+          `${agent.prompt}\n\nRequest from your app:\n${data.prompt}`,
+          `app:${agent.id}:${data.requestId}`,
+          'web',
+        ),
+      );
+      this.tick();
+      return receipt;
+    },
+    'usage.factory': async (input: unknown) =>
+      loadFactoryUsage(runtimeInputs['usage.factory'].parse(input), (project) =>
+        readFactoryRuns(project, this.historyCall),
+      ),
+    'pullRequests.list': async (input: unknown) => {
+      const data = runtimeInputs['pullRequests.list'].parse(input);
+      const projects = this.store
+        .all('projects', projectSchema)
+        .filter(
+          (p) =>
+            data.project === 'all' || p.id === data.project || p.workspaceRoot === data.project,
+        );
+      if (data.project !== 'all' && !projects.length) {
+        throw new Error('This factory no longer exists.');
+      }
+      const discovered = await Promise.all(
+        projects.map(async (project) => ({
+          project,
+          repository: await repositoryForWorkspace(project.workspaceRoot),
+        })),
+      );
+      const repositories = [
+        ...new Set(discovered.flatMap(({ repository }) => (repository ? [repository] : []))),
+      ];
+      const results = await Promise.allSettled(
+        repositories.map((repository) =>
+          loadRepositoryPullRequests(repository, data.days, data.scope),
+        ),
+      );
+      const pulls = results
+        .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      return {
+        pulls,
+        repositories,
+        unavailable: repositories.filter((_, index) => results[index]?.status === 'rejected'),
+        unlinked: discovered
+          .filter(({ repository }) => !repository)
+          .map(({ project }) => project.title),
+        limited: results.some(
+          (result) => result.status === 'fulfilled' && result.value.length === 100,
+        ),
+      };
+    },
     'marketplace.leaderboard': async (input: unknown) => {
       const { kind, query } = runtimeInputs['marketplace.leaderboard'].parse(input);
       return marketplaceLeaderboard(kind, query);
@@ -718,6 +838,14 @@ export class AgentRuntime {
       this.tick();
       return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };
     },
+    'history.agent': async (input: unknown) => {
+      const { id } = runtimeInputs['history.agent'].parse(input);
+      const { agent, projections, truncated } = await readAgentProjections(id, this.historyCall);
+      return {
+        runs: projections.flatMap((projection) => projectAgentConversations(projection, agent.id)),
+        truncated,
+      };
+    },
     'agents.list': async (_input: unknown) => {
       const ids = new Set<string>();
       for (const project of this.store.all('projects', projectSchema)) {
@@ -745,7 +873,12 @@ export class AgentRuntime {
       );
       return {
         snapshot: {
-          projects: this.store.all('projects', projectSchema),
+          projects: await Promise.all(
+            this.store.all('projects', projectSchema).map(async (project) => ({
+              ...project,
+              ...(await repositoryIdentity(project.workspaceRoot)),
+            })),
+          ),
           threads: [
             ...sessions,
             ...archives.map((p) => ({
@@ -759,6 +892,33 @@ export class AgentRuntime {
           ],
         },
       };
+    },
+    'factory.runner': async (input: unknown): Promise<{ enabled: boolean; revision: string }> =>
+      this.operations['factory.machine'](input),
+    'factory.machine': async (input: unknown) => {
+      const { projectId, enabled, expectedRevision } =
+        runtimeInputs['factory.machine'].parse(input);
+      const project = this.project(projectId);
+      const busy = this.store
+        .all('runs', runSchema)
+        .some(
+          (run) =>
+            ['queued', 'running'].includes(run.status) &&
+            this.getAgent(run.agentId).projectId === projectId,
+        );
+      if (busy) {
+        throw new Error('Wait for active and queued runs to finish before changing machine.');
+      }
+      if ((project.machineRevision ?? 'initial') !== expectedRevision) {
+        throw new Error('Machine selection changed on another client. Refresh before retrying.');
+      }
+      const revision = randomUUID();
+      this.store.put('projects', projectId, {
+        ...project,
+        machineEnabled: enabled,
+        machineRevision: revision,
+      });
+      return { enabled, revision };
     },
     'projects.delete': async (input: unknown) => {
       const { id } = runtimeInputs['projects.delete'].parse(input);
@@ -799,16 +959,27 @@ export class AgentRuntime {
       }
       const definition = readDefinition(project.workspaceRoot);
       if (definition) {
-        const prepared = prepareFactory(this.store, project, definition);
+        const prepared = prepareFactory(
+          this.store,
+          {
+            ...project,
+            machineEnabled: existing ? (existing.machineEnabled ?? true) : false,
+            machineRevision: existing?.machineRevision,
+          },
+          definition,
+        );
         applyFactory(this.store, prepared);
         this.definitions.set(project.id, definition);
+        for (const id of Object.values(definition.bindings)) {
+          this.apps.ensure(this.getAgent(id));
+        }
         return prepared.project;
       }
       if (existing) {
         throw new Error('The repository definition is missing. Migrate existing factories first.');
       }
       const generated = createFactoryFiles(project.title, []);
-      const prepared = prepareFactory(this.store, project, generated);
+      const prepared = prepareFactory(this.store, { ...project, machineEnabled: false }, generated);
       const saved = await saveDefinition(project.workspaceRoot, null, generated, () =>
         applyFactory(this.store, prepared),
       );

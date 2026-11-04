@@ -5,8 +5,10 @@ export function Modal({
   onClose,
   children,
   wide = false,
+  className = '',
 }: {
   wide?: boolean;
+  className?: string;
   titleId: string;
   onClose: () => void;
   children: ReactNode;
@@ -26,7 +28,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className={`detail-panel ${wide ? 'wide-panel' : ''}`}
+      className={`detail-panel ${wide ? 'wide-panel' : ''} ${className}`}
       aria-labelledby={titleId}
       onCancel={onClose}
     >

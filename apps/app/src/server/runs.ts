@@ -2,41 +2,14 @@ import { notFound } from '@tanstack/react-router';
 import { projectWorkspace } from '../project-path';
 import { routeReference } from '../run-path';
 import {
-  agentSchema,
   projectAgentConversations,
-  runLinks,
-  scoreOutput,
-  threadHistorySchema,
+  projectRunDetail,
+  runDetailProjectionSchema as projectionSchema,
 } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { runtimeRpc } from './runtime-rpc';
 import { readScorers } from './factory-store';
-const attachmentSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  name: z.string(),
-  mimeType: z.string(),
-  sizeBytes: z.number(),
-});
-const projectionSchema = threadHistorySchema.extend({
-  thread: threadHistorySchema.shape.thread.extend({
-    projectId: z.string(),
-    nativeSessionId: z.string().nullable().optional(),
-    provider: z.string().optional(),
-    cwd: z.string().optional(),
-  }),
-  runs: z.array(
-    threadHistorySchema.shape.runs.element.extend({
-      modelSelection: agentSchema.shape.modelSelection.nullish(),
-    }),
-  ),
-  messages: z.array(
-    threadHistorySchema.shape.messages.element.extend({
-      attachments: z.array(attachmentSchema).default([]),
-    }),
-  ),
-});
 async function loadRun(threadId: string, runId: string, byReference = false) {
   const { projection } = z.object({ projection: projectionSchema }).parse(
     await runtimeRpc('sessions.read', {
@@ -60,11 +33,7 @@ async function loadRun(threadId: string, runId: string, byReference = false) {
   return { projection, run, trigger, conversation };
 }
 async function runDetail(data: { threadId: string; runId: string }, byReference = false) {
-  const { projection, run, trigger, conversation } = await loadRun(
-    data.threadId,
-    data.runId,
-    byReference,
-  );
+  const { projection, run } = await loadRun(data.threadId, data.runId, byReference);
   const shell = z
     .object({
       snapshot: z.object({
@@ -74,66 +43,7 @@ async function runDetail(data: { threadId: string; runId: string }, byReference 
       }),
     })
     .parse(await runtimeRpc('workspace.snapshot', {}));
-  const project = shell.snapshot.projects.find((item) => item.id === projection.thread.projectId);
-  const messageIds = conversation && new Set(conversation.messages.map((message) => message.id));
-  const messages = projection.messages.filter(
-    (message) =>
-      message.role !== 'system' &&
-      (messageIds
-        ? messageIds.has(message.id)
-        : message.runId === run.id || message.id === run.userMessageId),
-  );
-  const output = messages
-    .filter((message) => message.role === 'assistant')
-    .map((message) => message.text)
-    .join('\n\n');
-  const rules = (await readScorers()).filter(
-    (scorer) =>
-      (scorer.project === 'all' ||
-        scorer.project === project?.workspaceRoot ||
-        scorer.project === projection.thread.projectId) &&
-      (!scorer.agentId || scorer.agentId === trigger?.scheduledTaskId),
-  );
-  const rootRun = projection.runs.find((item) => item.id === conversation?.id) ?? run;
-  return {
-    run: conversation
-      ? {
-          ...rootRun,
-          status: conversation.status,
-          completedAt: conversation.completedAt,
-          error: conversation.error,
-          capacityRetry: conversation.capacityRetry,
-        }
-      : run,
-    thread: projection.thread,
-    project,
-    agentId: trigger?.scheduledTaskId ?? null,
-    createdBy: trigger?.createdBy ?? null,
-    creationSource: trigger?.creationSource ?? null,
-    messages: messages.slice(-100).map((message) => ({
-      id: message.id,
-      role: message.role === 'user' ? ('user' as const) : ('assistant' as const),
-      text: message.text.slice(-50000),
-      createdAt: message.createdAt,
-      attachments: message.attachments,
-    })),
-    limited: messages.length > 100 || messages.some((message) => message.text.length > 50000),
-    links: runLinks(messages.map((message) => message.text).join('\n')).slice(0, 100),
-    attachments: [
-      ...new Map(
-        messages.flatMap((message) => message.attachments).map((item) => [item.id, item]),
-      ).values(),
-    ],
-    scores: rules.map((scorer) => ({
-      id: scorer.id,
-      name: scorer.name,
-      rule: scorer.rule,
-      result:
-        ['completed', 'succeeded'].includes(run.status) && output
-          ? scoreOutput(scorer.rule, output)
-          : null,
-    })),
-  };
+  return projectRunDetail(projection, run.id, shell.snapshot.projects, await readScorers());
 }
 
 export const getRunDetail = createServerFn({ method: 'GET' })

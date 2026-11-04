@@ -51,10 +51,7 @@ function DownloadPage() {
       <MarketingHeader />
       <main>
         <header className="download-page-heading">
-          <div className="download-heading-inner">
-            <img src="/openfactory.png" width={64} height={64} alt="" />
-            <h1>Download OpenFactory</h1>
-          </div>
+          <h1>Download OpenFactory</h1>
           <span className="download-channel">Desktop preview</span>
           <a className="download-version" href={desktopReleaseUrl}>
             v{desktopVersion} <ArrowUpRight size={13} />

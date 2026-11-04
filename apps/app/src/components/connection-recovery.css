@@ -1,0 +1,71 @@
+.connection-recovery {
+  max-width: 880px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.connection-recovery-message {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 28px;
+}
+.connection-recovery-message > svg {
+  color: var(--color-danger);
+  margin-top: 2px;
+}
+.connection-recovery-message h2 {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.connection-recovery-message p {
+  max-width: 65ch;
+  overflow-wrap: anywhere;
+}
+.connection-recovery-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.connection-recovery-actions .button {
+  height: 40px;
+}
+.connection-recovery-back {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.connection-recovery-computers {
+  border-top: 1px solid var(--color-border);
+  padding: 24px 28px 4px;
+}
+.connection-recovery-computers h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.connection-recovery-computers > p {
+  font-size: 12px;
+}
+.connection-recovery-loading {
+  padding: 20px 0;
+}
+@media (max-width: 600px) {
+  .connection-recovery-message {
+    padding: 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .connection-recovery-computers {
+    padding: 20px 20px 0;
+  }
+}

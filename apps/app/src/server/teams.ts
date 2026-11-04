@@ -1,5 +1,6 @@
+import { createTeamFiles } from '@openfactory/client';
 import { randomUUID } from 'node:crypto';
-import { factoryTeamSetups, resolvedTeamSchema, stringifyTeamDefinition } from '@openfactory/core';
+import { resolvedTeamSchema } from '@openfactory/core';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getFactoryDefinition } from './factory-definition';
@@ -28,34 +29,13 @@ export const createFactoryTeam = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     const current = await getFactoryDefinition({ data: { projectId: data.projectId } });
-    const path = `teams/${data.slug}/team.yaml`;
-    const files = Object.fromEntries(current.files.map((file) => [file.path, file.source]));
-    if (files[path] !== undefined) {
-      throw new Error('A team with this folder name already exists.');
-    }
-    const agentIds = [...new Set([data.leadAgentId, ...data.memberAgentIds])];
-    const members: Record<string, { agent: string; reportsTo?: string }> = {};
-    for (const [index, id] of agentIds.entries()) {
-      const agentPath = Object.entries(current.bindings).find(([, agentId]) => agentId === id)?.[0];
-      const file = current.files.find((item) => item.path === agentPath);
-      if (!file?.liveSource) {
-        throw new Error('Choose live agents from this factory.');
-      }
-      members[index === 0 ? 'lead' : `member-${index}`] = {
-        agent: file.path,
-        ...(index === 0 ? {} : { reportsTo: 'lead' }),
-      };
-    }
-    files[path] = stringifyTeamDefinition({
-      schemaVersion: 'v1alpha1',
-      name: data.name,
-      description: data.description,
-      instructions: './instructions.md',
-      lead: 'lead',
-      members,
-    });
-    files[`teams/${data.slug}/instructions.md`] = data.instructions;
-    factoryTeamSetups(files, current.bindings);
+    const { files, path } = createTeamFiles(
+      {
+        files: Object.fromEntries(current.files.map((file) => [file.path, file.source])),
+        bindings: current.bindings,
+      },
+      data,
+    );
     await runtimeRpc('definitions.save', {
       projectId: data.projectId,
       revision: current.revision,

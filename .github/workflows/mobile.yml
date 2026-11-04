@@ -1,0 +1,45 @@
+name: Mobile checks
+
+on:
+  pull_request:
+    paths:
+      - apps/mobile/**
+      - packages/core/**
+      - packages/protocol/**
+      - packages/client/**
+      - packages/runtime/**
+      - pnpm-lock.yaml
+      - .github/workflows/mobile.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/mobile/**
+      - packages/core/**
+      - packages/protocol/**
+      - packages/client/**
+      - packages/runtime/**
+      - pnpm-lock.yaml
+      - .github/workflows/mobile.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:mobile
+      - run: pnpm --filter @openfactory/desktop test -- test/runtime-rpc.test.mjs
+      - run: pnpm build:mobile

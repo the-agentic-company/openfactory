@@ -1,0 +1,26 @@
+{
+  "name": "@openfactory/protocol",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/rpc.ts",
+    "./legacy-machine": "./src/legacy-machine.ts",
+    "./factory-identity": "./src/factory-identity.ts",
+    "./contracts": "./src/contracts.ts",
+    "./definitions": "./src/definitions.ts",
+    "./settings": "./src/settings.ts",
+    "./app-bridge": "./src/app-bridge.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openfactory/core": "workspace:*",
+    "effect": "4.1.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

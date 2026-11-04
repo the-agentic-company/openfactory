@@ -36,7 +36,7 @@
   background: var(--color-hover);
 }
 .team-factory {
-  background: var(--team-bg);
+  background: var(--workspace-sidebar-background);
 }
 
 .team-page {
@@ -77,36 +77,13 @@
   border-top: 1px solid var(--team-line);
 }
 .team-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
   padding: 24px var(--team-gutter) 16px;
 }
-.team-section-header > div {
-  min-width: 0;
-}
 .team-section-header h2 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 18px;
   font-weight: 500;
   overflow-wrap: anywhere;
-}
-.team-section-header p {
-  margin: 0;
-  max-width: 70ch;
-  color: var(--team-muted);
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.team-section-header .button {
-  flex-shrink: 0;
-}
-@media (max-width: 740px) {
-  .team-section-header {
-    flex-wrap: wrap;
-  }
 }
 .team-definition {
   width: 100%;
@@ -168,29 +145,23 @@
   min-height: 480px;
 }
 .org-team-heading {
-  height: 160px;
+  height: 56px;
   overflow: auto;
   text-align: center;
 }
 .org-team-heading h2 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 18px;
   font-weight: 500;
-  overflow-wrap: anywhere;
-}
-.org-team-heading p {
-  margin: 0 0 12px;
-  color: var(--team-muted);
-  font-size: 12px;
-  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .team-factory .react-flow {
   --xy-background-color: var(--team-bg);
   --xy-edge-stroke: var(--color-muted);
-  --xy-controls-button-background-color: var(--color-text);
+  --xy-controls-button-background-color: var(--team-surface);
   --xy-controls-button-background-color-hover: var(--color-inset);
-  --xy-controls-button-color: var(--color-muted);
+  --xy-controls-button-color: var(--color-text);
+  --xy-controls-button-color-hover: var(--color-text);
   --xy-controls-button-border-color: var(--color-border);
   --xy-controls-box-shadow: none;
 }

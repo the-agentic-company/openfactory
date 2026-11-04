@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { expect, it } from 'vite-plus/test';
-import { checkConnection } from './connection-health';
+import { checkConnection, workspaceUnavailableMessage } from './connection-health';
 
 it('checks a responding host and records latency and freshness', async () => {
   const server = createServer((_request, response) => response.end('{}'));
@@ -74,5 +74,55 @@ it('keeps the underlying network failure in diagnostics', async () => {
   expect(health.kind).toBe('unreachable');
   if (health.kind !== 'reachable') {
     expect(health.detail).toContain('ENOTFOUND');
+  }
+});
+
+it.each([
+  [
+    new Error('connect ECONNREFUSED'),
+    true,
+    'Cannot connect to OpenFactory on this computer.',
+    'Start or restart',
+  ],
+  [
+    new TypeError('fetch failed', { cause: new Error('getaddrinfo ENOTFOUND host.ts.net') }),
+    false,
+    'Cannot connect to OpenFactory on the selected computer.',
+    'Tailscale',
+  ],
+  [new Error('TimeoutException'), false, 'within 15 seconds', 'Wake the selected computer'],
+  [
+    new Error('HTTP 401: Invalid token'),
+    false,
+    'Access to OpenFactory on the selected computer was denied.',
+    'pair again',
+  ],
+  [
+    new Error('Invalid workspace response'),
+    true,
+    'could not load your factories and agents',
+    'Retry the connection',
+  ],
+])('gives a recovery action for %s', (error, local, explanation, action) => {
+  const message = workspaceUnavailableMessage(error, local);
+  expect(message).toContain(explanation);
+  expect(message).toContain(action);
+  expect(message).toContain('Settings');
+});
+
+it('keeps raw server errors and credentials out of the workspace message', () => {
+  const message = workspaceUnavailableMessage(new Error('HTTP 403: Bearer private-token'), false);
+  expect(message).toContain('Access to OpenFactory');
+  expect(message).not.toContain('private-token');
+});
+
+it('surfaces the RPC version mismatch even when the host itself is reachable', async () => {
+  const result = await checkConnection(async () => {
+    throw new Error('HTTP 403: Factory access failed. Update OpenFactory on that computer.');
+  }, false);
+  expect(result.kind).toBe('error');
+  if (result.kind !== 'reachable') {
+    expect(result.detail).toContain('HTTP 403');
+    expect(result.recommendation).toContain('same version');
   }
 });

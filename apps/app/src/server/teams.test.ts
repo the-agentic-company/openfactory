@@ -32,6 +32,11 @@ beforeEach(async () => {
     title: 'Mibba',
     workspaceRoot: directory,
   });
+  await runtime.operations['factory.machine']({
+    projectId: 'mibba',
+    enabled: true,
+    expectedRevision: 'initial',
+  });
   const ids: string[] = [];
   for (const title of ['Operator', 'Digest']) {
     const task = z.object({ task: ownedAgentSchema }).parse(
@@ -63,6 +68,7 @@ beforeEach(async () => {
     ],
     appearances: {},
     connected: true,
+    offline: false,
     native: false,
     cacheScope: 'test',
     error: null,

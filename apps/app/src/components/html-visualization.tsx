@@ -14,8 +14,18 @@ const frameMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('openfactory-height'), height: z.number().finite() }),
 ]);
 
-function VisualFrame({ html, expanded = false }: { html: string; expanded?: boolean }) {
+export function VisualFrame({
+  html,
+  expanded = false,
+  onMessage,
+}: {
+  html: string;
+  expanded?: boolean;
+  onMessage?: (data: unknown, reply: (message: unknown) => void, engaged: boolean) => void;
+}) {
   const ref = useRef<HTMLIFrameElement>(null);
+  const gestureAt = useRef(0);
+  const loadedAt = useRef(0);
   const [height, setHeight] = useState(240);
   const document = useMemo(() => visualizationDocument(html), [html]);
   useEffect(() => {
@@ -33,12 +43,34 @@ function VisualFrame({ html, expanded = false }: { html: string; expanded?: bool
         '*',
       );
     };
+    const recordGesture = (event: Event) => {
+      if (event.isTrusted) {
+        gestureAt.current = Date.now();
+      }
+    };
+    const recordKeyboard = (event: KeyboardEvent) => {
+      if (event.isTrusted && event.key === 'Tab') {
+        gestureAt.current = Date.now();
+      }
+    };
+    const panel = frame?.closest('.of-visual');
+    panel?.addEventListener('pointermove', recordGesture, true);
+    panel?.addEventListener('pointerdown', recordGesture, true);
+    panel?.addEventListener('touchstart', recordGesture, true);
+    window.addEventListener('keydown', recordKeyboard);
     const receive = (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow) {
         return;
       }
       const message = frameMessage.safeParse(event.data);
       if (!message.success) {
+        onMessage?.(
+          event.data,
+          (data) => frame?.contentWindow?.postMessage(data, '*'),
+          window.document.activeElement === frame &&
+            Date.now() - gestureAt.current < 60_000 &&
+            Date.now() - loadedAt.current > 1000,
+        );
         return;
       }
       if (message.data.type === 'openfactory-ready') {
@@ -55,16 +87,24 @@ function VisualFrame({ html, expanded = false }: { html: string; expanded?: bool
       attributeFilter: ['class', 'style', 'data-theme'],
     });
     return () => {
+      panel?.removeEventListener('pointermove', recordGesture, true);
+      panel?.removeEventListener('pointerdown', recordGesture, true);
+      panel?.removeEventListener('touchstart', recordGesture, true);
+      window.removeEventListener('keydown', recordKeyboard);
       window.removeEventListener('message', receive);
       frame?.removeEventListener('load', sendTheme);
       observer.disconnect();
     };
-  }, []);
+  }, [onMessage]);
   return (
     <iframe
       ref={ref}
+      onLoad={() => {
+        loadedAt.current = Date.now();
+        gestureAt.current = 0;
+      }}
       title="Interactive visualization"
-      sandbox="allow-scripts"
+      sandbox={onMessage ? 'allow-scripts allow-forms' : 'allow-scripts'}
       referrerPolicy="no-referrer"
       srcDoc={document}
       style={{ height: expanded ? '70dvh' : height }}

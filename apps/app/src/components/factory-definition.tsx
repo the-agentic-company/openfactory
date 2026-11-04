@@ -13,12 +13,12 @@ import {
   RefreshCw,
   Save,
   Search,
+  X,
 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { getFactoryDefinition, saveFactoryDefinitionFile } from '../server/factory-definition';
 import { WorkspacePage } from './workspace-page';
 import type { FactoryProject } from './factory-navigation-item';
-import { AppearanceGlyph } from './appearance-glyph';
 import { Modal } from './modal';
 import '../factory-definition.css';
 
@@ -45,13 +45,18 @@ function FileTree({
       {entries.map((name) => {
         const path = `${prefix}${name}`;
         const directory = paths.some((item) => item.startsWith(`${path}/`));
+        const compactAgent =
+          paths.includes(`${path}/agent.md`) &&
+          paths.filter((item) => item.startsWith(`${path}/`)).length === 1;
+        const filePath = compactAgent ? `${path}/agent.md` : path;
         return (
           <li key={path}>
-            {directory ? (
+            {directory && !compactAgent ? (
               <details open>
                 <summary title={name}>
                   <ChevronRight size={12} />
-                  <Folder size={14} />
+                  <Folder size={15} className="definition-folder-closed" />
+                  <FolderOpen size={15} className="definition-folder-open" />
                   <span>{name}</span>
                 </summary>
                 <FileTree
@@ -64,14 +69,18 @@ function FileTree({
               </details>
             ) : (
               <button
-                className={selected === path ? 'selected' : ''}
-                aria-current={selected === path ? 'page' : undefined}
-                title={path}
-                onClick={() => onSelect(path)}
+                className={selected === filePath ? 'selected' : ''}
+                aria-current={selected === filePath ? 'page' : undefined}
+                title={filePath}
+                aria-label={filePath}
+                onClick={() => onSelect(filePath)}
               >
-                {path.endsWith('.yaml') ? <FileCode2 size={14} /> : <FileText size={14} />}
-                <span>{name}</span>
-                {dirty.includes(path) && <i aria-label="Unsaved changes" />}
+                {filePath.endsWith('.yaml') ? <FileCode2 size={14} /> : <FileText size={14} />}
+                <span className="definition-tree-filename">
+                  <span>{name}</span>
+                  {compactAgent && <small>agent.md</small>}
+                </span>
+                {dirty.includes(filePath) && <i aria-label="Unsaved changes" />}
               </button>
             )}
           </li>
@@ -213,6 +222,17 @@ function FactoryEditor({ project, navigation }: { project: Project; navigation: 
       return next;
     });
   }
+  const cannotSave =
+    !drafts[path] ||
+    Boolean(validation) ||
+    save.isPending ||
+    Boolean(file?.agentId && !file.liveSource);
+  function saveCurrentFile() {
+    const draft = drafts[path];
+    if (draft && !cannotSave) {
+      save.mutate({ projectId: project.id, path, ...draft });
+    }
+  }
   const paths =
     query.data?.files
       .map((item) => item.path)
@@ -236,18 +256,9 @@ function FactoryEditor({ project, navigation }: { project: Project; navigation: 
             </button>
             <button
               className="button primary"
-              disabled={
-                !drafts[path] ||
-                Boolean(validation) ||
-                save.isPending ||
-                Boolean(file?.agentId && !file.liveSource)
-              }
-              onClick={() => {
-                const draft = drafts[path];
-                if (draft) {
-                  save.mutate({ projectId: project.id, path, ...draft });
-                }
-              }}
+              disabled={cannotSave}
+              title="Save file (⌘S / Ctrl+S)"
+              onClick={saveCurrentFile}
             >
               <Save size={14} />
               {save.isPending ? 'Saving…' : 'Save file'}
@@ -285,40 +296,64 @@ function FactoryEditor({ project, navigation }: { project: Project; navigation: 
               </Select>
             </label>
             <aside className="definition-file-tree" aria-label="Factory files">
-              <label className="definition-file-search">
+              <div className="definition-explorer-header">
+                <h2>Files</h2>
+                <span>{query.data.files.length}</span>
+              </div>
+              <div className="definition-file-search">
                 <Search size={14} />
                 <input
                   aria-label="Search factory files"
-                  placeholder="Search files…"
+                  placeholder="Find a file…"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
-              </label>
-              <div className="definition-tree-root">
-                <AppearanceGlyph
-                  appearance={project.icon ?? { kind: 'icon', name: 'factory', color: 'gray' }}
-                  size={15}
-                />
-                <strong>{project.title}</strong>
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear file search"
+                    onClick={() => setSearch('')}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
-              <FileTree
-                paths={paths}
-                selected={path}
-                dirty={dirty}
-                onSelect={(name) => {
-                  setPath(name);
-                  setNotice('');
-                  save.reset();
-                }}
-              />
-              {!paths.length && <p className="definition-no-files">No matching files.</p>}
+              <div className="definition-tree-scroll">
+                <FileTree
+                  paths={paths}
+                  selected={path}
+                  dirty={dirty}
+                  onSelect={(name) => {
+                    setPath(name);
+                    setNotice('');
+                    save.reset();
+                  }}
+                />
+                {!paths.length && <p className="definition-no-files">No matching files.</p>}
+              </div>
+              <div className="definition-explorer-footer">
+                <span>
+                  {dirty.length
+                    ? `${dirty.length} unsaved ${dirty.length === 1 ? 'file' : 'files'}`
+                    : 'All changes saved'}
+                </span>
+              </div>
             </aside>
             <div className="definition-editor-pane">
               <div className="definition-file-tab">
-                <FileCode2 size={14} />
-                <code title={path}>{path}</code>
+                {path.endsWith('.yaml') ? <FileCode2 size={14} /> : <FileText size={14} />}
+                <div className="definition-file-location" title={path}>
+                  <span>
+                    {path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : 'factory'}
+                  </span>
+                  <ChevronRight size={12} />
+                  <strong>{path.slice(path.lastIndexOf('/') + 1)}</strong>
+                </div>
                 {drafts[path] && (
-                  <span className="definition-dirty-dot" aria-label="Unsaved changes" />
+                  <span className="definition-file-unsaved">
+                    <span className="definition-dirty-dot" />
+                    Unsaved
+                  </span>
                 )}
                 <span className="definition-file-kind">
                   {path === 'factory.yaml'
@@ -331,6 +366,8 @@ function FactoryEditor({ project, navigation }: { project: Project; navigation: 
               <div className="factory-code-editor">
                 <Suspense fallback={<pre className="definition-editor-fallback">{source}</pre>}>
                   <CodeEditor
+                    key={path}
+                    onSave={saveCurrentFile}
                     path={path}
                     source={source}
                     disabled={save.isPending || Boolean(file?.agentId && !file.liveSource)}

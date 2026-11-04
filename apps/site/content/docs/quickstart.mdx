@@ -7,17 +7,14 @@ description: Connect your runtime and explore your first factory.
 
 Download and install [OpenFactory](/download) on your computer. The workspace runs locally; this website hosts the downloads and documentation.
 
-For a local checkout, use Node 26 and pnpm 12.15.0:
+For a local checkout, use Node 26, pnpm 12.15.0, and tmux:
 
 ```sh
 pnpm install
-pnpm runtime:build
-pnpm runtime:start
-# In another terminal:
 pnpm dev
 ```
 
-Open [your local workspace](http://localhost:8018/app). Install and sign in to Codex CLI or Claude Code CLI on the computer running the runtime. OpenFactory reuses that authentication; T3 Code is not required. Keep the workspace on a trusted network, such as a private tailnet.
+The command starts Electron, the local workspace, and the website in a persistent tmux session. Run it again to reuse the servers and reopen Electron. Open [your local workspace](http://localhost:8018/app). Install and sign in to Codex CLI or Claude Code CLI on the computer running the runtime. OpenFactory reuses that authentication; T3 Code is not required. Keep the workspace on a trusted network, such as a private tailnet.
 
 ## Install the terminal CLI
 

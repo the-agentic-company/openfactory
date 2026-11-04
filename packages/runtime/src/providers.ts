@@ -128,7 +128,10 @@ export function parseProviderEvent(provider: string, source: string): ProviderEv
   }
 }
 
-export function providerCommand(session: Session) {
+export function providerCommand(
+  session: Session,
+  app?: { directory: string; instructions: string },
+) {
   const { instanceId, model, options } = session.modelSelection;
   if (instanceId === 'codex') {
     const args = ['exec'];
@@ -143,8 +146,11 @@ export function providerCommand(session: Session) {
       '--config',
       'approval_policy="never"',
       '--config',
-      `developer_instructions=${JSON.stringify(visualizationInstructions)}`,
+      `developer_instructions=${JSON.stringify(visualizationInstructions + (app?.instructions ?? ''))}`,
     );
+    if (app) {
+      args.push('--add-dir', app.directory);
+    }
     const sandbox =
       session.interactionMode !== 'plan' && session.runtimeMode === 'full-access'
         ? 'danger-full-access'
@@ -167,7 +173,10 @@ export function providerCommand(session: Session) {
     return { binary: process.env.OPENFACTORY_CODEX_BIN ?? 'codex', args };
   }
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--model', model];
-  args.push('--append-system-prompt', visualizationInstructions);
+  if (app) {
+    args.push('--add-dir', app.directory);
+  }
+  args.push('--append-system-prompt', visualizationInstructions + (app?.instructions ?? ''));
   if (session.nativeSessionId) {
     args.push('--resume', session.nativeSessionId);
   }
@@ -188,8 +197,9 @@ export function launchProvider(
   prompt: string,
   onEvent: (event: ProviderEvent) => void,
   onLine: (line: string) => void,
+  app?: { directory: string; instructions: string },
 ) {
-  const command = providerCommand(session);
+  const command = providerCommand(session, app);
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
     if (/^T3_|^T3CODE_|^CLAUDECODE$|^CODEX_THREAD_ID$/.test(key)) {

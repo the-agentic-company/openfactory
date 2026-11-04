@@ -3,6 +3,7 @@ import { WorkspacePage } from './workspace-page';
 import type { Agent } from '@openfactory/core';
 import { Link } from '@tanstack/react-router';
 import { RefreshCw } from 'lucide-react';
+import { ConnectionRecovery } from './connection-recovery';
 import { AppearanceGlyph } from './appearance-glyph';
 import type { FactoryProject } from './factory-navigation-item';
 
@@ -27,40 +28,40 @@ export function FactoriesOverview({
       contentClassName="factories-overview"
       title="Overview"
       actions={
-        <>
+        !error && (
           <>
             <button type="button" className="button primary" onClick={onCreate}>
               Create agent
             </button>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={onRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw size={15} className={refreshing ? 'spinning' : ''} />
+              Refresh
+            </button>
           </>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={onRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw size={15} className={refreshing ? 'spinning' : ''} />
-            Refresh
-          </button>
-        </>
+        )
       }
     >
-      <p className="overview-summary">
-        {projects.length} factories · {agents.length} agents · {enabled} enabled
-      </p>
-      {error && (
-        <div className="error-banner" role="alert">
-          {error}
-        </div>
+      {!error && (
+        <p className="overview-summary">
+          {projects.length} factories · {agents.length} agents · {enabled} enabled
+        </p>
       )}
-      {projects.length === 0 ? (
+      {error ? (
+        <ConnectionRecovery
+          title="Unable to load your factories"
+          error={error}
+          retry={onRefresh}
+          refreshing={refreshing}
+        />
+      ) : projects.length === 0 ? (
         <div className="empty-state">
           <h2>No factories available</h2>
-          <p>
-            {error
-              ? 'Start the OpenFactory runtime, then refresh.'
-              : 'Create your first agent and choose its working directory.'}
-          </p>
+          <p>Create your first agent and choose its working directory.</p>
         </div>
       ) : (
         <section className="overview-table-scroll" aria-label="All factories">

@@ -150,7 +150,13 @@ export async function startHost(options = {}) {
       windowsHide: true,
     });
     const providerReady = provider.status === 0;
-    const publicHost = () => ({ id: state.id, name: state.name, version: 1, workspaceProtocol: 1 });
+    const publicHost = () => ({
+      id: state.id,
+      name: state.name,
+      version: 1,
+      workspaceProtocol: 1,
+      rpcProtocol: 'effect-json',
+    });
     const snapshot = () => ({
       host: publicHost(),
       factories: state.factories,

@@ -49,28 +49,28 @@ From the repository root:
 
 ```sh
 pnpm install
-pnpm --filter @openfactory/desktop dev
+pnpm dev
 pnpm --filter @openfactory/desktop test
 pnpm --filter @openfactory/desktop build
 pnpm --filter @openfactory/desktop test:package
 ```
 
-`pnpm dev` from the repository root starts the desktop workspace and public website
-together with Vite+ labeled parallel tasks. Use `pnpm dev:desktop` for the desktop
-workspace alone. Both commands start one app Vite server at
-`http://127.0.0.1:8018`, wait for it to be ready, then open Electron against it.
-Open the same address in a browser to develop both interfaces together. Stop a running
-`pnpm dev:app` before starting either command: an occupied port is refused, so two servers
-cannot overwrite the same dependency cache. `pnpm --filter @openfactory/desktop dev`
-is the equivalent command from this package.
+`pnpm dev` is the development entry point. It requires tmux and manages the detached
+`openfactory-dev` session, with `desktop` and `site` windows. The desktop launcher ensures
+the execution runtime is available and starts one app Vite server at
+`http://127.0.0.1:8018`. The site uses Vite+ on port 8020. Startup verifies both HTTP
+endpoints and opens Electron against the shared app server. Open the same app address
+in a browser to develop both interfaces together. Repeated startup reuses the servers
+and reopens Electron if needed.
 
 React and CSS edits hot-reload in both interfaces. Browser and desktop keep separate computer
 selections. The desktop uses an HTTP-only session cookie; its host credential stays in a
-private temporary file read by the server. Closing Electron or stopping the launcher stops
-the web server, while the background execution host keeps running. Restart the development
-command after changes to Electron's main process or preload.
-`OPENFACTORY_DESKTOP_DEV_PORT` overrides the development port. Different ports use separate
-Vite dependency caches, so independent development sessions do not overwrite each other.
+private temporary file read by the server. Closing Electron leaves both web servers running.
+View logs with `tmux attach -t openfactory-dev`, detach with `Ctrl+B` then `D`, and stop
+development with `tmux kill-session -t openfactory-dev`. The background execution runtime
+keeps running. After changes to Electron's main process or preload, close Electron and run
+`pnpm dev` again. `OPENFACTORY_DESKTOP_DEV_PORT` overrides the app port when creating the
+session; stop the existing session before changing it.
 Saved computers and credentials still use the existing native storage.
 
 `pnpm --filter @openfactory/desktop test:development` starts an isolated development server
@@ -126,7 +126,7 @@ Optional environment variables, useful for running isolated test installations:
 ```sh
 OPENFACTORY_DESKTOP_HOME=/tmp/my-openfactory-prototype \
 OPENFACTORY_DESKTOP_PORT=48280 \
-pnpm --filter @openfactory/desktop dev
+pnpm dev
 ```
 
 `OPENFACTORY_CODEX_PATH` selects a Codex executable for a directly launched host.

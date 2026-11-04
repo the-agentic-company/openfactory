@@ -1,0 +1,211 @@
+.overview-dashboard {
+  display: grid;
+  gap: 24px;
+}
+.overview-dashboard .overview-summary,
+.overview-dashboard .analytics-metrics {
+  margin: 0;
+}
+.overview-dashboard .overview-summary {
+  line-height: 1.7;
+}
+.overview-attention-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--analytics-border);
+}
+.overview-attention-row > svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+.overview-attention-row > div {
+  min-width: 0;
+  flex: 1;
+}
+.overview-attention-row strong,
+.overview-attention-row a,
+.overview-run strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.overview-attention-row small,
+.overview-factory-button small,
+.overview-run small {
+  display: block;
+  color: var(--color-muted);
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.overview-dashboard .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  min-height: 32px;
+  text-align: left;
+}
+.overview-dashboard .overview-failed {
+  color: var(--color-danger);
+}
+.overview-clear {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 20px;
+  margin: 0;
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+.overview-clear svg {
+  flex-shrink: 0;
+}
+.overview-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.overview-data-table th,
+.overview-data-table td {
+  padding: 14px 20px;
+  border-top: 1px solid var(--analytics-border);
+  font-weight: 400;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.overview-data-table thead th {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.overview-data-table tbody th {
+  min-width: 230px;
+  max-width: 360px;
+}
+.overview-factory-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.overview-factory-button > span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.overview-factory-button > svg {
+  flex-shrink: 0;
+}
+.overview-factory-button > svg:last-child {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+.overview-factory-button:hover strong {
+  color: var(--color-accent);
+}
+.overview-activity .analytics-chart {
+  max-width: 880px;
+  margin-inline: auto;
+  padding-top: 0;
+}
+.overview-activity .analytics-chart svg {
+  max-height: 245px;
+}
+.overview-panel-note {
+  color: var(--color-muted);
+  line-height: 1.8;
+  padding: 0 20px 20px;
+  margin: 0;
+}
+.overview-run {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 0;
+  border-top: 1px solid var(--analytics-border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.overview-run:hover {
+  background: var(--color-hover);
+}
+.overview-run-status {
+  text-transform: capitalize;
+}
+.overview-run time,
+.overview-run > svg {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.overview-coverage {
+  color: var(--color-muted);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.overview-coverage summary {
+  cursor: pointer;
+}
+.overview-dashboard button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.overview-dashboard button:focus-visible,
+.overview-dashboard a:focus-visible,
+.overview-table-scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .overview-dashboard {
+    gap: 16px;
+  }
+  .overview-attention-row {
+    flex-wrap: wrap;
+  }
+  .overview-attention-row > div {
+    flex-basis: calc(100% - 40px);
+  }
+  .overview-attention-row > button,
+  .overview-attention-row > a {
+    margin-left: 30px;
+    min-height: 44px;
+  }
+  .overview-run {
+    grid-template-columns: 75px minmax(0, 1fr) 14px;
+    gap: 12px;
+  }
+  .overview-run time {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .overview-run > svg {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+.overview-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

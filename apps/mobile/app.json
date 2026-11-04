@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "OpenFactory",
+    "slug": "openfactory",
+    "scheme": "openfactory",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.openfactory.mobile",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Connect to your OpenFactory computer on your network.",
+        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true }
+      }
+    },
+    "android": { "package": "app.openfactory.mobile" },
+    "plugins": ["expo-secure-store"]
+  }
+}

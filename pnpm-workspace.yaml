@@ -10,6 +10,10 @@ peerDependencyRules:
   allowedVersions:
     vite: '*'
 allowBuilds:
+  '@modelcontextprotocol/ext-apps': false
+  '@scarf/scarf': false
+  core-js: false
+  protobufjs: false
   electron: true
   electron-winstaller: false
   esbuild: true

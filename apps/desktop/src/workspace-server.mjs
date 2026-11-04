@@ -43,9 +43,7 @@ if (process.env.OPENFACTORY_DESKTOP_DEV === '1') {
             }
             response.setHeader('Content-Type', 'image/png');
             response.setHeader('Cache-Control', 'no-store');
-            const asset =
-              pathname === '/openfactory.png' ? 'development-logo.png' : 'development-icon.png';
-            response.end(readFileSync(join(root, 'ui', asset)));
+            response.end(readFileSync(join(root, 'ui/development-logo.png')));
           });
         },
       },

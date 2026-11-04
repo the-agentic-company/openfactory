@@ -1,3 +1,5 @@
+import { AgentDatabase } from '../components/agent-database';
+import { AgentApp } from '../components/agent-app';
 import { SectionTabs } from '../components/section-tabs';
 import { WorkspacePage } from '../components/workspace-page';
 import { scheduleLabel } from '@openfactory/core';
@@ -25,7 +27,10 @@ export const Route = createFileRoute('/app_/projects/$project/agents/$agent/{-$s
   params: {
     parse: (params) => ({
       ...params,
-      section: z.enum(['runs', 'settings', 'definition']).optional().parse(params.section),
+      section: z
+        .enum(['runs', 'settings', 'definition', 'app', 'database'])
+        .optional()
+        .parse(params.section),
     }),
   },
   loader: async ({ params }) => {
@@ -64,7 +69,7 @@ function AgentPage() {
     ? projectAgent(agentSlug, activeProject, query.data.agents)
     : undefined;
   const tab = section ?? 'overview';
-  function setTab(next: 'overview' | 'runs' | 'settings' | 'definition') {
+  function setTab(next: 'overview' | 'runs' | 'settings' | 'definition' | 'app' | 'database') {
     void navigate({
       params: { project, agent: agentSlug, section: next === 'overview' ? undefined : next },
     });
@@ -157,6 +162,8 @@ function AgentPage() {
                 onChange={setTab}
                 items={[
                   { value: 'overview', label: 'Overview' },
+                  { value: 'app', label: 'App' },
+                  { value: 'database', label: 'Database' },
                   { value: 'runs', label: 'Runs & assistant' },
                   { value: 'settings', label: 'Settings' },
                   { value: 'definition', label: 'Definition' },
@@ -186,6 +193,18 @@ function AgentPage() {
                   </div>
                   <AgentUsage key={agent.id} id={agent.id} />
                 </>
+              ) : tab === 'app' ? (
+                <AgentApp
+                  key={`${query.data.cacheScope}:${agent.id}`}
+                  id={agent.id}
+                  scope={query.data.cacheScope}
+                />
+              ) : tab === 'database' ? (
+                <AgentDatabase
+                  key={`${query.data.cacheScope}:${agent.id}`}
+                  id={agent.id}
+                  scope={query.data.cacheScope}
+                />
               ) : tab === 'runs' ? (
                 <Suspense fallback={<p>Loading assistant…</p>}>
                   <AgentConversation key={agent.id} agent={agent} />

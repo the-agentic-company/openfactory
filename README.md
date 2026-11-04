@@ -40,13 +40,10 @@ OpenFactory runs agents directly through Codex CLI or Claude Code CLI and reuses
 
 ## Start
 
-Use Node 26 and pnpm 12.15.0. Install and sign in to whichever provider CLI you use on the runtime host. OpenFactory reuses that CLI's authentication and project configuration.
+Use Node 26, pnpm 12.15.0, and tmux. Install and sign in to whichever provider CLI you use on the runtime host. OpenFactory reuses that CLI's authentication and project configuration.
 
 ```sh
 pnpm install
-pnpm runtime:build
-pnpm runtime:start
-# In another terminal:
 pnpm dev
 ```
 
@@ -80,6 +77,8 @@ Agent replies can include interactive charts, diagrams, and other self-contained
 To provide one explicitly, use a fenced `openfactory-html` block containing HTML, inline CSS, and optional inline JavaScript. Ordinary `html` blocks remain source examples. Visuals run in sandboxed frames, without host access or external scripts, images, or API requests. Use inline SVG or data images for graphics. Blocks over 1 MB display as source.
 
 Run `pnpm exec playwright install chromium` once, then `pnpm verify:visualizations` to verify rendering, interactions, layout, themes, and isolation in a real browser.
+
+Every agent also has a persistent **App** tab backed by its own HTML file and SQLite database. The page can edit its data and send requests to its agent; the agent can update either the data or the page across runs. The [task-board example](examples/task-board/README.md) includes a working agent and verification commands.
 
 The **Definition** tab edits `agent.md` directly:
 
@@ -187,11 +186,11 @@ Import this repository into Vercel with the repository root as the project root.
 
 The public website lives in `apps/site` (`@openfactory/site`) and contains the landing page, downloads, documentation, and marketplace. The product UI and local server live in `apps/app` (`@openfactory/app`); `apps/desktop` packages that app with the runtime. Each frontend owns its routes, styles, dependencies, and build. Build guards reject imports across the app/site boundary or runtime code in the public site.
 
-Run `pnpm dev` to start everything together: Electron, the browser workspace on port 8018, and the public website on port 8020. Open `http://127.0.0.1:8018` in a browser alongside Electron; they share one app server. Vite+ runs desktop and site development in parallel with labeled logs.
+Run `pnpm dev` to start everything together: Electron, the browser workspace on port 8018, the public website on port 8020, and the read-only OpenFactory MCP on port 8022. The startup script manages the detached `openfactory-dev` tmux session and waits for the web services, MCP health endpoint, and the Electron process before returning. Open `http://127.0.0.1:8018` in a browser alongside Electron; they share one Vite server.
 
-Use `pnpm dev:app` for only the browser workspace, `pnpm dev:desktop` for the workspace with Electron, or `pnpm dev:site` for only the public website. Stop the combined command before starting one of these on the same ports.
+Run `pnpm dev` again to reuse the servers and reopen Electron if it was closed. Closing Electron leaves the web servers running. View logs with `tmux attach -t openfactory-dev`, detach with `Ctrl+B` then `D`, and stop development with `tmux kill-session -t openfactory-dev`. The execution runtime keeps running independently.
 
-`pnpm build:app` builds the workspace; `pnpm build:site` builds the public deployment. Workspace documentation and marketplace links open `https://open-factory.app` in the browser. Set `VITE_OPENFACTORY_SITE_URL` at app build time to use another origin, such as `http://localhost:8020` for local development.
+`pnpm build:app` builds the workspace; `pnpm build:site` builds the public deployment. Workspace documentation and marketplace links open `http://localhost:8020` in development and `https://open-factory.app` in production. Set `VITE_OPENFACTORY_SITE_URL` at app build time to use another origin.
 
 Run the workspace and agent runtime on your own computers using the instructions above. The public site's **Get started** link opens the local setup guide.
 
@@ -260,3 +259,17 @@ Third-party code and assets retain their own licenses and attribution; see
 GitHub secret scanning and push protection are enabled. The Secret scan workflow
 runs Gitleaks against Git history on pull requests and pushes to `main`. To scan
 locally with Gitleaks 8.30.1, run `gitleaks git --log-opts="--all" --redact`.
+
+### OpenFactory MCP
+
+The local MCP uses `mcp-use`, like Mibba, and listens at `http://127.0.0.1:8022/mcp`. Start it with `pnpm dev`; it stays in the `openfactory-dev:mcp` tmux window. For a standalone server, run `pnpm mcp:build` then `pnpm mcp:start`. Node 26 or newer is required. `OPENFACTORY_MCP_PORT` overrides the standalone port; update the client URL to match.
+
+The project [`.codex/config.toml`](.codex/config.toml) connects Codex to this endpoint. Start a fresh Codex thread after adding the configuration. Try: "Use the OpenFactory MCP to tell me how many runs happened this week."
+
+Tools are `list_machines`, `list_factories`, `list_agents`, and `report_runs`. Queries default to this computer and every runner paired in the desktop app. `list_machines` returns their IDs, names, addresses, and live connection status; `machine` filters the other tools by ID or exact name, for example `dell-server`.
+
+Local history comes from the existing runtime database with SQLite read-only access, using `OPENFACTORY_RUNTIME_DIR` or `~/.config/openfactory/runtime`. Remote history uses the runners' authenticated runtime RPCs and reads every retained session, without the UI sampling limit. Keep the desktop app open for remote queries: a private reporting socket lets Electron use its encrypted paired credentials without exposing them to MCP clients. The socket permits only identity, runtime status, workspace, agent-list, and session-history reads. The MCP cannot start agents or modify runner data. It binds to loopback and does not require client credentials.
+
+`report_runs` counts all retained execution turns by request time, including queued, failed, interrupted, and imported agent runs. Follow-up turns count separately. Duplicate IDs use the native record. Results cover the selected paired runners' retained data, including imported history. Run IDs are deduplicated across machines, preferring native records. If any runner cannot be read, `complete` is false, `total` is null, and `knownTotal` covers only available runners. `byMachine` identifies each runner's count or error; per-machine counts may overlap when history has been copied. Counts do not use the UI's sampling limits. The result includes a total, status/day/factory breakdowns, and up to 100 run metadata records per page. Use `total` for counts and `nextOffset` for further pages.
+
+Weeks start Monday in `Europe/Paris` by default. Set `period` to `{ "type": "this_week" }`, `{ "type": "last_week" }`, or `{ "type": "custom", "sinceDay": "2026-11-02", "untilDay": "2026-11-09" }`. Custom end dates are exclusive. Supply `machine`, `timeZone`, `project` (factory ID or workspace path), or `agentId` to narrow the report. Each response states the exact dates and read time.

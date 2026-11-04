@@ -1,0 +1,37 @@
+{
+  "name": "@openfactory/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "build": "expo export --platform ios --platform android",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && expo install --check"
+  },
+  "dependencies": {
+    "@openfactory/client": "workspace:*",
+    "@openfactory/core": "workspace:*",
+    "@openfactory/protocol": "workspace:*",
+    "@tanstack/react-query": "5.105.0",
+    "expo": "~58.0.23",
+    "expo-crypto": "~58.0.7",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.4",
+    "lucide-react-native": "1.61.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-markdown-display": "7.0.2",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-svg": "15.16.0",
+    "react-native-webview": "14.0.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "typescript": "~6.0.3"
+  }
+}

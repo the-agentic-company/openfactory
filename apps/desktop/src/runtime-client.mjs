@@ -7,9 +7,9 @@ export const runtimeDirectory = () =>
 
 const runtimeClient = () => import('../runtime/client.mjs');
 
-export async function runtimeRequest(method, payload) {
+export async function runtimeRequest(method, payload, connection) {
   const { runtimeRpc } = await runtimeClient();
-  return runtimeRpc(method, payload);
+  return runtimeRpc(method, payload, connection);
 }
 
 // Forward Effect RPC bytes to the restricted local endpoint without interpreting frames.

@@ -28,14 +28,6 @@
   padding: 9vh 24px 40px;
   margin-bottom: 32px;
 }
-.download-heading-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.download-heading-inner > img {
-  flex: none;
-}
 .download-page .download-page-heading h1 {
   font-size: clamp(28px, 4vw, 44px);
   font-weight: 500;
@@ -200,8 +192,7 @@
   .download-page-heading {
     padding: 6vh 0 32px;
   }
-  .download-heading-inner {
-    flex-direction: column;
+  .download-page .download-page-heading h1 {
     text-align: center;
   }
   .download-cards {

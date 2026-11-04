@@ -25,3 +25,10 @@
   border-color: var(--color-border-strong);
   color: var(--color-accent-text);
 }
+@media (max-width: 740px) {
+  .section-tabs button {
+    min-height: 44px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+}

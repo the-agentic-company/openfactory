@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { nativeConnection } from './native-runtime.server';
 import { readPullRequestSnapshot, savePullRequestSnapshot } from './pull-request-snapshots.server';
 import { getAgents } from './agents';
-import { loadRepositoryPullRequests, repositoryForWorkspace } from './github-pull-requests';
+import { runtimeRpc } from './runtime-rpc';
 
 export const getPullRequests = createServerFn({ method: 'GET' })
   .validator(
@@ -15,41 +15,7 @@ export const getPullRequests = createServerFn({ method: 'GET' })
     if (!workspace.connected) {
       throw new Error(workspace.error ?? 'Could not load factories.');
     }
-    const projects = workspace.projects.filter(
-      (project) => data.project === 'all' || project.workspaceRoot === data.project,
-    );
-    if (data.project !== 'all' && projects.length === 0) {
-      throw new Error('This factory no longer exists.');
-    }
-    const discovered = await Promise.all(
-      projects.map(async (project) => ({
-        project,
-        repository: await repositoryForWorkspace(project.workspaceRoot),
-      })),
-    );
-    const repositories = [
-      ...new Set(discovered.flatMap(({ repository }) => (repository ? [repository] : []))),
-    ];
-    const results = await Promise.allSettled(
-      repositories.map(async (repository) => ({
-        repository,
-        pulls: await loadRepositoryPullRequests(repository, data.days),
-      })),
-    );
-    const pulls = results
-      .flatMap((result) => (result.status === 'fulfilled' ? result.value.pulls : []))
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    const result = pullRequestResultSchema.parse({
-      pulls,
-      repositories,
-      unavailable: repositories.filter((_, index) => results[index]?.status === 'rejected'),
-      unlinked: discovered
-        .filter(({ repository }) => !repository)
-        .map(({ project }) => project.title),
-      limited: results.some(
-        (result) => result.status === 'fulfilled' && result.value.pulls.length === 100,
-      ),
-    });
+    const result = pullRequestResultSchema.parse(await runtimeRpc('pullRequests.list', data));
     if (result.unavailable.length === 0) {
       await savePullRequestSnapshot({
         ...data,

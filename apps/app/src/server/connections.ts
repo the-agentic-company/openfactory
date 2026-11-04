@@ -13,10 +13,12 @@ import {
   nativeState,
 } from './native-runtime.server';
 
+import { computerIconSchema } from '../computer-workspaces';
+import { readComputerWorkspace } from './computer-workspaces.server';
 import { checkConnection } from '../connection-health';
 
-const execute = promisify(execFile);
 export const enableNetwork = createServerFn({ method: 'POST' }).handler(async () => {
+  const execute = promisify(execFile);
   const connection = await localNativeConnection();
   const result = await execute('tailscale', ['status', '--json'], { timeout: 10000 });
   const status = z
@@ -88,6 +90,7 @@ export const getConnections = createServerFn({ method: 'GET' }).handler(async ()
   }
   return {
     activeId: preferences.activeId ?? 'local',
+    computerIcons: preferences.computerIcons,
     computers: [
       { id: 'local', name: 'This computer', local: true, origin: local?.address ?? null },
       ...preferences.computers.map(({ id, name, origin }) => ({ id, name, origin, local: false })),
@@ -107,7 +110,7 @@ export const checkComputer = createServerFn({ method: 'GET' })
       if (!target) {
         throw new Error('Computer not found. Refresh Settings.');
       }
-      await nativeState(target, 8000);
+      await readComputerWorkspace(data.id);
     }, data.id === 'local'),
   );
 export const selectComputer = createServerFn({ method: 'POST' })
@@ -124,7 +127,6 @@ export const selectComputer = createServerFn({ method: 'POST' })
     if (!target) {
       throw new Error('Computer not found.');
     }
-    await nativeState(target);
     preferences.activeId = data.id;
     await savePreferences(preferences);
     return { selected: data.id };
@@ -188,3 +190,15 @@ export const revokeComputer = createServerFn({ method: 'POST' })
       .object({ ok: z.boolean() })
       .parse(await nativeRequest(await localNativeConnection(), `/v1/peers/${data.id}`, 'DELETE')),
   );
+
+export const updateComputerIcon = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.string(), icon: computerIconSchema }))
+  .handler(async ({ data }) => {
+    const preferences = await connectionPreferences();
+    if (data.id !== 'local' && !preferences.computers.some((computer) => computer.id === data.id)) {
+      throw new Error('Computer not found.');
+    }
+    preferences.computerIcons[data.id] = data.icon;
+    await savePreferences(preferences);
+    return { saved: true };
+  });

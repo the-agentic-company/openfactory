@@ -1,0 +1,52 @@
+import { agentSchema } from '@openfactory/core';
+import { z } from 'zod';
+import type { RuntimeCall } from './history';
+
+export async function readAgent(id: string, runtimeRpc: RuntimeCall) {
+  const { tasks } = z
+    .object({ tasks: z.array(agentSchema) })
+    .parse(await runtimeRpc('agents.list', {}));
+  const agent = tasks.find((task) => task.id === id);
+  if (!agent) {
+    throw new Error('This agent no longer exists. Refresh the agent list.');
+  }
+  return agent;
+}
+export async function readAgentProjections(id: string, runtimeRpc: RuntimeCall) {
+  const agent = await readAgent(id, runtimeRpc);
+  const shell = z
+    .object({
+      snapshot: z.object({
+        threads: z.array(
+          z.object({
+            id: z.string(),
+            projectId: z.string(),
+            title: z.string(),
+            createdAt: z.string(),
+            agentIds: z.array(z.string()).optional(),
+          }),
+        ),
+      }),
+    })
+    .parse(await runtimeRpc('workspace.snapshot', {}));
+  const candidates = shell.snapshot.threads
+    .filter(
+      (thread) =>
+        thread.projectId === agent.projectId &&
+        (thread.id === agent.threadId ||
+          thread.title === agent.title ||
+          thread.agentIds?.includes(agent.id)),
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const projections = await Promise.all(
+    candidates.slice(0, 30).map(async (thread) => {
+      const snapshot = z.object({ projection: z.unknown() }).parse(
+        await runtimeRpc('sessions.read', {
+          threadId: thread.id,
+        }),
+      );
+      return snapshot.projection;
+    }),
+  );
+  return { agent, projections, truncated: candidates.length > 30 };
+}

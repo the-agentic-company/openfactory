@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fork, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -6,15 +6,21 @@ import { ensureWorkspaceRuntime } from '../src/workspace-services.mjs';
 import { defaultDataDir } from '../src/host.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createServer } from 'node:http';
+import { launchElectron } from './launch.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const socket = process.env.OPENFACTORY_DEV_SOCKET;
+if (!socket) {
+  throw new Error('Start development with pnpm dev from the repository root.');
+}
 if (
   !existsSync(join(root, 'runtime/runtime.mjs')) ||
   !existsSync(join(root, 'runtime/client.mjs'))
 ) {
   const pnpm = process.env.npm_execpath;
   if (!pnpm) {
-    throw new Error('Start desktop development with pnpm dev:desktop.');
+    throw new Error('Start development with pnpm dev from the repository root.');
   }
   const args = [
     '--filter',
@@ -61,12 +67,49 @@ const web = fork(join(root, 'src/workspace-server.mjs'), [], {
 });
 let desktop;
 let stopping = false;
+const control = createServer(async (request, response) => {
+  if (request.method !== 'POST' || request.url !== '/open' || stopping) {
+    response.writeHead(404).end();
+    return;
+  }
+  try {
+    if (!desktop) {
+      desktop = launchElectron();
+      const child = desktop;
+      child.once('exit', () => {
+        if (desktop === child) {
+          desktop = undefined;
+        }
+      });
+      child.on('message', (message) => {
+        if (message.type === 'connection' && web.connected) {
+          web.send(message);
+        }
+      });
+      await new Promise((resolve, reject) => {
+        child.once('spawn', resolve);
+        child.once('error', reject);
+      });
+    }
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ pid: desktop.pid }));
+  } catch (error) {
+    desktop = undefined;
+    response.writeHead(500).end(error.message);
+  }
+});
+web.on('message', (message) => {
+  if (message.type === 'selected' && desktop?.connected) {
+    desktop.send(message);
+  }
+});
 function shutdown(code) {
   if (stopping) {
     return;
   }
   stopping = true;
   process.exitCode = code;
+  control.close();
   desktop?.kill();
   web.kill();
   const timer = setTimeout(() => {
@@ -77,6 +120,7 @@ function shutdown(code) {
 }
 process.once('SIGINT', () => shutdown(130));
 process.once('SIGTERM', () => shutdown(143));
+process.once('SIGHUP', () => shutdown(129));
 web.once('error', (error) => {
   console.error(error.message);
   shutdown(1);
@@ -86,7 +130,7 @@ web.once('exit', (code) => {
     console.error(
       desktop
         ? 'The web development server stopped.'
-        : `Could not start the web server on port ${port}. Stop the existing app development server before starting pnpm dev or pnpm dev:desktop.`,
+        : `Could not start the web server on port ${port}. Check the desktop window in tmux attach -t openfactory-dev.`,
     );
     shutdown(code || 1);
   }
@@ -109,7 +153,7 @@ try {
       clearTimeout(timer);
       reject(
         new Error(
-          `Could not start the web server on port ${port}. Stop the existing app development server before starting pnpm dev or pnpm dev:desktop.`,
+          `Could not start the web server on port ${port}. Check the desktop window in tmux attach -t openfactory-dev.`,
         ),
       );
     });
@@ -119,19 +163,12 @@ try {
     });
   });
   if (!stopping) {
-    ({ child: desktop } = await import('./launch.mjs'));
-    desktop.on('message', (message) => {
-      if (message.type === 'connection' && web.connected) {
-        web.send(message);
-      }
+    rmSync(socket, { force: true });
+    await new Promise((resolve, reject) => {
+      control.once('error', reject);
+      control.listen(socket, resolve);
     });
-    web.on('message', (message) => {
-      if (message.type === 'selected' && desktop.connected) {
-        desktop.send(message);
-      }
-    });
-    desktop.once('exit', (code) => shutdown(code ?? 1));
-    desktop.once('error', () => shutdown(1));
+    chmodSync(socket, 0o600);
   }
 } catch (error) {
   if (!stopping) {

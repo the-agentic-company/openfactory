@@ -1,3 +1,5 @@
+import { useOtherMachineHistory } from './machine-history';
+import { getAgents } from '../server/agents';
 import {
   AssistantRuntimeProvider,
   useExternalStoreRuntime,
@@ -6,7 +8,7 @@ import {
 } from '@assistant-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, Clock3, MessageSquare, RefreshCw } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { Agent, HistoryMessage } from '@openfactory/core';
 import { ChatComposer, ChatThread } from './assistant-chat';
 import { getAgentHistory, sendAgentMessage, stopAgentRun } from '../server/history';
@@ -34,11 +36,25 @@ export function AgentConversation({ agent }: { agent: Agent }) {
     queryFn: () => getAgentHistory({ data: { id: agent.id } }),
     refetchInterval: 5000,
   });
-  const latest = query.data?.runs.find((run) => run.source === 'openfactory');
-  const selected =
-    query.data?.runs.find((run) => run.id === selectedId) ?? latest ?? query.data?.runs[0];
+  const other = useOtherMachineHistory(agent);
+  const workspace = useQuery({
+    queryKey: ['agents', 'workspace'],
+    queryFn: () => getAgents(),
+    enabled: false,
+  });
+  const runs = [
+    ...(query.data?.runs ?? []).map((run) => ({ ...run, machine: '', remote: false })),
+    ...other.runs,
+  ].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+  const latest = runs.find((run) => !run.remote && run.source === 'openfactory');
+  const selected = runs.find((run) => run.id === selectedId) ?? latest ?? runs[0];
   const messages = selected?.messages ?? [];
-  const readOnly = !selected || selected.source !== 'openfactory' || selected.id !== latest?.id;
+  const readOnly =
+    Boolean(workspace.data?.offline) ||
+    !selected ||
+    selected.remote ||
+    selected.source !== 'openfactory' ||
+    selected.id !== latest?.id;
   const running = Boolean(
     selected && ['preparing', 'queued', 'starting', 'running', 'waiting'].includes(selected.status),
   );
@@ -51,24 +67,21 @@ export function AgentConversation({ agent }: { agent: Agent }) {
     },
     onError: (error) => setSendError(`${error.message} Check live history before retrying.`),
   });
-  const onNew = useCallback(
-    async (message: AppendMessage) => {
-      if (!selected || readOnly) {
-        throw new Error('Run the agent first to create a conversation.');
-      }
-      const text = message.content
-        .flatMap((part) => (part.type === 'text' ? [part.text] : []))
-        .join('\n');
-      await mutation.mutateAsync({
-        id: agent.id,
-        threadId: selected.threadId,
-        runId: selected.id,
-        text,
-        requestId: crypto.randomUUID(),
-      });
-    },
-    [agent.id, selected, readOnly, mutation],
-  );
+  const onNew = async (message: AppendMessage) => {
+    if (!selected || readOnly) {
+      throw new Error('Run the agent first to create a conversation.');
+    }
+    const text = message.content
+      .flatMap((part) => (part.type === 'text' ? [part.text] : []))
+      .join('\n');
+    await mutation.mutateAsync({
+      id: agent.id,
+      threadId: selected.threadId,
+      runId: selected.id,
+      text,
+      requestId: crypto.randomUUID(),
+    });
+  };
   const cancel = useMutation({
     mutationFn: () => {
       if (!selected || readOnly) {
@@ -111,10 +124,10 @@ export function AgentConversation({ agent }: { agent: Agent }) {
             Could not load runs. Refresh to retry.
           </p>
         )}
-        {query.data?.runs.length === 0 && (
+        {runs.length === 0 && (
           <p className="history-notice">No runs yet. Use Run now to start this agent.</p>
         )}
-        {query.data?.runs.map((run) => (
+        {runs.map((run) => (
           <button
             className={`history-row ${selected?.id === run.id ? 'selected' : ''}`}
             key={run.id}
@@ -123,10 +136,18 @@ export function AgentConversation({ agent }: { agent: Agent }) {
             <Clock3 size={14} />
             <div>
               <strong>{run.title}</strong>
-              <small>{timestamp(run.requestedAt)}</small>
+              <small>
+                {run.machine && `${run.machine} · `}
+                {timestamp(run.requestedAt)}
+              </small>
               <span className={`run-status ${run.status}`}>{run.status}</span>
             </div>
           </button>
+        ))}
+        {other.errors.map((error) => (
+          <p key={error} className="history-notice">
+            {error}. Showing any saved history.
+          </p>
         ))}
         {query.data?.truncated && (
           <p className="history-notice">Showing recent run conversations.</p>
@@ -138,6 +159,7 @@ export function AgentConversation({ agent }: { agent: Agent }) {
             <h3>{selected?.title ?? 'Assistant'}</h3>
             {selected && (
               <p>
+                {selected.machine && `${selected.machine} · `}
                 {selected.status} · {timestamp(selected.requestedAt)}
               </p>
             )}

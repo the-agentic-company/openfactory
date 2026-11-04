@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query';
+import { getAgents } from '../server/agents';
 import { projectName } from '../project-path';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
@@ -20,6 +22,11 @@ export function WorkspacePage({
   contentClassName?: string;
   layout?: 'standard' | 'fill';
 }) {
+  const workspace = useQuery({
+    queryKey: ['agents', 'workspace'],
+    queryFn: () => getAgents(),
+    enabled: false,
+  });
   return (
     <main className={`workspace-page workspace-page--${layout}`}>
       <header className="workspace-page-header">
@@ -44,6 +51,12 @@ export function WorkspacePage({
         </div>
         <div className="workspace-header-actions">{actions}</div>
       </header>
+      {workspace.data?.offline && (
+        <output className="error-banner">
+          Machine offline. Showing saved data from {workspace.data.syncedAt}. Changes and new runs
+          require a connection.
+        </output>
+      )}
       <div className={`workspace-page-content ${contentClassName}`}>{children}</div>
     </main>
   );

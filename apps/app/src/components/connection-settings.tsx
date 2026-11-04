@@ -1,42 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
-import { Copy, Laptop, KeyRound, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
+import { Copy, KeyRound, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { z } from 'zod';
-import { checkConnection, connectionHealthSchema } from '../connection-health';
+import { ComputerConnectionRow, loadSettings, native } from './computer-connections';
 import { Modal } from './modal';
-import { WorkspacePage } from './workspace-page';
 import * as connections from '../server/connections';
 import '../connection-settings.css';
 
-declare global {
-  interface Window {
-    openfactory?: {
-      invoke: (operation: string, payload?: unknown) => Promise<unknown>;
-      platform?: string;
-      onUpdate?: (callback: (state: unknown) => void) => () => void;
-      onPairingLink?: (callback: (link: string) => void) => void;
-    };
-  }
-}
-const settingsSchema = z.object({
-  activeId: z.string().default('local'),
-  computers: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      local: z.boolean(),
-      origin: z.string().nullish(),
-    }),
-  ),
-  local: z
-    .object({
-      host: z.object({ name: z.string() }),
-      address: z.string().nullable(),
-      peers: z.array(z.object({ id: z.string(), name: z.string(), createdAt: z.string() })),
-    })
-    .nullable(),
-});
 const pairingSchema = z.object({
   id: z.string(),
   code: z.string(),
@@ -45,25 +16,10 @@ const pairingSchema = z.object({
   link: z.string(),
 });
 const subscribeMounted = () => () => {};
-const native = () => (typeof window === 'undefined' ? undefined : window.openfactory);
-async function loadSettings() {
-  const api = native();
-  if (!api) {
-    return settingsSchema.parse(await connections.getConnections());
-  }
-  const boot = z
-    .object({ activeId: z.string().default('local'), computers: settingsSchema.shape.computers })
-    .parse(await api.invoke('boot'));
-  let local = null;
-  try {
-    local = await api.invoke('state', { computerId: 'local' });
-  } catch {
-    /* Settings remain available while the host restarts. */
-  }
-  return settingsSchema.parse({ ...boot, local });
-}
 
-export function ConnectionSettings() {
+export type SettingsSection = 'appearance' | 'computers' | 'devices';
+
+export function ConnectionSettings({ section = 'computers' }: { section?: SettingsSection }) {
   const router = useRouter();
   const client = useQueryClient();
   const mounted = useSyncExternalStore(
@@ -159,8 +115,12 @@ export function ConnectionSettings() {
   }
   const settings = query.data;
   return (
-    <WorkspacePage contentClassName="connection-settings" title="Settings">
-      <section className="settings-section" aria-labelledby="appearance-heading">
+    <div className="connection-settings">
+      <section
+        hidden={section !== 'appearance'}
+        className="settings-section"
+        aria-labelledby="appearance-heading"
+      >
         <div className="settings-section-heading">
           <div>
             <h2 id="appearance-heading">Appearance</h2>
@@ -185,7 +145,7 @@ export function ConnectionSettings() {
         </p>
       )}
       {notice && <output className="settings-notice">{notice}</output>}
-      <section className="settings-section">
+      <section hidden={section !== 'computers'} className="settings-section">
         <div className="settings-section-heading">
           <div>
             <h2>Computers</h2>
@@ -196,43 +156,33 @@ export function ConnectionSettings() {
           </button>
         </div>
         {!settings && <p className="muted-copy">Loading computers…</p>}
-        {settings?.computers.map((computer) => (
-          <div className="settings-computer-row" key={computer.id}>
-            <Laptop size={19} />
-            <div className="settings-computer-description">
-              <strong>{computer.name}</strong>
-              <span>
-                {computer.local ? (settings.local?.host.name ?? 'Local host') : computer.origin}
-              </span>
-              <ComputerHealth computer={computer} />
-            </div>
-            {settings.activeId === computer.id ? (
-              <span className="settings-selected">
-                <ShieldCheck size={14} /> In use
-              </span>
-            ) : (
-              <button
-                className="button secondary"
-                disabled={action.isPending}
-                onClick={() => action.mutate({ operation: 'select', id: computer.id })}
-              >
-                Use computer
-              </button>
-            )}
-            {!computer.local && (
-              <button
-                className="icon-button"
-                aria-label={`Forget ${computer.name}`}
-                disabled={action.isPending}
-                onClick={() => action.mutate({ operation: 'forget', id: computer.id })}
-              >
-                <Trash2 size={15} />
-              </button>
-            )}
-          </div>
-        ))}
+        <ul className="computer-list">
+          {settings?.computers.map((computer) => (
+            <ComputerConnectionRow
+              key={computer.id}
+              computer={computer}
+              icon={settings?.computerIcons[computer.id]}
+              selected={settings.activeId === computer.id}
+              localName={settings.local?.host.name}
+              localAddress={settings.local?.address}
+              pending={action.isPending}
+              onSelect={() => action.mutate({ operation: 'select', id: computer.id })}
+            >
+              {!computer.local && (
+                <button
+                  className="icon-button"
+                  aria-label={`Forget ${computer.name}`}
+                  disabled={action.isPending}
+                  onClick={() => action.mutate({ operation: 'forget', id: computer.id })}
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </ComputerConnectionRow>
+          ))}
+        </ul>
       </section>
-      <section className="settings-section">
+      <section hidden={section !== 'devices'} className="settings-section">
         <div className="settings-section-heading">
           <div>
             <h2>Pair a device with this computer</h2>
@@ -279,7 +229,7 @@ export function ConnectionSettings() {
           )}
         </div>
       </section>
-      <section className="settings-section">
+      <section hidden={section !== 'devices'} className="settings-section">
         <h2>Devices with access</h2>
         {settings?.local?.peers.length ? (
           settings.local.peers.map((peer) => (
@@ -319,92 +269,6 @@ export function ConnectionSettings() {
             void closePairing();
           }}
         />
-      )}
-    </WorkspacePage>
-  );
-}
-
-const checkTimeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
-
-function ComputerHealth({
-  computer,
-}: {
-  computer: z.infer<typeof settingsSchema>['computers'][number];
-}) {
-  const health = useQuery({
-    queryKey: ['computer-health', computer.id, computer.origin],
-    queryFn: async () => {
-      const api = native();
-      const health = api
-        ? await checkConnection(
-            () => api.invoke('state', { computerId: computer.id }),
-            computer.local,
-          )
-        : connectionHealthSchema.parse(
-            await connections.checkComputer({ data: { id: computer.id } }),
-          );
-      return { ...health, checkedAtLabel: checkTimeFormatter.format(health.checkedAt) };
-    },
-    refetchInterval: 10000,
-    retry: false,
-  });
-  const result = health.data;
-  const labels = {
-    reachable: 'Connected and reachable',
-    timeout: 'Connection timed out',
-    unreachable: 'Unreachable',
-    'access-denied': 'Access denied',
-    error: 'Connection check failed',
-  };
-  return (
-    <div className="settings-computer-health">
-      <div className="settings-health-summary">
-        <output
-          className={`settings-health-status settings-health-status--${health.error ? 'unknown' : (result?.kind ?? 'unknown')}`}
-        >
-          {health.isFetching
-            ? 'Checking connection…'
-            : health.error
-              ? 'Status unavailable'
-              : result
-                ? labels[result.kind]
-                : 'Status unavailable'}
-        </output>
-        <button
-          className="settings-health-retry"
-          disabled={health.isFetching}
-          onClick={() => {
-            void health.refetch();
-          }}
-          aria-label={`Check connection to ${computer.name}`}
-        >
-          Check again
-        </button>
-      </div>
-      {result && (
-        <span className="settings-health-timestamp">
-          Last checked {result.checkedAtLabel}
-          {result.kind === 'reachable' ? ` · ${result.latencyMs} ms response` : ''}
-          {' · Refreshes every 10 seconds'}
-        </span>
-      )}
-      {result && result.kind !== 'reachable' && (
-        <div className="settings-health-problem">
-          <p>
-            {result.kind === 'timeout' && 'No response within 8 seconds. '}
-            {result.recommendation}
-          </p>
-          <details>
-            <summary>Connection details</summary>
-            <pre>{result.detail}</pre>
-          </details>
-        </div>
-      )}
-      {health.error && (
-        <p className="settings-health-problem" role="alert">
-          Could not refresh connection status. {health.error.message} Check again when the app is
-          responding.
-        </p>
       )}
     </div>
   );

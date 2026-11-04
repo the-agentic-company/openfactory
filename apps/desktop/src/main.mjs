@@ -1,3 +1,4 @@
+import { startReportingBridge } from './reporting-bridge.mjs';
 import {
   app,
   BrowserWindow,
@@ -21,6 +22,7 @@ import electronUpdater from 'electron-updater';
 import { createDesktopUpdates } from './updates.mjs';
 import { z } from 'zod';
 import { defaultDataDir, validateOrigin } from './host.mjs';
+import { runtimeRequest } from './runtime-client.mjs';
 import { stateSchema } from './contracts.mjs';
 import { syncPullInputSchema, validateSyncBatch } from './sync-contracts.mjs';
 import { watchHostChanges } from './sync-transport.mjs';
@@ -45,6 +47,30 @@ const developmentIcon =
     : null;
 const dataDir = defaultDataDir();
 const registryPath = join(dataDir, 'computers.json');
+const iconsPath = join(dataDir, 'computer-icons.json');
+const computerIconSchema = z.enum([
+  'laptop',
+  'monitor',
+  'server',
+  'server-cog',
+  'cloud',
+  'database',
+  'cpu',
+  'hard-drive',
+  'smartphone',
+]);
+function computerIcons() {
+  try {
+    return z
+      .record(z.string(), computerIconSchema)
+      .parse(JSON.parse(readFileSync(iconsPath, 'utf8')));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return {};
+    }
+    throw error;
+  }
+}
 const syncConnections = new Map();
 const own = { id: 'local', name: 'This computer', local: true };
 let local;
@@ -110,6 +136,12 @@ if (!app.requestSingleInstanceLock()) {
         }
       }
       local = await ensureHost();
+      const reporting = await startReportingBridge({
+        directory: dataDir,
+        identity: (id) => request(connection(id), '/v1/identity'),
+        call: (id, method, payload) => runtimeRequest(method, payload, connection(id)),
+      });
+      app.once('will-quit', () => reporting.close());
       session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) =>
         callback(false),
       );
@@ -336,7 +368,7 @@ async function ensureHost() {
   try {
     const target = await load();
     const identity = await request(target, '/v1/identity');
-    if (identity.workspaceProtocol === 1) {
+    if (identity.workspaceProtocol === 1 && identity.rpcProtocol === 'effect-json') {
       return target;
     }
     const state = await request(target, '/v1/state');
@@ -408,15 +440,79 @@ async function operate(operation, raw = {}) {
   if (operation === 'select-computer') {
     const { id } = z.object({ id: z.string() }).parse(raw);
     const target = connection(id);
-    await request(target, '/v1/state');
     await workspace.select(target);
     activeComputerId = id;
     writeFileSync(join(dataDir, 'active-computer'), id, { mode: 0o600 });
     return true;
   }
+  if (operation === 'factory-machine') {
+    const { groupFactoryInstances } = await import('../runtime/client.mjs');
+    const instance = z.object({ computerId: z.string(), projectId: z.string() });
+    const data = z
+      .object({
+        repository: z.string().nullable(),
+        instances: z.array(instance).min(1),
+        destination: instance,
+      })
+      .parse(raw);
+    const discovered = await Promise.all(
+      ['local', ...computers.map((computer) => computer.id)].map(async (computerId) => {
+        const target = connection(computerId);
+        const { snapshot } = await runtimeRequest('workspace.snapshot', {}, target);
+        return snapshot.projects.map((project) => ({
+          computerId,
+          project,
+          projectId: project.id,
+          target,
+          revision: project.machineRevision ?? 'initial',
+        }));
+      }),
+    );
+    const group = [...groupFactoryInstances(discovered.flat()).values()].find((instances) =>
+      instances.some(
+        (entry) =>
+          entry.computerId === data.destination.computerId &&
+          entry.projectId === data.destination.projectId,
+      ),
+    );
+    const targets = (group ?? []).sort((a, b) =>
+      `${a.target.origin}:${a.projectId}`.localeCompare(`${b.target.origin}:${b.projectId}`),
+    );
+    const destination = targets.find(
+      (entry) =>
+        entry.computerId === data.destination.computerId &&
+        entry.projectId === data.destination.projectId,
+    );
+    if (!destination) {
+      throw new Error('Choose a registered factory folder.');
+    }
+    for (const entry of targets) {
+      const result = await runtimeRequest(
+        'factory.machine',
+        { projectId: entry.projectId, enabled: false, expectedRevision: entry.revision },
+        entry.target,
+      );
+      entry.revision = z.object({ revision: z.string() }).parse(result).revision;
+    }
+    await runtimeRequest(
+      'factory.machine',
+      { projectId: destination.projectId, enabled: true, expectedRevision: destination.revision },
+      destination.target,
+    );
+    return { selected: destination.computerId };
+  }
+  if (operation === 'computer-icon') {
+    const { id, icon } = z.object({ id: z.string(), icon: computerIconSchema }).parse(raw);
+    connection(id);
+    const icons = { ...computerIcons(), [id]: icon };
+    writeFileSync(`${iconsPath}.tmp`, JSON.stringify(icons), { mode: 0o600 });
+    renameSync(`${iconsPath}.tmp`, iconsPath);
+    return true;
+  }
   if (operation === 'boot') {
     return {
       activeId: activeComputerId,
+      computerIcons: computerIcons(),
       computers: [
         { ...own, hostId: local.hostId },
         ...computers.map(({ id, hostId, name, origin }) => ({
@@ -591,6 +687,32 @@ async function operate(operation, raw = {}) {
       ),
       target.hostId,
     );
+  }
+  if (operation === 'agent-history') {
+    return runtimeRequest('history.agent', z.object({ id: z.string() }).parse(input.data), target);
+  }
+  if (operation === 'factory-overview') {
+    const { readFactoryOverview, factoryOverviewInputSchema } =
+      await import('../runtime/client.mjs');
+    return readFactoryOverview(factoryOverviewInputSchema.parse(input.data), (method, payload) =>
+      runtimeRequest(method, payload, target),
+    );
+  }
+  if (operation === 'workspace-summary') {
+    const [agents, workspace] = await Promise.all([
+      runtimeRequest('agents.list', {}, target),
+      runtimeRequest('workspace.snapshot', {}, target),
+    ]);
+    const profiles = await runtimeRequest(
+      'factory.settings',
+      {
+        operation: 'read',
+        section: 'factories',
+        ids: workspace.snapshot.projects.map((project) => project.id),
+      },
+      target,
+    );
+    return { agents: agents.tasks, projects: workspace.snapshot.projects, profiles };
   }
   if (operation === 'state') {
     return request(target, '/v1/state');

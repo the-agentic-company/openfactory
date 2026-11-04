@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { computerIconSchema } from '../computer-workspaces';
 import { getCookie } from '@tanstack/react-start/server';
 
 const nativeAgent = z.object({
@@ -45,6 +46,7 @@ export const connectionPreferencesPath = () =>
     'connections.json',
   );
 export const connectionPreferencesSchema = z.object({
+  computerIcons: z.record(z.string(), computerIconSchema).default({}),
   activeId: z.string().nullable(),
   computers: z.array(
     z.object({ id: z.string(), name: z.string(), origin: z.string(), token: z.string() }),
@@ -57,7 +59,7 @@ export async function connectionPreferences() {
     );
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      return { activeId: null, computers: [] };
+      return { activeId: null, computers: [], computerIcons: {} };
     }
     throw error;
   }

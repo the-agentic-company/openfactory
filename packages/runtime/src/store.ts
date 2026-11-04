@@ -1,3 +1,4 @@
+import { migrateMachineAssignment } from '@openfactory/protocol/legacy-machine';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,13 +31,25 @@ export class Store {
   }
   get<S extends z.ZodType>(table: Table, id: string, schema: S): z.output<S> | null {
     const row = this.db.prepare(`SELECT data FROM ${table} WHERE id = ?`).get(id);
-    return row ? schema.parse(JSON.parse(valueSchema.parse(row).data)) : null;
+    return row
+      ? schema.parse(
+          table === 'projects'
+            ? migrateMachineAssignment(JSON.parse(valueSchema.parse(row).data))
+            : JSON.parse(valueSchema.parse(row).data),
+        )
+      : null;
   }
   all<S extends z.ZodType>(table: Table, schema: S): z.output<S>[] {
     return this.db
       .prepare(`SELECT data FROM ${table} ORDER BY rowid`)
       .all()
-      .map((row) => schema.parse(JSON.parse(valueSchema.parse(row).data)));
+      .map((row) =>
+        schema.parse(
+          table === 'projects'
+            ? migrateMachineAssignment(JSON.parse(valueSchema.parse(row).data))
+            : JSON.parse(valueSchema.parse(row).data),
+        ),
+      );
   }
   put(table: Table, id: string, value: unknown) {
     this.db
