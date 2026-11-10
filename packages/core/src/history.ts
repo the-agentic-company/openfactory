@@ -11,6 +11,13 @@ export const capacityRetrySchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('continued'), runId: z.string() }),
   z.object({ status: z.literal('cancelled') }),
 ]);
+export const runUsageSchema = z.object({
+  input: z.number().nonnegative(),
+  cached: z.number().nonnegative(),
+  cacheWrite: z.number().nonnegative(),
+  output: z.number().nonnegative(),
+  costUsd: z.number().nonnegative().nullable(),
+});
 export const agentRunSchema = z.object({
   id: z.string(),
   agentId: z.string(),
@@ -42,16 +49,7 @@ export const threadHistorySchema = z.object({
       requestedAt: z.string(),
       startedAt: z.string().nullable(),
       completedAt: z.string().nullable(),
-      usage: z
-        .object({
-          input: z.number(),
-          cached: z.number(),
-          cacheWrite: z.number(),
-          output: z.number(),
-          costUsd: z.number().nullable(),
-        })
-        .nullable()
-        .optional(),
+      usage: runUsageSchema.nullish(),
       error: z.string().nullable().optional(),
       capacityRetry: capacityRetrySchema.nullable().optional(),
     }),

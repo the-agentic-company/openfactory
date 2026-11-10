@@ -45,7 +45,10 @@ export function parseProviderEvent(provider: string, source: string): ProviderEv
           {
             type: 'usage',
             usage: {
-              input: usage.input_tokens - usage.cached_input_tokens,
+              input: Math.max(
+                0,
+                usage.input_tokens - usage.cached_input_tokens - usage.cache_write_input_tokens,
+              ),
               cached: usage.cached_input_tokens,
               cacheWrite: usage.cache_write_input_tokens,
               output: usage.output_tokens,
@@ -98,27 +101,29 @@ export function parseProviderEvent(provider: string, source: string): ProviderEv
           result: z.string().optional(),
           errors: z.array(z.string()).optional(),
           usage: claudeUsageSchema.optional(),
+          total_cost_usd: z.number().nonnegative().optional(),
         })
         .parse(raw);
       const events: ProviderEvent[] = [{ type: 'session', id: result.session_id }];
+      if (result.usage) {
+        events.push({
+          type: 'usage',
+          usage: {
+            input: result.usage.input_tokens,
+            cached: result.usage.cache_read_input_tokens,
+            cacheWrite: result.usage.cache_creation_input_tokens,
+            output: result.usage.output_tokens,
+            costUsd: result.total_cost_usd ?? null,
+          },
+        });
+      }
+
       if (result.is_error) {
         events.push({
           type: 'error',
           message: result.errors?.join('\n') || result.result || 'Claude execution failed.',
         });
       } else {
-        if (result.usage) {
-          events.push({
-            type: 'usage',
-            usage: {
-              input: result.usage.input_tokens,
-              cached: result.usage.cache_read_input_tokens,
-              cacheWrite: result.usage.cache_creation_input_tokens,
-              output: result.usage.output_tokens,
-              costUsd: null,
-            },
-          });
-        }
         events.push({ type: 'completed' });
       }
       return events;

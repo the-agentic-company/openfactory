@@ -1,3 +1,4 @@
+import { apiCost } from './run-usage';
 import { runPathParams } from '../run-path';
 import { projectName } from '../project-path';
 import { relativeRunTime, runBucket, runLinks, type Agent } from '@openfactory/core';
@@ -112,6 +113,9 @@ export function RunList({
                   {pr.label.split('#').at(-1) ? `PR ${pr.label.split('#').at(-1)}` : 'PR'}
                 </span>
               ))}
+              <span className="run-usage-chip" title="API-equivalent cost in USD">
+                {run.usage?.costUsd != null ? apiCost(run.usage.costUsd) : 'Cost —'}
+              </span>
               <span className="run-source-chip">
                 <Globe size={13} />
                 {runSource(run)}

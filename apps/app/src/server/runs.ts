@@ -1,3 +1,4 @@
+import { loadUsageRates, priceRunUsage } from '@openfactory/runtime/run-usage';
 import { notFound } from '@tanstack/react-router';
 import { projectWorkspace } from '../project-path';
 import { routeReference } from '../run-path';
@@ -43,7 +44,25 @@ async function runDetail(data: { threadId: string; runId: string }, byReference 
       }),
     })
     .parse(await runtimeRpc('workspace.snapshot', {}));
-  return projectRunDetail(projection, run.id, shell.snapshot.projects, await readScorers());
+  const rates = await loadUsageRates();
+  const priced = {
+    ...projection,
+    runs: projection.runs.map((item) => ({
+      ...item,
+      usage:
+        item.usage && item.modelSelection
+          ? priceRunUsage(
+              item.usage,
+              item.modelSelection.model,
+              rates,
+              typeof item.modelSelection.options?.serviceTier === 'string'
+                ? item.modelSelection.options.serviceTier
+                : 'default',
+            )
+          : item.usage,
+    })),
+  };
+  return projectRunDetail(priced, run.id, shell.snapshot.projects, await readScorers());
 }
 
 export const getRunDetail = createServerFn({ method: 'GET' })

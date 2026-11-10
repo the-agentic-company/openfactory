@@ -12,7 +12,8 @@
     "./usage": "./src/usage.ts",
     "./usage-parser": "./src/usage-parser.ts",
     "./agent-usage": "./src/agent-usage.ts",
-    "./reporting": "./src/run-report.ts"
+    "./reporting": "./src/run-report.ts",
+    "./run-usage": "./src/run-usage.ts"
   },
   "scripts": {
     "build": "vp build",
