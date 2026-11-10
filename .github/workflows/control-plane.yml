@@ -9,6 +9,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      OPENFACTORY_TEST_BROWSER_EXECUTABLE: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -16,7 +18,7 @@ jobs:
         with:
           node-version: 26
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install chromium --with-deps
+      - run: /usr/bin/google-chrome --version
       - run: node --test deployment/docker/gateway.test.mjs
       - run: docker build -f deployment/docker/Dockerfile -t openfactory-control-plane:verify .
       - run: node deployment/docker/verify-image.mjs openfactory-control-plane:verify
