@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,7 +71,7 @@ for (const target of targets) {
       await copyFile(join(staging, nodeStem, 'LICENSE'), join(directory, 'NODE-LICENSE'));
     }
     await chmod(join(directory, 'node'), 0o755);
-    await copyFile(join(root, 'packages/runtime/dist/runtime.mjs'), join(directory, 'runtime.mjs'));
+    await cp(join(root, 'packages/runtime/dist'), directory, { recursive: true });
     await copyFile(join(root, 'LICENSE'), join(directory, 'LICENSE'));
     await copyFile(join(root, 'THIRD_PARTY_NOTICES.md'), join(directory, 'THIRD_PARTY_NOTICES.md'));
     await copyFile(join(root, 'third-party/T3-CODE-LICENSE'), join(directory, 'T3-CODE-LICENSE'));
