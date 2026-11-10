@@ -79,7 +79,7 @@ export function createGateway({ origin, directory, upstream, registration = true
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
+      'referrer-policy': 'same-origin',
       'content-security-policy':
         "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
       ...headers,

@@ -21,7 +21,7 @@ docker run -d --name openfactory --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -e OPENFACTORY_PUBLIC_URL=https://openfactory.example.com \
   -v openfactory-data:/data \
-  public.ecr.aws/n6r4t0d8/openfactory/control-plane:v0.1.1
+  public.ecr.aws/n6r4t0d8/openfactory/control-plane:v0.1.2
 ```
 
 Pin the published digest in production. The container runs as UID 1000. Mount
@@ -41,6 +41,8 @@ the workspace has no execution host. Local-only setup actions are unavailable.
 ## Verify and release
 
 ```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
 node --test deployment/docker/gateway.test.mjs
 docker build -f deployment/docker/Dockerfile -t openfactory-control-plane:verify .
 node deployment/docker/verify-image.mjs openfactory-control-plane:verify
@@ -48,7 +50,8 @@ node deployment/docker/verify-image.mjs openfactory-control-plane:verify
 
 The image verifier starts a real container, registers a temporary account,
 checks app/API protection and server-rendered HTML, restarts the container,
-verifies persistent login, and tests logout. It deletes its container and volume.
+verifies persistent login, and tests logout. It also uses a real browser to
+submit registration, login, and logout forms and wait for the hydrated app. It deletes its container and volume.
 
 The `Control plane container` workflow verifies pull requests and publishes
 versioned multi-architecture images for `control-plane-v<semver>` tags. Configure

@@ -13,7 +13,7 @@ async function listen(server) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
-test('registration, persistent sessions, authenticated proxy, CSRF, and logout', async (t) => {
+await test('registration, persistent sessions, authenticated proxy, CSRF, and logout', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'openfactory-auth-'));
   const upstream = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
@@ -122,7 +122,7 @@ test('registration, persistent sessions, authenticated proxy, CSRF, and logout',
   assert.equal((await submit('/auth/login', form('a@example.com'))).status, 303);
 });
 
-test('gateway refuses public upstreams and insecure production origins', () => {
+await test('gateway refuses public upstreams and insecure production origins', () => {
   assert.throws(() =>
     createGateway({
       origin: 'http://example.com',
