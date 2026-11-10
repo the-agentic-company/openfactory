@@ -1,0 +1,55 @@
+name: Control plane container
+on:
+  pull_request:
+    paths: ['deployment/docker/**', '.dockerignore', '.github/workflows/control-plane.yml']
+  push:
+    tags: ['control-plane-v*']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - run: node --test deployment/docker/gateway.test.mjs
+      - run: docker build -f deployment/docker/Dockerfile -t openfactory-control-plane:verify .
+      - run: node deployment/docker/verify-image.mjs openfactory-control-plane:verify
+  publish:
+    if: startsWith(github.ref, 'refs/tags/control-plane-v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.OPENFACTORY_CONTAINER_RELEASE_ROLE_ARN }}
+          aws-region: us-east-1
+      - uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+      - uses: docker/setup-buildx-action@v3
+      - name: Select release tag
+        id: release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#control-plane-}"
+          [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deployment/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ vars.OPENFACTORY_CONTAINER_REPOSITORY }}:${{ steps.release.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
