@@ -15,9 +15,10 @@ async function listen(server) {
 
 test('registration, persistent sessions, authenticated proxy, CSRF, and logout', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'openfactory-auth-'));
-  const upstream = createServer((req, res) =>
-    res.end(JSON.stringify({ url: req.url, spoofed: req.headers['x-openfactory-user'] })),
-  );
+  const upstream = createServer((req, res) => {
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ url: req.url, spoofed: req.headers['x-openfactory-user'] }));
+  });
   const target = await listen(upstream);
   // Reserve a port to use the same canonical origin across a restart.
   const reserve = createServer();
@@ -63,6 +64,34 @@ test('registration, persistent sessions, authenticated proxy, CSRF, and logout',
     headers: { cookie, 'x-openfactory-user': 'admin' },
   });
   assert.deepEqual(await response.json(), { url: '/app?test=1' });
+  let trapRequests = 0;
+  const trap = createServer((_req, res) => {
+    trapRequests++;
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ trap: true }));
+  });
+  const trapOrigin = await listen(trap);
+  t.after(() => new Promise((resolve) => trap.close(resolve)));
+  const authority = new URL(trapOrigin).host;
+  const normalizedPath = `//${authority}/private`;
+  const proxyResult = await new Promise((resolve, reject) => {
+    const req = httpRequest(
+      origin,
+      { path: `/.//${authority}/private`, headers: { cookie, connection: 'close' } },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => resolve(JSON.parse(body)));
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  assert.deepEqual(proxyResult, { url: normalizedPath });
+  assert.equal(trapRequests, 0, 'Proxy paths must never choose another upstream');
+
   assert.equal(
     (await request('/private', { method: 'POST', headers: { cookie }, body: 'x' })).status,
     403,

@@ -21,7 +21,7 @@ docker run -d --name openfactory --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -e OPENFACTORY_PUBLIC_URL=https://openfactory.example.com \
   -v openfactory-data:/data \
-  public.ecr.aws/n6r4t0d8/openfactory/control-plane:v0.1.0
+  public.ecr.aws/n6r4t0d8/openfactory/control-plane:v0.1.1
 ```
 
 Pin the published digest in production. The container runs as UID 1000. Mount

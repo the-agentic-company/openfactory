@@ -257,8 +257,13 @@ export function createGateway({ origin, directory, upstream, registration = true
       headers['x-forwarded-proto'] = canonical.protocol.slice(0, -1);
       headers['x-forwarded-host'] = canonical.host;
       const proxied = proxyRequest(
-        new URL(url.pathname + url.search, target),
-        { method: req.method, headers },
+        {
+          hostname: '127.0.0.1',
+          port: target.port,
+          path: url.pathname + url.search,
+          method: req.method,
+          headers,
+        },
         (response) => {
           res.writeHead(response.statusCode ?? 502, {
             ...proxyHeaders(response.headers),
