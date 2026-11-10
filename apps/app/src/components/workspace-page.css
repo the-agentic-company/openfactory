@@ -85,6 +85,11 @@ main.workspace-page--fill {
   color: var(--color-muted);
   font-size: 13px;
 }
+@media (min-width: 741px) {
+  main.workspace-page--fill {
+    height: 100%;
+  }
+}
 @media (max-width: 740px) {
   .workspace-page-header {
     align-items: stretch;

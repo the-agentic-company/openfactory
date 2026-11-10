@@ -3123,9 +3123,6 @@ dialog.wide-panel[open] {
     border: 1px solid var(--workspace-sidebar-border);
     border-radius: 10px;
   }
-  main.workspace-page--fill {
-    height: 100%;
-  }
   .sidebar {
     overflow: hidden;
   }

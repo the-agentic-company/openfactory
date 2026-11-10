@@ -275,7 +275,7 @@ it('reads paired runners, deduplicates across machines, filters Dell and marks m
         expect.objectContaining({ machineId: 'dell', total: 36 }),
       ]),
     );
-    expect(await reportFleet(directory, { machine: 'dell-server' })).toMatchObject({
+    expect(await reportFleet(directory, { machine: 'dell' })).toMatchObject({
       total: 36,
       complete: true,
     });

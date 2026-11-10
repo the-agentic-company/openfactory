@@ -144,8 +144,8 @@ Removing a package does not delete your factory history or revoke tokens stored 
 
 ## Try it on macOS
 
-Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.3-arm64.dmg` for Apple Silicon (M1 or newer), or
-`dist/OpenFactory-0.1.3-x64.dmg` for an Intel Mac. Open the disk image and drag
+Requires macOS 13 or newer. Use `dist/OpenFactory-0.1.4-arm64.dmg` for Apple Silicon (M1 or newer), or
+`dist/OpenFactory-0.1.4-x64.dmg` for an Intel Mac. Open the disk image and drag
 **OpenFactory.app** into **Applications** before opening it, so the background host
 has a permanent location. Codex and the Tailscale CLI must be installed and signed in on that Mac.
 Homebrew's `/opt/homebrew/bin` and `/usr/local/bin` are included in the app's command lookup.
@@ -211,6 +211,18 @@ This follows T3 Code's [Electron updater adapter](https://github.com/pingdotgg/t
 and [explicit download/install flow](https://github.com/pingdotgg/t3code/blob/b823dcf5c/apps/desktop/src/updates/DesktopUpdates.ts).
 
 ## Release formats and terminal installation
+
+### Nightly builds
+
+Each push to `main` publishes a prerelease after validation, all desktop builds, and CLI verification pass.
+You can also run **Desktop builds** manually on `main` to retry a release.
+Download a nightly installer from the [releases page](https://github.com/the-agentic-company/openfactory-releases/releases).
+The website and stable update feed continue to use stable releases.
+
+Nightly versions use the next patch version and the workflow run number, such as `0.1.5-nightly.123`.
+Each release records its source commit and includes installers, CLI archives, and `SHA256SUMS`.
+Mac nightlies use the same signing, notarization, and mounted-DMG verification as stable releases.
+A failed build leaves the previous releases available. Publication uses a draft until all assets are uploaded.
 
 ### Configure Mac release signing
 

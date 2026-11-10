@@ -51,8 +51,8 @@ jobs:
             command: build:windows
     runs-on: ${{ matrix.os }}
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && 'true' || 'false' }}
-      OPENFACTORY_MAC_RELEASE: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && 'true' || 'false' }}
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && 'true' || 'false' }}
+      OPENFACTORY_MAC_RELEASE: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -61,6 +61,9 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Set nightly version
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/prepare-nightly.mjs
       - name: Verify local runtime transport
         run: pnpm exec vp test packages/runtime/src/ipc.test.ts
       - name: Prepare Apple notarization key
@@ -85,11 +88,11 @@ jobs:
         run: pnpm --filter @openfactory/desktop ${{ matrix.command }}
         env:
           GH_TOKEN: ${{ github.token }}
-          CSC_LINK: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          CSC_LINK: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && secrets.MAC_CSC_KEY_PASSWORD || '' }}
           APPLE_API_KEY: ${{ runner.temp }}/openfactory-notary.p8
-          APPLE_API_KEY_ID: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v') && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY_ID: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main') && secrets.APPLE_API_ISSUER || '' }}
       - name: Remove Apple notarization key
         if: always() && env.OPENFACTORY_MAC_RELEASE == 'true'
         shell: bash
@@ -129,6 +132,9 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Set nightly version
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/prepare-nightly.mjs
       - run: pnpm runtime:build
       - name: Package self-contained CLI archives
         run: node scripts/package-cli.mjs linux-x64 linux-arm64 darwin-x64 darwin-arm64
@@ -142,7 +148,7 @@ jobs:
           path: apps/desktop/dist/openfactory-cli-*.tar.gz
 
   release:
-    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    if: startsWith(github.ref, 'refs/tags/desktop-v') || github.ref == 'refs/heads/main'
     needs: [build, cli]
     runs-on: ubuntu-latest
     permissions:
@@ -152,6 +158,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26
+      - name: Set nightly version
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/prepare-nightly.mjs
       - uses: actions/download-artifact@v8
         with:
           pattern: desktop-*
@@ -162,8 +171,32 @@ jobs:
       - name: Publish all installers together
         env:
           GH_TOKEN: ${{ secrets.OPENFACTORY_RELEASES_TOKEN || github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
           RELEASE_REPOSITORY: ${{ vars.OPENFACTORY_RELEASES_REPOSITORY || 'the-agentic-company/openfactory-releases' }}
         run: |
+          if [ "$GITHUB_REF" = 'refs/heads/main' ]; then
+            version=$(node -p "JSON.parse(require('fs').readFileSync('apps/desktop/package.json')).version")
+            tag="desktop-v$version"
+            notes="$RUNNER_TEMP/nightly-notes.md"
+            cat > "$notes" <<EOF
+          Built from https://github.com/$SOURCE_REPOSITORY/commit/$SOURCE_SHA.
+
+          This is a preview of main and may contain unfinished changes. Mac installers are Developer ID signed and notarized by Apple. Windows installers are unsigned.
+
+          Download the DMG for your Mac: arm64 for Apple Silicon, x64 for Intel. SHA256SUMS contains checksums for all installers and CLI archives.
+          EOF
+            if ! gh release view "$tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+              gh release create "$tag" --repo "$RELEASE_REPOSITORY" \
+                --target main --draft --prerelease --latest=false \
+                --title "OpenFactory nightly $version" --notes-file "$notes"
+            fi
+            gh release upload "$tag" installers/* --clobber --repo "$RELEASE_REPOSITORY"
+            gh release edit "$tag" --repo "$RELEASE_REPOSITORY" \
+              --draft=false --prerelease --latest=false \
+              --title "OpenFactory nightly $version" --notes-file "$notes"
+            exit 0
+          fi
           if [ "$RELEASE_REPOSITORY" = "$GITHUB_REPOSITORY" ]; then
             tag_options=(--verify-tag)
           else
