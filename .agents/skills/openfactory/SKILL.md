@@ -1,15 +1,15 @@
 ---
-name: open-factory
+name: openfactory
 description: Create and configure OpenFactory factories, agents, schedules, and teams for a repository. Use when asked to build an agent factory or manage work through OpenFactory.
 ---
 
-# Open Factory
+# OpenFactory
 
 Use OpenFactory to register a repository as a factory and run Codex or Claude Code agents on the runtime host. A factory is a project with an absolute working directory; agents own their prompts, provider settings, permissions, and triggers. Teams add shared guidance and reporting lines.
 
 ## Locate the installation
 
-The skill may be symlinked into another repository. Resolve this skill directory's real path: the OpenFactory checkout is three directories above it (`.agents/skills/open-factory`). In this installation it is `/home/baptiste/git/openfactory`. Keep the target repository separate from the OpenFactory checkout.
+The skill may be symlinked into another repository. Resolve this skill directory's real path: the OpenFactory checkout is three directories above it (`.agents/skills/openfactory`). In this installation it is `/home/baptiste/git/openfactory`. Keep the target repository separate from the OpenFactory checkout.
 
 Run CLI commands from OpenFactory, even when creating a factory for another repository:
 
