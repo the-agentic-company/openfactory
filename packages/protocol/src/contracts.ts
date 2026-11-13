@@ -2,6 +2,7 @@ import {
   agentSchema,
   scheduleSchema,
   threadHistorySchema,
+  runUsageSchema,
   workspaceStrategySchema,
 } from '@openfactory/core';
 import { z } from 'zod';
@@ -35,13 +36,7 @@ export const ownedAgentSchema = agentSchema.extend({
   workspaceStrategy: workspaceStrategySchema.default({ type: 'root' }),
 });
 export type OwnedAgent = z.infer<typeof ownedAgentSchema>;
-export const usageSchema = z.object({
-  input: z.number(),
-  cached: z.number(),
-  cacheWrite: z.number(),
-  output: z.number(),
-  costUsd: z.number().nullable(),
-});
+export const usageSchema = runUsageSchema;
 export const runSchema = threadHistorySchema.shape.runs.element.extend({
   status: z.enum(['queued', 'running', 'completed', 'failed', 'interrupted']),
   threadId: z.string(),

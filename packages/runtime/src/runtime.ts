@@ -1,3 +1,5 @@
+import { enrichRunUsage } from './run-usage-history';
+import { loadUsageRates, priceRunUsage } from './run-usage';
 import { repositoryIdentity } from './repository-identity';
 import { loadAgentUsage } from './agent-usage';
 import { readFactoryRuns, readAgentProjections, type RuntimeCall } from '@openfactory/client';
@@ -452,7 +454,14 @@ export class AgentRuntime {
     }
     let session = this.getSession(run.threadId);
     let interrupted = false;
+    this.active.set(session.thread.id, {
+      runId,
+      stop: () => {
+        interrupted = true;
+      },
+    });
     try {
+      const rates = await loadUsageRates();
       run = { ...run, status: 'running', startedAt: now() };
       this.store.put('runs', run.id, run);
       const agent = this.getAgent(run.agentId);
@@ -502,6 +511,10 @@ export class AgentRuntime {
         throw new Error('The saved prompt is missing.');
       }
       const appPaths = this.apps.ensure(this.getAgent(session.thread.agentId));
+      if (interrupted || this.stopped) {
+        interrupted = true;
+        throw new Error('Stopped before the provider started.');
+      }
       const worker = launchProvider(
         session,
         message.text,
@@ -550,7 +563,19 @@ export class AgentRuntime {
                 session = { ...session, codexUsageTotals: event.usage };
               }
               this.store.transaction(() => {
-                this.store.put('runs', runId, { ...current, usage });
+                this.store.put('runs', runId, {
+                  ...current,
+                  usage: usage
+                    ? priceRunUsage(
+                        usage,
+                        session.modelSelection.model,
+                        rates,
+                        typeof session.modelSelection.options?.serviceTier === 'string'
+                          ? session.modelSelection.options.serviceTier
+                          : 'default',
+                      )
+                    : null,
+                });
                 this.store.put('sessions', session.thread.id, session);
               });
             }
@@ -1091,7 +1116,7 @@ export class AgentRuntime {
     },
     'sessions.read': async (input: unknown) => {
       const { threadId } = runtimeInputs['sessions.read'].parse(input);
-      return { projection: this.projection(threadId) };
+      return { projection: await enrichRunUsage(this.projection(threadId)) };
     },
     'sessions.projection': async (input: unknown) => {
       const { threadId } = runtimeInputs['sessions.projection'].parse(input);

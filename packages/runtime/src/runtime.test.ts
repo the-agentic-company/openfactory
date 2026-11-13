@@ -71,6 +71,9 @@ if (claude) {
 `,
   );
   await chmod(binary, 0o700);
+  const rates = join(directory, 'rates.json');
+  await writeFile(rates, JSON.stringify({ fetchedAtMs: Date.now(), document: {} }));
+  vi.stubEnv('OPENFACTORY_USAGE_RATES_FILE', rates);
   vi.stubEnv('OPENFACTORY_CODEX_BIN', binary);
   vi.stubEnv('OPENFACTORY_CLAUDE_BIN', binary);
   runtime = new AgentRuntime(directory);

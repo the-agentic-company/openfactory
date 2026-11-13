@@ -5,15 +5,17 @@ const envelope = z.object({ timestamp: z.string(), type: z.string(), payload: z.
 const context = z.object({ turn_id: z.string(), model: z.string() });
 const tokenEvent = z.object({
   type: z.literal('token_count'),
-  info: z.object({
-    last_token_usage: z.object({
-      input_tokens: count,
-      cached_input_tokens: count,
-      cache_write_input_tokens: count,
-      output_tokens: count,
-      reasoning_output_tokens: count,
-    }),
-  }),
+  info: z
+    .object({
+      last_token_usage: z.object({
+        input_tokens: count,
+        cached_input_tokens: count,
+        cache_write_input_tokens: count,
+        output_tokens: count,
+        reasoning_output_tokens: count,
+      }),
+    })
+    .passthrough(),
 });
 export type UsageRecord = {
   turnId: string;
@@ -58,7 +60,7 @@ export function createCodexUsageParser() {
       return null;
     }
     const tokens = usage.data.info.last_token_usage;
-    const nextSignature = JSON.stringify(tokens);
+    const nextSignature = JSON.stringify(usage.data.info);
     if (signature === nextSignature) {
       return null;
     }
@@ -92,8 +94,35 @@ export const ratesSchema = z.object({
 export function estimateCost(
   record: UsageRecord,
   document: z.infer<typeof ratesSchema>['document'],
+  serviceTier = 'default',
 ) {
-  const parsed = rate.safeParse(document[record.model] ?? document[`openai/${record.model}`]);
+  const entry = z
+    .record(z.string(), z.unknown())
+    .safeParse(
+      document[record.model] ??
+        document[`openai/${record.model}`] ??
+        document[`anthropic/${record.model}`],
+    );
+  if (!entry.success) {
+    return null;
+  }
+  const suffix =
+    serviceTier === 'default' || serviceTier === 'standard'
+      ? ''
+      : serviceTier === 'fast' || serviceTier === 'priority'
+        ? '_priority'
+        : serviceTier === 'ultrafast'
+          ? '_ultrafast'
+          : null;
+  if (suffix === null) {
+    return null;
+  }
+  const parsed = rate.safeParse({
+    input_cost_per_token: entry.data[`input_cost_per_token${suffix}`],
+    output_cost_per_token: entry.data[`output_cost_per_token${suffix}`],
+    cache_read_input_token_cost: entry.data[`cache_read_input_token_cost${suffix}`],
+    cache_creation_input_token_cost: entry.data[`cache_creation_input_token_cost${suffix}`],
+  });
   if (!parsed.success) {
     return null;
   }

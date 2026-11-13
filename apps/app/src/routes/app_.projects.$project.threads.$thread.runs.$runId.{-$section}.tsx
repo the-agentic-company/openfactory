@@ -1,3 +1,4 @@
+import { RunUsage } from '../components/run-usage';
 import { WorkspacePage } from '../components/workspace-page';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -35,7 +36,7 @@ export const Route = createFileRoute(
     parse: (params) => ({
       ...params,
       section: z
-        .enum(['timeline', 'agents', 'scores', 'metadata'])
+        .enum(['timeline', 'agents', 'scores', 'cost', 'metadata'])
         .optional()
         .parse(params.section),
     }),
@@ -79,12 +80,13 @@ export const Route = createFileRoute(
   },
 });
 type Detail = Awaited<ReturnType<typeof getRunDetail>>;
-const tabs = ['Timeline', 'Agents', 'Scores', 'Artifacts', 'Metadata'] as const;
+const tabs = ['Timeline', 'Agents', 'Scores', 'Artifacts', 'Cost', 'Metadata'] as const;
 const runSections = {
   Timeline: 'timeline',
   Agents: 'agents',
   Scores: 'scores',
   Artifacts: undefined,
+  Cost: 'cost',
   Metadata: 'metadata',
 } as const;
 function stamp(value: string) {
@@ -376,6 +378,7 @@ function RunPage() {
                   </>
                 )}
                 {tab === 'Artifacts' && <RunArtifacts detail={detail} />}
+                {tab === 'Cost' && <RunUsage run={detail.run} />}
                 {tab === 'Metadata' && (
                   <>
                     <h2>Run metadata</h2>

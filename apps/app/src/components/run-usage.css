@@ -1,0 +1,43 @@
+.run-usage {
+  font-size: 12px;
+}
+.run-usage h2 {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.run-usage dl {
+  margin: 0;
+}
+.run-usage dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+}
+.run-usage dt {
+  color: var(--color-muted);
+}
+.run-usage dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.run-usage .run-usage-cost {
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+.run-usage-cost dd {
+  font-weight: 600;
+}
+.run-usage p {
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 12px 0 0;
+}
+.run-usage-chip {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
