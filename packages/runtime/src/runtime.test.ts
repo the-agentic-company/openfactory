@@ -135,6 +135,25 @@ describe('owned runtime', () => {
     ).toBeTruthy();
   });
 
+  it('starts a manual run with a message appended to the agent prompt', async () => {
+    const agent = await create();
+    const receipt = receiptSchema.parse(
+      await runtime.operations['agents.run']({
+        id: agent.id,
+        requestId: 'with-text',
+        text: 'What changed today?',
+      }),
+    );
+    expect((await finished(receipt.runId)).status).toBe('completed');
+    const projection = z
+      .object({ messages: z.array(z.object({ role: z.string(), text: z.string() })) })
+      .parse(await runtime.operations['sessions.projection']({ threadId: receipt.threadId }));
+    expect(projection.messages[0]).toEqual({
+      role: 'user',
+      text: 'Hello\n\nRequest:\nWhat changed today?',
+    });
+  });
+
   it('deduplicates manual requests and rejects changed content for a follow-up key', async () => {
     const agent = await create();
     const first = receiptSchema.parse(

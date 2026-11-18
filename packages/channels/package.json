@@ -1,0 +1,28 @@
+{
+  "name": "@openfactory/channels",
+  "private": true,
+  "license": "Apache-2.0",
+  "bin": {
+    "openfactory-channels": "./dist/channels.mjs"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "vp build",
+    "start": "node dist/channels.mjs serve"
+  },
+  "dependencies": {
+    "@chat-adapter/slack": "4.45.0",
+    "@chat-adapter/state-memory": "4.45.0",
+    "@openfactory/runtime": "workspace:*",
+    "chat": "4.45.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vite-plus": "catalog:"
+  }
+}
