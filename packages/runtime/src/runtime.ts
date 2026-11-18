@@ -1086,8 +1086,9 @@ export class AgentRuntime {
     'agents.run': async (input: unknown) => {
       const data = runtimeInputs['agents.run'].parse(input);
       const agent = this.configuredAgent(data.id);
+      const text = data.text ? `${agent.prompt}\n\nRequest:\n${data.text}` : agent.prompt;
       const receipt = this.store.transaction(() =>
-        this.enqueue(agent, agent.prompt, `manual:${data.requestId}`, 'web'),
+        this.enqueue(agent, text, `manual:${data.requestId}`, 'web'),
       );
       this.tick();
       return { task: this.publicAgent(this.getAgent(agent.id)), ...receipt };

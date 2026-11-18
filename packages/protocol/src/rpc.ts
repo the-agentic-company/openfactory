@@ -143,7 +143,10 @@ export const runtimeInputs = {
     enabled: z.boolean(),
     nextRunAt: z.iso.datetime().nullable().optional(),
   }),
-  'agents.run': id.extend({ requestId: z.string().min(1) }),
+  'agents.run': id.extend({
+    requestId: z.string().min(1),
+    text: z.string().trim().min(1).max(16000).optional(),
+  }),
   'agents.deliveries': id,
   'agents.webhookSecret': id.extend({ secret: z.string().min(16) }),
   'sessions.read': threadId,
