@@ -1,0 +1,12 @@
+.git
+.jj
+**/node_modules
+**/.output
+**/dist
+**/.vite
+output
+.env*
+**/.env*
+factory
+factories
+teams
